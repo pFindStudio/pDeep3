@@ -1,0 +1,13 @@
+*.db
+*.opendb
+*.pyd
+*.zip
+*.c
+*.nogit
+*.mgf
+*.speclib.txt
+
+**/cython/**/*.c
+**/cython/test/*
+**/__pycache__/*
+**/build/*
