@@ -14,7 +14,7 @@ class pDeepPrediction:
     def __init__(self, param, peptide_prediction_dict):
         '''
         @param param. Parameters from pDeep.cfg.
-        @param peptide_prediction_dict. pDeep predicted intensites for all peptides, stored in a dict where the key is a peptide and the value is predicted intensities of peptide's fragments.
+        @param peptide_prediction_dict. pDeep predicted intensites for all peptides, stored in a dict where the key is a peptide and the value is predicted intensities (np.ndarray, shape=[n-1,8]) of peptide's fragments.
         '''
         self.param = param
         self.peptide_prediction_dict = peptide_prediction_dict
