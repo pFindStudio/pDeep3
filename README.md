@@ -5,22 +5,22 @@ python >= 3.5
 
 tensorflow == 1.13.1 (tensorflow == 1.x, where x >= 13)
 
-.NET Framework == 4.5.2 (or higher? to execute pLabel)
+.NET Framework == 4.5.2 (or higher? to execute psmLabel)
 
-## Preparing fine-tuning data using pLabel
-***pLabel now can directly access raw files by using Thermo RawFileReader.***
+## Preparing fine-tuning data using psmLabel
+***psmLabel now can directly access raw files by using Thermo RawFileReader.***
 
-Run pLabel:
+Run psmLabel:
 ```
-cd pLabel
-pLabel.exe pLabel-sample.cfg
+cd psmLabel
+psmLabel.exe psmLabel-sample.cfg
 ```
 or in linux, run .NET applications using mono:
 ```
-mono pLabel.exe pLabel-sample.cfg
+mono psmLabel.exe psmLabel-sample.cfg
 ```
 
-Example of pLabel-sample.cfg:
+Example of psmLabel-sample.cfg:
 ```
 psm_type = none
 mode = pDeep
@@ -48,9 +48,9 @@ raw_sample2	10709	TCEATHKTSTSPIVKSF	16,Phospho[S];	2
 ```
 ***Check the names of modifications in pDeep/config/modification.py.***
 
-Users now can prepare a engine-independent input psm file (psm_sample.txt) for pLabel.
+Users now can prepare a engine-independent input psm file (psm_sample.txt) for psmLabel.
 
-After executing "pLabel.exe pLabel-sample.cfg", it will generate two result files at specified output_folder (D:\plabel\output in the example) named after the two raw files: raw_sample1.psmlabel and raw_sample2.psmlabel, these two files can be used to fine-tune/train and test the pDeep model.
+After executing "psmLabel.exe psmLabel-sample.cfg", it will generate two result files at specified output_folder (D:\plabel\output in the example) named after the two raw files: raw_sample1.psmlabel and raw_sample2.psmlabel, these two files can be used to fine-tune/train and test the pDeep model.
 
 ## fine-tune and predict
 Usage:
