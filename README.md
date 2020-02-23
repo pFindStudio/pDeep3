@@ -57,7 +57,7 @@ Usage:
 ```
 python -m pDeep.cmd.tune_and_predict tmp/predict/pDeep-tune.cfg
 ```
-***There will be quite a few warnings when importing tensorflow, ignore them.***
+***There will be quite a few warnings when importing tensorflow, just ignore them.***
 
 Example of tmp/predict/pDeep-tune.cfg:
 ```
