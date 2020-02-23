@@ -84,3 +84,11 @@ test_psmlabels = tmp\data\Olsen-Chymo-QE-28\raw1\20150708_QE3_UPLC8_DBJ_QC_HELA_
 See pDeep.cmd.tune_and_predict.py for details.
 
 ***Note that pDeep/cmd/tune_and_predict.py can also be imported and called by other python scripts.***
+```
+import pDeep.cmd.tune_and_predict
+pdeep_prediction = tune_and_predict.run("tmp/predict/pDeep-tune.cfg")
+for peptide, intensities in pdeep_prediction.peptide_prediction_dict.items():
+    print("b+ ions of %s ="%peptide, pdeep_prediction.GetIntensitiesByIonType(intensities, "b", 1)) # get b+ ions
+for peptide, intensities in pdeep_prediction.peptide_prediction_dict.items():
+    print("y+ ions of %s ="%peptide, pdeep_prediction.GetIntensitiesByIonType(intensities, "y", 1)) # get y+ ions
+```
