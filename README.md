@@ -1,12 +1,14 @@
-# pDeep
+# pDeep3
 
 ## System requirements
 python >= 3.5
+
 tensorflow == 1.13.1 (tensorflow == 1.x, where x >= 13)
+
 .NET Framework == 4.5.2 (or higher? to execute pLabel)
 
 ## Preparing fine-tuning data using pLabel
-*** pLabel now can directly access raw files by using Thermo RawFileReader.
+***pLabel now can directly access raw files by using Thermo RawFileReader.***
 Run pLabel:
 ```
 cd pLabel
@@ -43,7 +45,7 @@ raw_sample1	7932	TCEATHKTSTSPIVKSF	2,Carbamidomethyl[C];	2
 raw_sample1	13419	KIDGMERQDGVLNSW		3
 raw_sample2	10709	TCEATHKTSTSPIVKSF	16,Phospho[S];	2
 ```
-*** Check the names of modifications in pDeep/config/modification.py 
+***Check the names of modifications in pDeep/config/modification.py.***
 
 Users now can prepare a engine-independent input psm file (psm_sample.txt) for pLabel.
 
@@ -54,7 +56,7 @@ Usage:
 ```
 python -m pDeep.cmd.tune_and_predict tmp/predict/pDeep-tune.cfg
 ```
-*** There will be quite a few warnings when importing tensorflow, ignore them.
+***There will be quite a few warnings when importing tensorflow, ignore them.***
 
 Example of tmp/predict/pDeep-tune.cfg:
 ```
@@ -80,4 +82,4 @@ test_psmlabels = tmp\data\Olsen-Chymo-QE-28\raw1\20150708_QE3_UPLC8_DBJ_QC_HELA_
 
 See pDeep.cmd.tune_and_predict.py for details.
 
-*** Note that pDeep/cmd/tune_and_predict.py can also be imported and called by other python scripts.
+***Note that pDeep/cmd/tune_and_predict.py can also be imported and called by other python scripts.***
