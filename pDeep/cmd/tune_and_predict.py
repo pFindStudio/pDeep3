@@ -64,7 +64,7 @@ def tune(param):
     pdeep = init_pdeep(param)
     
     if param.tune_psmlabels:
-        pdeep.BuildTransferModel(param.model) # load the pre-trained model
+        pdeep.BuildTransferModel(param.model) # load the trainable pre-trained model
     else:
         pdeep.LoadModel(param.model) # no transfer learning
     
