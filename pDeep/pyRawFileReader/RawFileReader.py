@@ -429,7 +429,9 @@ class RawFileReader(object):
             stream = self.source.GetCentroidStream(scanNumber, False)
             return np.array([DotNetArrayToList(stream.Masses, float), DotNetArrayToList(stream.Intensities, float)])
         else:
-            raise "Profile scan {0} cannot be centroided!".format(scanNumber)
+            print("Profile scan {0} cannot be centroided!".format(scanNumber))
+            segmentedScan = self.source.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics)
+            return np.array([DotNetArrayToList(segmentedScan.Positions, float), DotNetArrayToList(segmentedScan.Intensities, float)])
 
     def GetMSOrderForScanNum(self, scanNumber):
         """This function returns the MS order for the scan specified by scanNumber from the scan
