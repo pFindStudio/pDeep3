@@ -103,7 +103,7 @@ class PeptideIonCalculator:
     def calc_y_from_b(self, bions, pepmass):
         return pepmass - bions
         
-    def calc_b_y_ions(self, peptide, modinfo, max_charge = 2):
+    def calc_by_and_pepmass(self, peptide, modinfo, max_charge = 2):
         mod_cumsum, _, _ = self.calc_modification_mass(peptide, modinfo)
         bions, pepmass = self.calc_b_ions_and_pepmass(peptide, mod_cumsum)
         yions = self.calc_y_from_b(bions, pepmass)
@@ -111,7 +111,7 @@ class PeptideIonCalculator:
         ions = [bions/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)]
         ions.extend([yions/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
         
-        return np.array(ions).T #.T, from 4xn to nx4, time step first
+        return np.array(ions).T, pepmass #.T, from 4xn to nx4, time step first
 
     def calc_a_from_b(self, bions):
         return bions - self.base_mass.mass_CO

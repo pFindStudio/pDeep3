@@ -1,7 +1,7 @@
 from .bucket import peptide_as_key
 
 class pDeepPrediction:
-    def __init__(self, config, peptide_buckets, predict_buckets):
+    def __init__(self, config, peptide_buckets, predict_buckets, predict_RT_buckets = None):
         '''
         @param config. from pDeep.config.pDeep_config
         @param peptide_buckets. pDeep input buckets
@@ -9,6 +9,10 @@ class pDeepPrediction:
         '''
         self.config = config
         self.peptide_intensity_dict = peptide_as_key(peptide_buckets, predict_buckets)
+        if predict_RT_buckets:
+            self.peptide_RT_dict = peptide_as_key(peptide_buckets, predict_buckets)
+        else: 
+            self.peptide_RT_dict = {}
         
     def GetIntensitiesByIonType(self, intensities, ion_type, ion_charge):
         '''
@@ -22,6 +26,12 @@ class pDeepPrediction:
         if idx is None: return None
         else: return intensities[:,idx] 
     
+    def GetRetentionTime(self, pepinfo, modinfo = None, precursor_charge = None):
+        if precursor_charge is not None:
+            pepinfo = "%s|%s|%d"%(pepinfo, modinfo, precursor_charge)
+        if pepinfo not in self.peptide_RT_dict: return None
+        else: return self.peptide_RT_dict[pepinfo]
+        
     def GetIntensities(self, pepinfo, modinfo = None, precursor_charge = None):
         '''
         Get the predicted intensities (np.ndarray with shape=[n-1, 8]) for the given sequence, modinfo, precursor_charge. The order for the default 8 ion_types is [b+, b++, y+, y++, b-ModLoss+, b-ModLoss++, y-ModLoss+, y-ModLoss++]. If the peptide is not in predictions, return np.zeros.
