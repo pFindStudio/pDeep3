@@ -11,3 +11,4 @@
 **/cython/test/*
 **/__pycache__/*
 **/build/*
+**/pyRawFileReader/*
