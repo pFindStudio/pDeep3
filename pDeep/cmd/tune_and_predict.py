@@ -7,37 +7,9 @@ from ..bucket import peptide_as_key
 from ..config import pDeep_config as pDconfig
 from .. import load_data as load_data
 from .. import evaluate as evaluate
-from ..import similarity_calc as sim_calc
-from ..import model_tf as model
-    
-class pDeepPrediction:
-    def __init__(self, param, peptide_prediction_dict):
-        '''
-        @param param. Parameters from pDeep.cfg.
-        @param peptide_prediction_dict. pDeep predicted intensites for all peptides, stored in a dict where the key is a peptide and the value is predicted intensities (np.ndarray, shape=[n-1,8]) of peptide's fragments.
-        '''
-        self.param = param
-        self.peptide_prediction_dict = peptide_prediction_dict
-        
-    def GetIntensitiesByIonType(self, intensities, ion_type, ion_charge):
-        '''
-        @param intensities. intensities is predicted intensities of a peptide, which is a np.ndarray with shape [len(sequence)-1, 8]. The order for 8 ion_types is [b+, b++, y+, y++, b-ModLoss+, b-ModLoss++, y-ModLoss+, y-ModLoss++].
-        @param ion_type. ion_type can be "b","y","b-ModLoss","y-ModLoss".
-        @param ion_charge. ion_charge can be 1 and 2.
-        
-        @return a predicted 1-D intensity np.ndarray for the given ion_type and ion_charge. Note that the order of the intensities is from N-term to C-term. For example, for 2+ b ions, the intensities are [b1++, b2++, b3++, ..., y(n-1)++]; for 2+ y ions, the intensities are [y(n-1)++, y(n-2)++, ..., y2++, y1++]. If ion_type or ion_charge is not in the given list, return np.zeros.
-        '''
-        idx = self.param.config.GetIonIndexByIonType(ion_type, ion_charge)
-        if idx is None: return np.zeros((intensities.shape[0], 1), dtype=np.float32)
-        else: return intensities[:,idx] 
-    
-    def GetIntensities(self, sequence, modinfo, precursor_charge):
-        '''
-        Get the predicted intensities (np.ndarray with shape=[n-1, 8]) for the given sequence, modinfo, precursor_charge. The order for 8 ion_types is [b+, b++, y+, y++, b-ModLoss+, b-ModLoss++, y-ModLoss+, y-ModLoss++]. If the peptide is not in predictions, return np.zeros.
-        '''
-        pepinfo = "%s|%s|%d"%(sequence, modinfo, precursor_charge)
-        if pepinfo not in self.peptide_prediction_dict: return np.zeros((len(sequence)-1, len(self.param._ion_types)*self.param.config.max_ion_charge), dtype=np.float32)
-        return self.peptide_prediction_dict[pepinfo]
+from .. import similarity_calc as sim_calc
+from .. import model_tf as model
+from ..prediction import pDeepPrediction
         
 def load_param(pDeep_cfg):
     return pDeepParameter(pDeep_cfg)
@@ -106,15 +78,17 @@ def tune(param):
         
     return pdeep
      
-def predict(pdeep, param):
-    pep_buckets = load_data.load_peptide_file_as_buckets(param.predict_input, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
+def predict(pdeep, param, peptide_list = None):
+    if peptide_list is not None:
+        pep_buckets = load_data.load_peptides_as_buckets(peptide_list, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
+    else:
+        pep_buckets = load_data.load_peptide_file_as_buckets(param.predict_input, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
     start_time = time.perf_counter()
     predict_buckets = pdeep.Predict(pep_buckets)
     print('predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
-    peptide_prediction_dict = peptide_as_key(pep_buckets, predict_buckets)
-    return peptide_prediction_dict
+    return pep_buckets,predict_buckets
     
-def run(pDeep_cfg):
+def run(pDeep_cfg, peptide_list = None):
     '''
     @param pDeep_cfg. pDeep_cfg is the parameter file of pDeep, see "/pDeep-tune.cfg" for details.
     
@@ -123,7 +97,7 @@ def run(pDeep_cfg):
     param = load_param(pDeep_cfg)
     init_config(param)
     pdeep = tune(param)
-    return pDeepPrediction(param, predict(pdeep, param))
+    return pDeepPrediction(param.config, *predict(pdeep, param, peptide_list))
     
 if __name__ == "__main__":
     pdeep_prediction = run(sys.argv[1])
