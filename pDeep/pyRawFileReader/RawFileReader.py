@@ -6,7 +6,11 @@ import numpy as np
 import clr
 from System import String
 
-sys.path.append("psmLabel")
+if "-dllpath" in sys.argv:
+    idx = sys.index("-dllpath")
+    sys.path.append(sys.argv[idx+1])
+else:
+    sys.path.append("psmLabel")
 clr.AddReference("ThermoFisher.CommonCore.Data")
 clr.AddReference("ThermoFisher.CommonCore.RawFileReader")
 import ThermoFisher
