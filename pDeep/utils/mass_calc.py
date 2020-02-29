@@ -93,6 +93,13 @@ class PeptideIonCalculator:
             else:
                 retmods[site] = ""  # 0 PTM_NL_priority
         return np.cumsum(modmass), lossmass, retmods
+        
+    def calc_pepmass(self, peptide, modinfo):
+        if not modinfo:
+            return sum(self.AAMass[[ord(aa) for aa in peptide]])
+        else:
+            modmass = sum([self.ModMass[onemod[onemod.find(',')+1:]] for onemod in modinfo.strip(";").split(";")])
+            return sum(self.AAMass[[ord(aa) for aa in peptide]]) + modmass
 
     def calc_b_ions_and_pepmass(self, peptide, mod_cumsum):
         aa_cumsum = self.calc_aamass_cumsum(peptide)

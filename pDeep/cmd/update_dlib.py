@@ -5,7 +5,7 @@ import numpy as np
 from ..parameter import pDeepParameter
 from ..config import pDeep_config as pDconfig
 from ..prediction import pDeepPrediction
-from ..utils.encyclopedia.dlib import DLIB
+from ..spectral_library.encyclopedia.dlib import DLIB
 
 from .. import load_data as load_data
 from .. import model_tf as model

@@ -16,7 +16,7 @@ mod_dict = {
 
 # pack/unpack(fmt,...), fmt=">" means big-endian
 
-class DLIB:
+class DLIB(object):
     def __init__(self):
         self.sql_conn = None
         self._ion_calc = ion_calc()
@@ -44,7 +44,7 @@ class DLIB:
         self.sql_conn.execute(sql, (len(MassList)*8, EncodeMassList(MassList), len(IntensityList)*4, EncodeIntensityList(IntensityList), RT))
         if commit_now: sql_conn.commit()
     
-    def InsertPeptide(self, PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, MassList, IntensityList, RT, commit_now = False):
+    def InsertNewPeptide(self, PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, MassList, IntensityList, RT, ProteinACs = "", commit_now = False):
         sql = "INSERT INTO entries(PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, MassEncodedLength, MassArray, IntensityEncodedLength, IntensityArray, RTInSeconds, SourceFile, Copies, Score) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pDeep', 1, 0.001)"
         self.sql_conn.execute(sql, (
                 PeptideModSeq, 
@@ -57,6 +57,11 @@ class DLIB:
                 EncodeIntensityList(IntensityList), 
                 RT,
             ))
+        if ProteinACs:
+            for ProteinAccession in ProteinACs.split("/"):
+                cursor = self.sql_conn.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
+                if not cursor.fetchone():
+                    self.sql_conn.execute("INSERT INTO peptidetoprotein(PeptideSeq, isDecoy, ProteinAccession) VALUES ('%s', '0', '%s')"%(PeptideSeq, ProteinAccession))
         if commit_now: sql_conn.commit()
     
     def UpdateByPeptideDict(self, peptide_dict):
@@ -65,7 +70,7 @@ class DLIB:
             self.UpdateMassIntensity(modseq, charge, mass, intensity)
         self.sql_conn.commit()
     
-    def UpdateByPrediction(self, _prediction, intensity_threshold = 0.1):
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, intensity_threshold = 0.1):
         count = 0
         for pepinfo, intensities in _prediction.peptide_intensity_dict.items():
             count += 1
@@ -87,7 +92,7 @@ class DLIB:
                 self.UpdateMassIntensity(item[0], item[1], masses, intens, RT if RT else item[2])
             else:
                 pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
-                self.InsertPeptide(pDeepFormat2PeptideModSeq(seq, mod), seq, pepmass, charge, masses, intens, RT if RT else 0)
+                self.InsertNewPeptide(pDeepFormat2PeptideModSeq(seq, mod), seq, pepmass, charge, masses, intens, RT if RT else 0, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "")
             if count%10000 == 0:
                 self.sql_conn.commit()
                 print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
@@ -159,8 +164,8 @@ if __name__ == "__main__":
     
     peptide = 'AAAAAAAA'
     
-    dlib_obj.InsertPeptide(peptide, peptide, 100, 2, [0]*10, [0]*10, 11)
-    dlib_obj.InsertPeptide(peptide, peptide, 100, 3, [0]*10, [0]*10, 11)
+    dlib_obj.InsertNewPeptide(peptide, peptide, 100, 2, [0]*10, [0]*10, 11)
+    dlib_obj.InsertNewPeptide(peptide, peptide, 100, 3, [0]*10, [0]*10, 11)
     dlib_obj.sql_conn.commit()
 
     print ("Operation done successfully")

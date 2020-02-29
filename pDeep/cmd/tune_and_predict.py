@@ -84,6 +84,7 @@ def predict(pdeep, param, peptide_list = None):
     else:
         pep_buckets = load_data.load_peptide_file_as_buckets(param.predict_input, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
     start_time = time.perf_counter()
+    print("predicting ...")
     predict_buckets = pdeep.Predict(pep_buckets)
     print('predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
     return pep_buckets,predict_buckets
