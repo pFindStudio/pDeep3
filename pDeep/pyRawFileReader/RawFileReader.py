@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 
-#pythonnet
+# require pythonnet, pip install pythonnet
 import clr
 from System import String
 
@@ -27,7 +27,7 @@ def DotNetArrayToNPArray(arr, dtype):
     return np.array(list(arr), dtype=dtype)
 
 '''
-APIs are similar to pymsfilereader(https://github.com/frallain/pymsfilereader).
+APIs are similar to pymsfilereader(https://github.com/frallain/pymsfilereader), but some APIs have not be implemented yet."
 '''
 class RawFileReader(object):
     # static class members
@@ -287,7 +287,7 @@ class RawFileReader(object):
         NETD 9
         NPTR 10
         UVPD 11"""
-        return RawFileReader.activationType[IScanEventBase(self.source.GetScanEventForScanNumber(scanNumber)).GetActivation(MSOrder)] 
+        return RawFileReader.activationType[IScanEventBase(self.source.GetScanEventForScanNumber(scanNumber)).GetActivation(MSOrder)]
 
     def GetMassAnalyzerTypeForScanNum(self, scanNumber):
         """This function returns the mass analyzer type for the scan specified by scanNumber from the
@@ -454,6 +454,7 @@ class RawFileReader(object):
             return np.array([DotNetArrayToNPArray(segmentedScan.Positions, float), DotNetArrayToNPArray(segmentedScan.Intensities, float)])
 
 if __name__ == '__main__':
+    scanNumber = 10000
     rawFile = RawFileReader(sys.argv[1])
     print("GetFileName: ", rawFile.GetFileName())
     print("GetCreatorID: ", rawFile.GetCreatorID())
@@ -462,13 +463,18 @@ if __name__ == '__main__':
     print("GetComment1: ", rawFile.GetComment1())
     print("GetComment2: ", rawFile.GetComment2())
     print("GetInstName: ", rawFile.GetInstName())
-    scanNumber = 2000
+    
+    print("GetMSOrderForScanNum: ", rawFile.GetMSOrderForScanNum(scanNumber))
     print("GetScanEventForScanNum: ", rawFile.GetScanEventStringForScanNum(scanNumber))
     print("GetNumberOfSourceFragmentsFromScanNum: ", rawFile.GetNumberOfSourceFragmentsFromScanNum(scanNumber))
-    print("GetSourceFragmentValueFromScanNum: ", rawFile.GetSourceFragmentValueFromScanNum(scanNumber, 0))
-    print("GetIsolationWidthForScanNum: ", rawFile.GetIsolationWidthForScanNum(scanNumber))
-    print("GetCollisionEnergyForScanNum: ", rawFile.GetCollisionEnergyForScanNum(scanNumber))
-    print("GetActivationTypeForScanNum: ", rawFile.GetActivationTypeForScanNum(scanNumber))
+    if rawFile.GetNumberOfSourceFragmentsFromScanNum(scanNumber) > 0:
+        print("GetSourceFragmentValueFromScanNum: ", rawFile.GetSourceFragmentValueFromScanNum(scanNumber, 0))
+    if rawFile.GetMSOrderForScanNum(scanNumber) > 1:
+        print("GetIsolationWidthForScanNum: ", rawFile.GetIsolationWidthForScanNum(scanNumber))
+        print("GetCollisionEnergyForScanNum: ", rawFile.GetCollisionEnergyForScanNum(scanNumber))
+        print("GetActivationTypeForScanNum: ", rawFile.GetActivationTypeForScanNum(scanNumber))
+        print("GetPrecursorMassForScanNum: ", rawFile.GetPrecursorMassForScanNum(scanNumber))
+        print("GetPrecursorRangeForScanNum: ", rawFile.GetPrecursorRangeForScanNum(scanNumber))
     print("GetMassAnalyzerTypeForScanNum: ", rawFile.GetMassAnalyzerTypeForScanNum(scanNumber))
     print("GetNumberOfMassCalibratorsFromScanNum: ", rawFile.GetNumberOfMassCalibratorsFromScanNum(scanNumber))
     print("GetMassCalibrationValueFromScanNum: ", rawFile.GetMassCalibrationValueFromScanNum(scanNumber, 0))
@@ -487,10 +493,7 @@ if __name__ == '__main__':
     print("RTInSecondsFromScanNum: ", rawFile.RTInSecondsFromScanNum(scanNumber))
     print("ScanNumFromRTInSeconds: ", rawFile.ScanNumFromRTInSeconds(30))
     
-    print("GetMSOrderForScanNum: ", rawFile.GetMSOrderForScanNum(scanNumber))
     print("GetNumberOfMSOrdersFromScanNum: ", rawFile.GetNumberOfMSOrdersFromScanNum(scanNumber))
-    print("GetPrecursorMassForScanNum: ", rawFile.GetPrecursorMassForScanNum(scanNumber, 0))
-    print("GetPrecursorRangeForScanNum: ", rawFile.GetPrecursorRangeForScanNum(scanNumber, 0))
     print("GetBasePeakForScanNum: ", rawFile.GetBasePeakForScanNum(scanNumber))
     print("GetTrailerExtraForScanNum: ", rawFile.GetTrailerExtraForScanNum(scanNumber))
     print("GetCentroidMassListFromScanNum: ", rawFile.GetCentroidMassListFromScanNum(scanNumber))
