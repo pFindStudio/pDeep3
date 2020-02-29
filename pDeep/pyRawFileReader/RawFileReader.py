@@ -22,13 +22,11 @@ var trailerData = rawFile.GetTrailerExtraInformation(1);
 def DotNetArrayToNPArray(arr, dtype):
     return np.array(list(arr), dtype=dtype)
 
+'''
+APIs are similar to pymsfilereader(https://github.com/frallain/pymsfilereader).
+'''
 class RawFileReader(object):
     # static class members
-    
-    unknownStr = "Not Provided?"
-    
-    
-
     sampleType = {0: 'Unknown',
                   1: 'Blank',
                   2: 'QC',
@@ -234,7 +232,7 @@ class RawFileReader(object):
         return String.Join(" -> ", self.source.GetAllInstrumentNamesFromInstrumentMethod())
     # INSTRUMENT END
 
-    def GetScanEventForScanNum(self, scanNumber):
+    def GetScanEventStringForScanNum(self, scanNumber):
         """This function returns scan event information as a string for the specified scan number."""
         return self.source.GetScanEventStringForScanNumber(scanNumber)
 
@@ -384,44 +382,6 @@ class RawFileReader(object):
         profile scan."""
         return self.source.GetScanStatsForScanNumber(scanNumber).IsCentroidScan
 
-    def GetMassListFromScanNum(self, scanNumber,
-                               scanFilter="",
-                               intensityCutoffType=0,
-                               intensityCutoffValue=0,
-                               maxNumberOfPeaks=0,
-                               centroidResult=False,
-                               centroidPeakWidth=0.0):
-        """This function is only applicable to scanning devices such as MS and PDA.
-        If no scanFilter is supplied, the scan corresponding to pnScanNumber is returned. If a
-        scanFilter is provided, the closest matching scan to pnScanNumber that matches the scanFilter is
-        returned.
-        scanFilter must match the Xcalibur scanFilter format (e.g. "FTMS + c NSI Full ms [300.00-1800.00]").
-        To reduce the number of low intensity data peaks returned, an intensity cutoff,
-        nIntensityCutoffType, may be applied. The available types of cutoff are
-        0   None (all values returned)
-        1   Absolute (in intensity units)
-        2   Relative (to base peak)
-        To limit the total number of data peaks that are returned in the mass list, set
-        nMaxNumberOfPeaks to a value greater than zero. To have all data peaks returned, set
-        nMaxNumberOfPeaks to zero.
-        To have profile scans centroided, set bCentroidResult to TRUE. This parameter is ignored for
-        centroid scans.
-        The pvarPeakFlags variable is currently not used. This variable is reserved for future use to
-        return flag information, such as saturation, about each mass intensity pair.
-        """
-        scan = ThermoFisher.CommonCore.Data.Business.Scan.FromFile(self.source, scanNumber)
-        scanStatistics = self.source.GetScanStatsForScanNumber(scanNumber)
-        if scanStatistics.IsCentroidScan:
-            segmentedScan = self.source.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics)
-            return np.array([DotNetArrayToNPArray(segmentedScan.Positions, float), DotNetArrayToNPArray(segmentedScan.Intensities, float)])
-        elif scan.HasCentroidStream:
-            stream = self.source.GetCentroidStream(scanNumber, False)
-            return np.array([DotNetArrayToNPArray(stream.Masses, float), DotNetArrayToNPArray(stream.Intensities, float)])
-        else:
-            print("Profile scan {0} cannot be centroided!".format(scanNumber))
-            segmentedScan = self.source.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics)
-            return np.array([DotNetArrayToNPArray(segmentedScan.Positions, float), DotNetArrayToNPArray(segmentedScan.Intensities, float)])
-
     def GetMSOrderForScanNum(self, scanNumber):
         """This function returns the MS order for the scan specified by scanNumber from the scan
         event structure in the raw file.
@@ -475,6 +435,20 @@ class RawFileReader(object):
         trailerData = self.source.GetTrailerExtraInformation(scanNumber)
         return dict(zip(trailerData.Labels, trailerData.Values))
 
+    def GetCentroidMassListFromScanNum(self, scanNumber):
+        scan = ThermoFisher.CommonCore.Data.Business.Scan.FromFile(self.source, scanNumber)
+        scanStatistics = self.source.GetScanStatsForScanNumber(scanNumber)
+        if scanStatistics.IsCentroidScan:
+            segmentedScan = self.source.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics)
+            return np.array([DotNetArrayToNPArray(segmentedScan.Positions, float), DotNetArrayToNPArray(segmentedScan.Intensities, float)])
+        elif scan.HasCentroidStream:
+            stream = self.source.GetCentroidStream(scanNumber, False)
+            return np.array([DotNetArrayToNPArray(stream.Masses, float), DotNetArrayToNPArray(stream.Intensities, float)])
+        else:
+            print("Profile scan {0} cannot be centroided!".format(scanNumber))
+            segmentedScan = self.source.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics)
+            return np.array([DotNetArrayToNPArray(segmentedScan.Positions, float), DotNetArrayToNPArray(segmentedScan.Intensities, float)])
+
 if __name__ == '__main__':
     rawFile = RawFileReader(sys.argv[1])
     print("GetFileName: ", rawFile.GetFileName())
@@ -485,7 +459,7 @@ if __name__ == '__main__':
     print("GetComment2: ", rawFile.GetComment2())
     print("GetInstName: ", rawFile.GetInstName())
     scanNumber = 2000
-    print("GetScanEventForScanNum: ", rawFile.GetScanEventForScanNum(scanNumber))
+    print("GetScanEventForScanNum: ", rawFile.GetScanEventStringForScanNum(scanNumber))
     print("GetNumberOfSourceFragmentsFromScanNum: ", rawFile.GetNumberOfSourceFragmentsFromScanNum(scanNumber))
     print("GetSourceFragmentValueFromScanNum: ", rawFile.GetSourceFragmentValueFromScanNum(scanNumber, 0))
     print("GetIsolationWidthForScanNum: ", rawFile.GetIsolationWidthForScanNum(scanNumber))
@@ -515,6 +489,6 @@ if __name__ == '__main__':
     print("GetPrecursorRangeForScanNum: ", rawFile.GetPrecursorRangeForScanNum(scanNumber, 0))
     print("GetBasePeakForScanNum: ", rawFile.GetBasePeakForScanNum(scanNumber))
     print("GetTrailerExtraForScanNum: ", rawFile.GetTrailerExtraForScanNum(scanNumber))
-    print("GetMassListFromScanNum: ", rawFile.GetMassListFromScanNum(scanNumber))
+    print("GetCentroidMassListFromScanNum: ", rawFile.GetCentroidMassListFromScanNum(scanNumber))
     rawFile.Close()
         
