@@ -3,7 +3,7 @@ from ..peptide.peptide import get_peptidoforms_from_fasta
 from ..peptide.digest import DigestConfig
 from ..peptide.protein_infer import *
 
-class SeqLibrary(object):
+class SequenceLibrary(object):
     def __init__(self, min_charge = 2, max_charge = 4, 
                        min_precursor_mz = 400, max_precursor_mz = 1000, 
                        varmods = "Oxidation[M]", fixmods = "Carbamidomethyl[C]", 
@@ -24,7 +24,7 @@ class SeqLibrary(object):
         
     def PeptideListFromFasta(self, fasta):
         self.peptide_list = []
-        self.peptide_to_protein = {}
+        self.peptide_to_protein_dict = {}
         
         modseq_list, protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
         
@@ -39,7 +39,7 @@ class SeqLibrary(object):
                         seq_for_proinfer.append(seq)
                         
         pep_pro_dict = infer_protein(seq_for_proinfer, protein_dict)
-        self.peptide_to_protein_dict = dict(zip([peptide, "/".join([pro_ac for pro_ac, site in pros.ites]) for peptide prosites in pep_pro_dict.items()]))
+        self.peptide_to_protein_dict = dict(zip([peptide, ";".join([pro_ac for pro_ac, site in prosites]) for peptide, prosites in pep_pro_dict.items()]))
         return self.peptide_list, self.peptide_to_protein_dict
         
                 

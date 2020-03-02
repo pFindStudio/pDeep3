@@ -12,8 +12,12 @@ from .. import model_tf as model
 
 from . import tune_and_predict
 
+argd = {}
+for i in range(1, len(sys.argv), 2):
+    argd[sys.argv[i]] = sys.argv[i+1]
+
 dlib = DLIB()
-dlib.Open(sys.argv[1])
-prediction = tune_and_predict.run(sys.argv[2], dlib.GetAllPeptides())
+dlib.Open(argd['-dlib'])
+prediction = tune_and_predict.run(argd['-cfg'], dlib.GetAllPeptides())
 dlib.UpdateByPrediction(prediction)
 dlib.Close()

@@ -102,7 +102,7 @@ def run(pDeep_cfg, peptide_list = None):
     
 if __name__ == "__main__":
     pdeep_prediction = run(sys.argv[1])
-    for peptide, intensities in pdeep_prediction.peptide_prediction_dict.items():
+    for peptide, intensities in pdeep_prediction.peptide_intensity_dict.items():
         print("b+ ions of %s ="%peptide, pdeep_prediction.GetIntensitiesByIonType(intensities, "b", 1)) # get b+ ions
-    for peptide, intensities in pdeep_prediction.peptide_prediction_dict.items():
+    for peptide, intensities in pdeep_prediction.peptide_intensity_dict.items():
         print("y+ ions of %s ="%peptide, pdeep_prediction.GetIntensitiesByIonType(intensities, "y", 1)) # get y+ ions

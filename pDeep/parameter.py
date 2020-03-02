@@ -76,8 +76,7 @@ class pDeepParameter:
                 # tune_parameters
                 elif line.startswith("tune_psmlabels"):
                     line = get_str(line)
-                    if not line: continue
-                    else: self.tune_psmlabels = [s.strip() for s in line.split("|")]
+                    if line: self.tune_psmlabels = [s.strip() for s in line.split("|")]
                 elif line.startswith("tune_epochs"):
                     self.epochs = get_int(line)
                 elif line.startswith("tune_batch"):
@@ -87,7 +86,6 @@ class pDeepParameter:
                     
                 elif line.startswith("test_psmlabels"):
                     line = get_str(line)
-                    if not line: continue
-                    else: self.test_psmlabels = [s.strip() for s in line.split("|")]
+                    if line: self.test_psmlabels = [s.strip() for s in line.split("|")]
                 elif line.startswith("n_test_per_psmlabel"):
                     self.n_test_per_psmlabel = get_int(line)

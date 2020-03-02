@@ -144,7 +144,7 @@ class pDeepModel:
         transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_1")
         # transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.instrument_ce_scope)
 
-        print(transfer_vars)
+        # print(transfer_vars)
 
         self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
 

@@ -15,6 +15,13 @@ def load_plabel_as_buckets(filenames, config, nce, instrument, max_n_samples=100
         _buckets = seq2vec.Featurize_buckets(filename, nce, instrument)
         buckets = merge_buckets(buckets, _buckets)
     return buckets
+    
+    
+def load_RT_file_as_buckets(filename, config, nce = None, instrument = None, max_n_samples=10000000000):
+    seq2vec = Seq2Tensor(conf=config, prev=1, next=1)
+    seq2vec.max_samples = max_n_samples
+    buckets = {}
+    return seq2vec.Featurize_RT_buckets(filename, nce, instrument)
 
 
 def load_plabel_as_feature_list(filenames, config, nce, instrument, max_n_samples=10000000000):

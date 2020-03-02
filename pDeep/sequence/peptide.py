@@ -9,7 +9,7 @@ class Protein:
         self.DE = DE
         self.seq = seq
 
-def read_one_protein_AC(fasta, target_ac):
+def read_one_protein_AC(fasta, target_protein_list):
     ret = {}
     with open(fasta) as f:
         seq = None

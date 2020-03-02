@@ -96,10 +96,10 @@ class PeptideIonCalculator:
         
     def calc_pepmass(self, peptide, modinfo):
         if not modinfo:
-            return sum(self.AAMass[[ord(aa) for aa in peptide]])
+            return sum(self.AAMass[[ord(aa) for aa in peptide]]) + self.base_mass.mass_H2O
         else:
-            modmass = sum([self.ModMass[onemod[onemod.find(',')+1:]] for onemod in modinfo.strip(";").split(";")])
-            return sum(self.AAMass[[ord(aa) for aa in peptide]]) + modmass
+            modmass = sum([self.ModMass[onemod[onemod.find(',')+1:]][0] for onemod in modinfo.strip(";").split(";")])
+            return sum(self.AAMass[[ord(aa) for aa in peptide]]) + modmass + self.base_mass.mass_H2O
 
     def calc_b_ions_and_pepmass(self, peptide, mod_cumsum):
         aa_cumsum = self.calc_aamass_cumsum(peptide)

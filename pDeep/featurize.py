@@ -203,72 +203,40 @@ class Seq2Tensor:
         else:
             warnings.warn("[W] Unknown instrument: %s, pDeep uses 'unknown' instrument" % instrument, UserWarning)
             return self.instrument_feature['unknown']
-
-    def Featurize_list_with_end_scan(self, ion_file, nce, instrument):
-
-        nce /= 100.0
-        inst_feature = self.get_instrument_x(instrument)
+        
+    def Featurize_RT_buckets(self, ion_file, nce = None, instrument = None):
         f = open(ion_file)
 
-        feature_list = []
+        buckets = {}
 
         items = f.readline().strip().split('\t')
         headeridx = dict(zip(items, range(len(items))))
-
-        charge_in_spec = True
-        if "charge" in headeridx: charge_in_spec = False
 
         sample_count = 0
         while True:
             line = f.readline()
             if line == "": break
-            type2inten = {}
-            allinten = []
-            items = line.split("\t")
-            spec = items[0]
-            scan = int(spec.split(".")[-4])
+            items = line.strip().split("\t")
             peptide = items[1]
-            if charge_in_spec:
-                pre_charge = int(items[0].split(".")[-3])
-            else:
-                pre_charge = int(items[headeridx["charge"]])
             modinfo = items[2]
 
             x = self.FeaturizeOnePeptide(peptide, modinfo)
             if x is None: continue
+            pre_charge = int(items[headeridx["charge"]])
+            RT = float(items[headeridx['RT']])
 
-            type2inten = {}
-            for ion_type in self.config.GetIonTypeNames():
-                peaks = items[headeridx[ion_type]]
-                if len(peaks) < 2: continue
-                peaks = [peak.split(",") for peak in peaks.strip().strip(";").split(";")]
-                type2inten.update(dict([(peak[0], float(peak[1])) for peak in peaks]))
-            if len(type2inten) < len(peptide): continue
-
-            intenvec = []
-            for site in range(1, len(peptide)):
-                v = []
-                for ion_type in self.config.ion_types:
-                    ion_name = self.config.GetIonNameBySite(peptide, site, ion_type)
-                    for charge in range(1, self.config.max_ion_charge + 1):
-                        ion_name_charge = ion_name + "+{}".format(charge)
-                        if ion_name_charge in type2inten:
-                            v.append(type2inten[ion_name_charge])
-                        else:
-                            v.append(0)
-                intenvec.append(np.array(v, dtype=np.float32))
-
-            intenvec = np.array(intenvec)
-            intenvec /= np.max(intenvec)
             peplen = len(peptide)
 
-            # pepinfo = "{}|{}|{}".format(peptide, modinfo, pre_charge)
-            feature_list.append((x[0], x[1], pre_charge, nce, inst_feature, intenvec, peptide, scan))
+            pepinfo = "{}|{}|{}".format(peptide, modinfo, pre_charge)
+            if peplen in buckets:
+                buckets[peplen].append((x[0], x[1], pre_charge, 0, 0, RT, pepinfo))
+            else:
+                buckets[peplen] = [(x[0], x[1], pre_charge, 0, 0, RT, pepinfo)]
             sample_count += 1
             if sample_count >= self.max_samples: break
         f.close()
 
-        return feature_list
+        return to_numpy(buckets)
 
     def Featurize_buckets(self, ion_file, nce, instrument):
         nce /= 100.0
@@ -289,7 +257,7 @@ class Seq2Tensor:
             if line == "": break
             type2inten = {}
             allinten = []
-            items = line.split("\t")
+            items = line.rstrip("\r\n").split("\t")
             peptide = items[1]
             if charge_in_spec:
                 pre_charge = int(items[0].split(".")[-3])
