@@ -4,6 +4,7 @@ import struct
 import numpy as np
 
 from ...utils.mass_calc import PeptideIonCalculator as ion_calc
+from ..library_base import LibraryBase
 
 mod_dict = {
     "Carbamidomethyl[C]": "[+57.021464]",
@@ -16,7 +17,7 @@ mod_dict = {
 
 # pack/unpack(fmt,...), fmt=">" means big-endian
 
-class DLIB(object):
+class DLIB(LibraryBase):
     def __init__(self):
         self.sql_conn = None
         self._ion_calc = ion_calc()
@@ -73,11 +74,12 @@ class DLIB(object):
         self.sql_conn.commit()
     
     # peak_selection = "topK" or "intensity"
-    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.01, mass_upper = 1500):
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.01, mass_upper = 2000):
         count = 0
         for pepinfo, intensities in _prediction.peptide_intensity_dict.items():
             count += 1
             seq, mod, charge = pepinfo.split("|")
+            charge = int(charge)
             masses, pepmass = self._ion_calc.calc_by_and_pepmass(seq, mod, 2)
             # print(seq, mod, masses)
             intens = intensities[:,:masses.shape[1]]
@@ -98,12 +100,13 @@ class DLIB(object):
             
             if pepinfo in self.peptide_dict:
                 item = self.peptide_dict[pepinfo]
-                self.UpdateMassIntensity(item[0], item[1], masses, intens, RT if RT is not None else item[2])
+                self.UpdateMassIntensity(item[0], item[1], masses, intens, item[2])
+                # self.UpdateMassIntensity(item[0], item[1], masses, intens, RT if RT is not None else item[2])
             else:
                 pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
                 self.InsertNewPeptide(pDeepFormat2PeptideModSeq(seq, mod), seq, pepmass, charge, masses, intens, RT if RT is not None else 0, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "")
             if count%10000 == 0:
-                self.sql_conn.commit()
+                # self.sql_conn.commit()
                 print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
         self.sql_conn.commit()
         print("[SQL UPDATE] 100.0%: {}".format(self.dlib_file))

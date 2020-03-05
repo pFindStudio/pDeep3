@@ -3,6 +3,7 @@ class pDeepParameter:
         self._ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
     
         self.model = ""
+        self.RT_model = ""
         self.threads = 4
         self.predict_batch = 4096
         
@@ -45,12 +46,14 @@ class pDeepParameter:
                 return int(get_str(line))
 
             def get_str(line):
-                return line.split("=")[1].strip()
+                return line[line.find("=")+1:].strip()
 
             for i in range(len(lines)):
                 line = lines[i].strip()
                 if line.startswith("model"):
                     self.model = get_str(line)
+                elif line.startswith("RT_model"):
+                    self.RT_model = get_str(line)
                 elif line.startswith("threads"):
                     self.threads = get_int(line)
                 elif line.startswith("predict_batch"):

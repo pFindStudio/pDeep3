@@ -1,6 +1,7 @@
 import sys
 import time
 import numpy as np
+import tensorflow as tf
 
 from ..parameter import pDeepParameter
 from ..bucket import peptide_as_key
@@ -9,6 +10,7 @@ from .. import load_data as load_data
 from .. import evaluate as evaluate
 from .. import similarity_calc as sim_calc
 from .. import model_tf as model
+from ..rt_model import pDeepRTModel
 from ..prediction import pDeepPrediction
         
 def load_param(pDeep_cfg):
@@ -28,17 +30,24 @@ def init_pdeep(param):
     pdeep.epochs = param.epochs
     pdeep.num_threads = param.threads
     pdeep.dropout = 0
-    return pdeep
+    if param.RT_model:
+        pdeep_RT = pDeepRTModel(param.config)
+    else:
+        pdeep_RT = None
+        
+    return pdeep, pdeep_RT
 
 def tune(param):
     nce = param.predict_nce
     instrument = param.predict_instrument
-    pdeep = init_pdeep(param)
+    pdeep, pdeep_RT = init_pdeep(param)
     
     if param.tune_psmlabels:
         pdeep.BuildTransferModel(param.model) # load the trainable pre-trained model
     else:
         pdeep.LoadModel(param.model) # no transfer learning
+    if pdeep_RT:
+        pdeep_RT.LoadModel(param.RT_model)
     
     if param.test_psmlabels:
         print("\n############################\ntest of pre-trained model")
@@ -76,7 +85,7 @@ def tune(param):
         print("\n")
         test_buckets = None # release the memory
         
-    return pdeep
+    return pdeep, pdeep_RT
      
 def predict(pdeep, param, peptide_list = None):
     if peptide_list is not None:
@@ -89,6 +98,14 @@ def predict(pdeep, param, peptide_list = None):
     print('predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
     return pep_buckets,predict_buckets
     
+def predict_RT(pdeep_RT, param, pep_buckets):
+    start_time = time.perf_counter()
+    print("RT predicting ...")
+    predict_buckets = pdeep_RT.Predict(pep_buckets)
+    # print(predict_buckets)
+    print('predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
+    return predict_buckets
+    
 def run(pDeep_cfg, peptide_list = None):
     '''
     @param pDeep_cfg. pDeep_cfg is the parameter file of pDeep, see "/pDeep-tune.cfg" for details.
@@ -97,8 +114,13 @@ def run(pDeep_cfg, peptide_list = None):
     '''
     param = load_param(pDeep_cfg)
     init_config(param)
-    pdeep = tune(param)
-    return pDeepPrediction(param.config, *predict(pdeep, param, peptide_list))
+    pdeep, pdeep_RT = tune(param)
+    pep_buckets, predict_buckets = predict(pdeep, param, peptide_list)
+    if pdeep_RT:
+        RT_buckets = predict_RT(pdeep_RT, param, pep_buckets)
+    else:
+        RT_buckets = None
+    return pDeepPrediction(param.config, pep_buckets, predict_buckets, RT_buckets)
     
 if __name__ == "__main__":
     pdeep_prediction = run(sys.argv[1])

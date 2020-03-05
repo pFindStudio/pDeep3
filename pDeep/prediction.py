@@ -10,7 +10,7 @@ class pDeepPrediction:
         self.config = config
         self.peptide_intensity_dict = peptide_as_key(peptide_buckets, predict_buckets)
         if predict_RT_buckets:
-            self.peptide_RT_dict = peptide_as_key(peptide_buckets, predict_buckets)
+            self.peptide_RT_dict = peptide_as_key(peptide_buckets, predict_RT_buckets)
         else: 
             self.peptide_RT_dict = {}
         
@@ -30,7 +30,7 @@ class pDeepPrediction:
         if precursor_charge is not None:
             pepinfo = "%s|%s|%d"%(pepinfo, modinfo, precursor_charge)
         if pepinfo not in self.peptide_RT_dict: return None
-        else: return self.peptide_RT_dict[pepinfo]
+        else: return float(self.peptide_RT_dict[pepinfo])
         
     def GetIntensities(self, pepinfo, modinfo = None, precursor_charge = None):
         '''

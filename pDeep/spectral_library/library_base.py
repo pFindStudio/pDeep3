@@ -1,7 +1,19 @@
 from ..utils.mass_calc import PeptideIonCalculator
-from ..peptide.peptide import get_peptidoforms_from_fasta
-from ..peptide.digest import DigestConfig
-from ..peptide.protein_infer import *
+from ..sequence.peptide import get_peptidoforms_from_fasta
+from ..sequence.digest import DigestConfig
+from ..sequence.protein_infer import *
+
+class LibraryBase(object):
+    def Open(self):
+        pass
+    def Close(self):
+        pass
+    def GetAllPeptides(self):
+        pass
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.01, mass_upper = 2000):
+        pass
+    def Submit(self):
+        pass
 
 class SequenceLibrary(object):
     def __init__(self, min_charge = 2, max_charge = 4, 
@@ -22,12 +34,15 @@ class SequenceLibrary(object):
         self.peptide_list = []
         self.peptide_to_protein_dict = {}
         
-    def PeptideListFromFasta(self, fasta):
+    def PeptideListFromFasta(self, fasta, protein_ac_list = None):
         self.peptide_list = []
         self.peptide_to_protein_dict = {}
+        fmt = "Generated %d peptides (length: {} to {})".format(self.digest_config.min_len, self.digest_config.max_len)
         
         modseq_list, protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
+        print(fmt%(len(modseq_list)))
         
+        fmt = "Generated %d precursors (charge: {} to {}, mz: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
         seq_for_proinfer = []
         for seq, modinfo in modseq_list:
             pepmass = self.ion_calc.calc_pepmass(seq, modinfo)
@@ -37,9 +52,15 @@ class SequenceLibrary(object):
                     self.peptide_list.append((seq, modinfo, charge))
                     if seq_for_proinfer and seq_for_proinfer[-1] != seq:
                         seq_for_proinfer.append(seq)
-                        
+                    if len(self.peptide_list) % 100000 == 0:
+                        print(fmt%(len(self.peptide_list)))
+        print(fmt%(len(self.peptide_list)))
+        
         pep_pro_dict = infer_protein(seq_for_proinfer, protein_dict)
-        self.peptide_to_protein_dict = dict(zip([peptide, ";".join([pro_ac for pro_ac, site in prosites]) for peptide, prosites in pep_pro_dict.items()]))
+        self.peptide_to_protein_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])
         return self.peptide_list, self.peptide_to_protein_dict
         
+if __name__ == "__main__":
+    seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1000)
+    seqlib.PeptideListFromFasta(r"C:\DataSets\fasta\SP-1503-Human_contaminant.fasta")
                 

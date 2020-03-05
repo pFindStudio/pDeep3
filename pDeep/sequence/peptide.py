@@ -9,7 +9,15 @@ class Protein:
         self.DE = DE
         self.seq = seq
 
-def read_one_protein_AC(fasta, target_protein_list):
+def read_protein_in_AC_list(fasta, protein_list):
+    '''
+    For exmaple, 'sp|P08603|CFAH_HUMAN', protein in protein_list could be 'P08603' or 'CFAH_HUMAN'.
+    '''
+    def check_Ac_in_protein_list(ac):
+        for pro in protein_list:
+            if pro in ac: return True
+        return False
+        
     ret = {}
     with open(fasta) as f:
         seq = None
@@ -24,7 +32,7 @@ def read_one_protein_AC(fasta, target_protein_list):
                     ret[ac] = Protein(ac, de, seq)
                 line = line.strip()[1:].replace("\t", " ")
                 ac, de = line.split(" ", 1)
-                if target_ac in ac:
+                if check_Ac_in_protein_list(ac):
                     seq = ""
                 else:
                     seq = None
@@ -106,7 +114,7 @@ def add_modifications(peptide, varmod_dict, fixmod_dict, min_var_mod=0, max_var_
         if len(modseq_list) >= max_peptidoforms_per_seq:
             return
         elif i > len(peptide):
-            if n_var_mod >= min_var_mod: modseq_list.append((peptide, mod, "")) #last protein
+            if n_var_mod >= min_var_mod: modseq_list.append((peptide, mod)) #last protein
         else:
             add_mod_recur(modseq_list, peptide, i + 1, mod, varmod_dict, min_var_mod, max_var_mod, n_var_mod)
             if peptide[i - 1] in varmod_dict and n_var_mod < max_var_mod:
@@ -134,10 +142,10 @@ def get_peptidoforms_from_fasta(fasta, digest_config, varmods, fixmods, min_var_
     varmod_dict = generate_mod_dict(varmods)
     fixmod_dict = generate_mod_dict(fixmods)
     protein_dict = read_all_proteins(fasta)
-    peptide_set = {}
+    peptide_set = set()
     for ac, protein in protein_dict.items():
         peptide_set = digest(protein, peptide_set, digest_config)
-    peptide_list get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, min_var_mod, max_var_mod), protein_dict
+    return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, min_var_mod, max_var_mod), protein_dict
 
 if __name__ == "__main__":
     fixmod_dict = gen_mod_dict(["fix[C]"])

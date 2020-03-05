@@ -1,5 +1,5 @@
 from .ahocorasick import Trie
-from .fasta_reader import read_all_proteins
+from .peptide import read_all_proteins
 
 def infer_protein(seq_list, protein_dict):
     print("Inferring proteins ... ")

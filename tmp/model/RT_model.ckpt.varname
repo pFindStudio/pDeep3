@@ -6,3 +6,5 @@ output_nn/FC1_w:0
 output_nn/FC1_b:0
 output_nn/FC2_w:0
 output_nn/FC2_b:0
+output_nn/FC3_w:0
+output_nn/FC3_b:0
