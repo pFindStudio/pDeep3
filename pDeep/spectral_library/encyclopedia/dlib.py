@@ -2,6 +2,7 @@ import sqlite3
 import zlib
 import struct
 import numpy as np
+import time
 
 from ...utils.mass_calc import PeptideIonCalculator as ion_calc
 from ..library_base import LibraryBase
@@ -24,6 +25,7 @@ class DLIB(LibraryBase):
         
     def Open(self, dlib_file):
         self.sql_conn = sqlite3.connect(dlib_file)
+        self.cursor = self.sql_conn.cursor()
         self.dlib_file = dlib_file
         
     def Close(self):
@@ -31,25 +33,27 @@ class DLIB(LibraryBase):
         self.dlib_file = None
         
     def GetAllPeptides(self):
+        start = time.perf_counter()
         self.peptide_dict = {}
         peptide_list = []
-        cursor = self.sql_conn.execute("SELECT PeptideModSeq, PrecursorCharge, RTInSeconds FROM entries")
+        cursor = self.cursor.execute("SELECT PeptideModSeq, PrecursorCharge, RTInSeconds FROM entries")
         for row in cursor:
             seq, mod = PeptideModSeq2pDeepFormat(row[0])
             charge = int(row[1])
             RT = float(row[2])
             peptide_list.append((seq, mod, charge))
             self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT, None, None] #items = [PeptideModSeq, PrecursorCharge, PredictedMassList, PredictedIntensityList]
+        print("reading dlib time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
         
     def UpdateMassIntensity(self, PeptideModSeq, PrecursorCharge, MassList, IntensityList, RT, commit_now = False):
         sql = "UPDATE entries SET MassEncodedLength = ?, MassArray = ?, IntensityEncodedLength = ?, IntensityArray = ?, RTInSeconds = ? WHERE PeptideModSeq = '%s' AND PrecursorCharge = %d"%(PeptideModSeq, PrecursorCharge)
-        self.sql_conn.execute(sql, (len(MassList)*8, EncodeMassList(MassList), len(IntensityList)*4, EncodeIntensityList(IntensityList), RT))
+        self.cursor.execute(sql, (len(MassList)*8, EncodeMassList(MassList), len(IntensityList)*4, EncodeIntensityList(IntensityList), RT))
         if commit_now: sql_conn.commit()
     
     def InsertNewPeptide(self, PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, MassList, IntensityList, RT, ProteinACs = "", commit_now = False):
         sql = "INSERT INTO entries(PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, MassEncodedLength, MassArray, IntensityEncodedLength, IntensityArray, RTInSeconds, SourceFile, Copies, Score) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pDeep', 1, 0.001)"
-        self.sql_conn.execute(sql, (
+        self.cursor.execute(sql, (
                 PeptideModSeq, 
                 PeptideSeq, 
                 PrecursorMz, 
@@ -62,9 +66,9 @@ class DLIB(LibraryBase):
             ))
         if ProteinACs:
             for ProteinAccession in ProteinACs.split(";"):
-                cursor = self.sql_conn.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
+                cursor = self.cursor.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
                 if not cursor.fetchone():
-                    self.sql_conn.execute("INSERT INTO peptidetoprotein(PeptideSeq, isDecoy, ProteinAccession) VALUES ('%s', '0', '%s')"%(PeptideSeq, ProteinAccession))
+                    self.cursor.execute("INSERT INTO peptidetoprotein(PeptideSeq, isDecoy, ProteinAccession) VALUES ('%s', '0', '%s')"%(PeptideSeq, ProteinAccession))
         if commit_now: sql_conn.commit()
     
     def UpdateByPeptideDict(self, peptide_dict):
@@ -72,10 +76,83 @@ class DLIB(LibraryBase):
             if not mass: continue
             self.UpdateMassIntensity(modseq, charge, mass, intensity)
         self.sql_conn.commit()
+        
+    # peak_selection = "topK" or "intensity"
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.05, mass_upper = 2000):
+        print("updating dlib ...")
+        count = 0
+        start = time.perf_counter()
+        
+        update_list = []
+        insert_list = []
+        insert_pep2pro_list = []
+        update_sql = "UPDATE entries SET MassEncodedLength = ?, MassArray = ?, IntensityEncodedLength = ?, IntensityArray = ?, RTInSeconds = ? WHERE PeptideModSeq = ? AND PrecursorCharge = ?"
+        
+        insert_sql = "INSERT INTO entries(PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, RTInSeconds, MassEncodedLength, MassArray, IntensityEncodedLength, IntensityArray, SourceFile, Copies, Score) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pDeep', 1, 0.001)"
+        
+        insert_pep2pro_sql = "INSERT INTO peptidetoprotein(PeptideSeq, isDecoy, ProteinAccession) VALUES (?, '0', ?)"
+        
+        def _encode(masses, intens):
+            return len(masses)*8, EncodeMassList(masses), len(intens)*4, EncodeIntensityList(intens)
+            
+        def _check_protein(PeptideSeq, ProteinACs, insert_pep2pro_list):
+            if not ProteinACs: return insert_pep2pro_list
+            cursor = self.cursor.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
+            if not cursor.fetchone():
+                for ProteinAccession in ProteinACs.split(";"):
+                    insert_pep2pro_list.append((PeptideSeq, ProteinAccession))
+            return insert_pep2pro_list
+        
+        for pepinfo, intensities in _prediction.peptide_intensity_dict.items():
+            count += 1
+            seq, mod, charge = pepinfo.split("|")
+            charge = int(charge)
+            masses, pepmass = self._ion_calc.calc_by_and_pepmass(seq, mod, 2)
+            # print(seq, mod, masses)
+            intens = intensities[:,:masses.shape[1]]
+            intens[0, 0:2] = 0 #b1+/b1++ = 0
+            intens[-1, 2:] = 0 #y1+/y1++ = 0, do not consider y1/b1 in the library
+            masses = masses.reshape(-1)
+            intens = intens.reshape(-1)
+            intens = intens/np.max(intens)
+            
+            if peak_selection == "intensity": 
+                masses = masses[intens > threshold]
+                intens = intens[intens > threshold]*10000
+            else:
+                intens = intens*10000
+            intens = intens[masses < mass_upper]
+            masses = masses[masses < mass_upper]
+            RT = _prediction.GetRetentionTime(pepinfo)
+            
+            if pepinfo in self.peptide_dict:
+                item = self.peptide_dict[pepinfo]
+                update_list.append((*_encode(masses, intens), item[2], item[0], item[1])) #item[2] = RT in dlib
+            else:
+                pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
+                insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
+                insert_list.append((pDeepFormat2PeptideModSeq(seq, mod), seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
+            if count%10000 == 0:
+                print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
+                if count%1000000 == 0:
+                    self.cursor.executemany(update_sql, update_list)
+                    self.cursor.executemany(insert_sql, insert_list)
+                    self.cursor.executemany(insert_pep2pro_sql, insert_pep2pro_list)
+                    update_list = []
+                    insert_list = []
+                    insert_pep2pro_list = []
+        self.cursor.executemany(update_sql, update_list)
+        self.cursor.executemany(insert_sql, insert_list)
+        self.cursor.executemany(insert_pep2pro_sql, insert_pep2pro_list)
+        print("[SQL UPDATE] 100%: {}".format(self.dlib_file))
+        self.sql_conn.commit()
+        print("updating dlib time = %.3fs"%(time.perf_counter()-start))
     
     # peak_selection = "topK" or "intensity"
-    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.01, mass_upper = 2000):
+    def SlowUpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.05, mass_upper = 2000):
         count = 0
+        start = time.perf_counter()
+        
         for pepinfo, intensities in _prediction.peptide_intensity_dict.items():
             count += 1
             seq, mod, charge = pepinfo.split("|")
@@ -106,13 +183,15 @@ class DLIB(LibraryBase):
                 pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
                 self.InsertNewPeptide(pDeepFormat2PeptideModSeq(seq, mod), seq, pepmass, charge, masses, intens, RT if RT is not None else 0, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "")
             if count%10000 == 0:
-                # self.sql_conn.commit()
                 print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
+                if count%100000 == 0:
+                    self.sql_conn.commit()
         self.sql_conn.commit()
-        print("[SQL UPDATE] 100.0%: {}".format(self.dlib_file))
+        print("[SQL UPDATE] 100%: {}".format(self.dlib_file))
+        print("updating dlib time = %.3fs"%(time.perf_counter()-start))
         
-def GetMassIntensity(sql_conn, PeptideSeq, PrecursorCharge):
-    cursor = sql_conn.execute("SELECT MassArray, IntensityArray FROM entries WHERE PeptideSeq = '%s' AND PrecursorCharge = %d"%(PeptideSeq, PrecursorCharge))
+def GetMassIntensity(cursor, PeptideSeq, PrecursorCharge):
+    cursor = cursor.execute("SELECT MassArray, IntensityArray FROM entries WHERE PeptideSeq = '%s' AND PrecursorCharge = %d"%(PeptideSeq, PrecursorCharge))
     row = cursor.fetchone()
     return DecodeMassList(row[0]), DecodeIntensityList(row[1])
 

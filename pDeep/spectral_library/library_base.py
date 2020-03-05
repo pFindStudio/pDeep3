@@ -42,7 +42,7 @@ class SequenceLibrary(object):
         modseq_list, protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
         print(fmt%(len(modseq_list)))
         
-        fmt = "Generated %d precursors (charge: {} to {}, mz: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
+        fmt = "Generated %d precursors (charge: {} to {}, m/z: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
         seq_for_proinfer = []
         for seq, modinfo in modseq_list:
             pepmass = self.ion_calc.calc_pepmass(seq, modinfo)
@@ -50,7 +50,7 @@ class SequenceLibrary(object):
                 mz = pepmass/charge + self.ion_calc.base_mass.mass_proton
                 if mz >= self.min_precursor_mz and mz <= self.max_precursor_mz:
                     self.peptide_list.append((seq, modinfo, charge))
-                    if seq_for_proinfer and seq_for_proinfer[-1] != seq:
+                    if not seq_for_proinfer or seq_for_proinfer[-1] != seq:
                         seq_for_proinfer.append(seq)
                     if len(self.peptide_list) % 100000 == 0:
                         print(fmt%(len(self.peptide_list)))
