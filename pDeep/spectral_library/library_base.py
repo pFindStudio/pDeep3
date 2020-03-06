@@ -32,14 +32,14 @@ class SequenceLibrary(object):
         self.max_varmod = max_varmod
         
         self.peptide_list = []
-        self.peptide_to_protein_dict = {}
+        self.protein_dict = {}
         
-    def PeptideListFromFasta(self, fasta, protein_ac_list = None):
+    def PeptideListFromFasta(self, fasta):
         self.peptide_list = []
-        self.peptide_to_protein_dict = {}
+        self.protein_dict = {}
         fmt = "Generated %d peptides (length: {} to {})".format(self.digest_config.min_len, self.digest_config.max_len)
         
-        modseq_list, protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
+        modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
         print(fmt%(len(modseq_list)))
         
         fmt = "Generated %d precursors (charge: {} to {}, m/z: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
@@ -56,9 +56,7 @@ class SequenceLibrary(object):
                         print(fmt%(len(self.peptide_list)))
         print(fmt%(len(self.peptide_list)))
         
-        pep_pro_dict = infer_protein(seq_for_proinfer, protein_dict)
-        self.peptide_to_protein_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])
-        return self.peptide_list, self.peptide_to_protein_dict
+        return self.peptide_list, self.protein_dict
         
 if __name__ == "__main__":
     seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1000)

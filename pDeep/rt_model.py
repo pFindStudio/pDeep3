@@ -19,6 +19,7 @@ class pDeepRTModel:
     def __init__(self, conf):
         self.batch_size = 1024
         self.layer_size = 256
+        self.attention_size = 32
         self.epochs = 100
         self.config = conf
         self.sess = None
@@ -27,111 +28,10 @@ class pDeepRTModel:
         self.dropout = 0.2
         self.optim_name = "Adam"
         self.graph = tf.Graph()
-        self.RT_norm = 1000
+        self.RT_norm = 3600
 
     def use_cuda(self, _use_cuda=True):
         pass
-
-    def BuildModel(self, aa_size, mod_size, output_size, nlayers=1):
-        with self.graph.as_default():
-            print("BuildModel ... ")
-
-            def _input():
-                self._aa_x = tf.placeholder("float", [None, None, aa_size], name="input_aa_x")
-                self._mod_x = tf.placeholder("float", [None, None, mod_size], name="input_mod_x")
-                self._y = tf.placeholder("float", [None, ], name="input_y")
-                self._time_step = tf.placeholder(tf.int32, [None, ], name="input_time_step")
-                self._dropout = tf.placeholder_with_default(0.0, shape=(), name="dropout")
-
-            def MultiLayerRNN(x):
-                def BiLSTM(x, id):
-                    lstm_fw_cell = pdeep_lstm_cell(self.layer_size)
-                    lstm_bw_cell = pdeep_lstm_cell(self.layer_size)
-                    x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step,
-                                                           time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
-                    x = tf.concat(x, axis=2)
-                    x = tf.nn.dropout(x, rate=self._dropout)
-                    return x
-
-                for id in range(nlayers):
-                    x = BiLSTM(x, id)
-                    x = tf.identity(x, name="BiLSTM_output_%d" % id)
-                return x
-
-            def _output(x):
-                def _reduce_time_dim(x):
-                    time_weight = tf.Variable(tf.random_normal([5]), trainable=True, name="time_weight")
-                    time_weight = tf.tile(time_weight[tf.newaxis, tf.newaxis, ...,], [tf.shape(x)[0], 1, self._time_step[0]])
-                    time_weight = tf.slice(time_weight, [0, 0, 0], [tf.shape(x)[0], 1, self._time_step[0]])
-                    x = tf.matmul(time_weight, x) 
-                    return tf.layers.Flatten()(x) #batch, self.layer_size*2
-                x = tf.reduce_sum(x, axis=1)
-                # x = _reduce_time_dim(x)
-                with tf.variable_scope("output_nn"):
-                    w = tf.Variable(tf.random_normal([self.layer_size*2, 128]), trainable=True, name="FC1_w")
-                    b = tf.Variable(tf.random_normal([128]), trainable=True, name="FC1_b")
-                    x = tf.matmul(x, w) + b
-                    x = tf.nn.dropout(x, rate=self._dropout)
-                    x = tf.nn.leaky_relu(x)
-                    
-                    w = tf.Variable(tf.random_normal([128, 64]), trainable=True, name="FC2_w")
-                    b = tf.Variable(tf.random_normal([64]), trainable=True, name="FC2_b")
-                    x = tf.matmul(x, w) + b
-                    x = tf.nn.dropout(x, rate=self._dropout)
-                    x = tf.nn.tanh(x)
-                    
-                    w = tf.Variable(tf.random_normal([64, 1]), trainable=True, name="FC3_w")
-                    b = tf.Variable(tf.random_normal([1]), trainable=True, name="FC3_b")
-                    x = tf.matmul(x, w) + b
-                    
-                with tf.name_scope("output_scope"):
-                    self._prediction = tf.identity(x, name="output")
-
-            _input()
-            x = tf.concat((self._aa_x, self._mod_x), axis=2)
-            x = MultiLayerRNN(x)
-            _output(x)
-
-            self.GetVariableList()
-            self.GetTensorList()
-
-            self.restart_session()
-            self.Optimizer()
-            init_op = tf.global_variables_initializer()
-            self.sess.run(init_op)
-
-    def Optimizer(self):
-        with self.graph.as_default():
-            self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._prediction - self._y)))
-
-            self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name=self.optim_name)
-
-            self._mininize = self._optimizer.minimize(self._loss)
-
-    def BuildTransferModel(self, model_file):
-        with self.graph.as_default():
-            print("Fine-tuning pDeep model ...")
-            self.LoadModel(model_file)
-
-            transfer_vars = []
-            transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "output_nn")
-            transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_0")
-            # transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.instrument_ce_scope)
-
-            # print(transfer_vars)
-
-            self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
-
-            self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
-
-            self._mininize = self._optimizer.minimize(self._loss, var_list=transfer_vars)
-
-            # self.merged_summary_op = tf.summary.merge_all()
-
-            adam_vars = self.GetVariablesBySubstr("_power") + self.GetVariablesBySubstr(self.optim_name)
-            init_op = tf.variables_initializer(var_list=adam_vars, name="transfer_init")
-            # init_op = tf.global_variables_initializer()
-            self.sess.run(init_op)
 
     def restart_session(self):
         self.close()
@@ -188,6 +88,122 @@ class pDeepRTModel:
     def GetVariableListByScope(self, scope):
         return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope)
 
+    def BuildModel(self, aa_size, mod_size, output_size, nlayers=1):
+        with self.graph.as_default():
+            print("BuildModel ... ")
+
+            def _input():
+                self._aa_x = tf.placeholder("float", [None, None, aa_size], name="input_aa_x")
+                self._mod_x = tf.placeholder("float", [None, None, mod_size], name="input_mod_x")
+                self._y = tf.placeholder("float", [None, ], name="input_y")
+                self._time_step = tf.placeholder(tf.int32, [None, ], name="input_time_step")
+                self._dropout = tf.placeholder_with_default(0.0, shape=(), name="dropout")
+                
+            def _attention(x):
+                attention_weight = tf.Variable(tf.random_uniform([self.config.time_step]), trainable=True, name="input_attention")
+                attention_weight = tf.tile(attention_weight[tf.newaxis, tf.newaxis, ...,], [tf.shape(x)[0], 1, int(self.config.time_step/self.attention_len)+self.attention_len])
+                attention_weight = tf.slice(attention_weight, [0, 0, 0], [tf.shape(x)[0], 1, self._time_step[0]])
+                x = tf.matmul(attention_weight, x) 
+
+            def MultiLayerRNN(x):
+                def BiLSTM(x, id):
+                    lstm_fw_cell = pdeep_lstm_cell(self.layer_size)
+                    lstm_bw_cell = pdeep_lstm_cell(self.layer_size)
+                    x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step,
+                                                           time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
+                    x = tf.concat(x, axis=2)
+                    x = tf.nn.dropout(x, rate=self._dropout)
+                    return x
+
+                for id in range(nlayers):
+                    x = BiLSTM(x, id)
+                    x = tf.identity(x, name="BiLSTM_output_%d" % id)
+                return x
+
+            def _output(x):
+                def _reduce_attention_dim(x):
+                    attention_weight = tf.Variable(tf.random_uniform([self.attention_len]), trainable=True, name="attention_weight")
+                    attention_weight = tf.tile(attention_weight[tf.newaxis, tf.newaxis, ...,], [tf.shape(x)[0], 1, int(self.config.time_step/self.attention_len)+self.attention_len])
+                    attention_weight = tf.slice(attention_weight, [0, 0, 0], [tf.shape(x)[0], 1, self._time_step[0]])
+                    x = tf.matmul(attention_weight, x) 
+                    return tf.layers.Flatten()(x) #batch, self.layer_size*2
+                def _reduce_time_step(x):
+                    x1 = tf.reduce_max(x, axis=1)[..., tf.newaxis]
+                    x2 = tf.reduce_min(x, axis=1)[..., tf.newaxis]
+                    x3 = tf.reduce_mean(x, axis=1)[..., tf.newaxis]
+                    w = tf.Variable(tf.random_uniform([3]), trainable=True, name="reduce_weight")
+                    w = tf.tile(w[tf.newaxis, ..., tf.newaxis], [tf.shape(x)[0], 1, 1])
+                    x = tf.matmul(tf.concat((x1, x2, x3), axis=2), w)
+                    return tf.layers.Flatten()(x) #batch, self.layer_size*2
+                x = tf.reduce_max(x, axis=1)
+                # x = _reduce_time_step(x)
+                # x = _reduce_attention_dim(x)
+                with tf.variable_scope("output_nn"):
+                    w = tf.Variable(tf.random_uniform([self.layer_size*2, 128]), trainable=True, name="FC1_w")
+                    b = tf.Variable(tf.random_uniform([128]), trainable=True, name="FC1_b")
+                    x = tf.matmul(x, w) + b
+                    x = tf.contrib.layers.layer_norm(x)
+                    x = tf.nn.dropout(x, rate=self._dropout)
+                    
+                    w = tf.Variable(tf.random_uniform([128, 64]), trainable=True, name="FC2_w")
+                    b = tf.Variable(tf.random_uniform([64]), trainable=True, name="FC2_b")
+                    x = tf.matmul(x, w) + b
+                    x = tf.contrib.layers.layer_norm(x)
+                    x = tf.nn.dropout(x, rate=self._dropout)
+                    
+                    w = tf.Variable(tf.random_uniform([64, 1]), trainable=True, name="FC3_w")
+                    b = tf.Variable(tf.random_uniform([1]), trainable=True, name="FC3_b")
+                    x = tf.matmul(x, w) + b
+                    
+                with tf.name_scope("output_scope"):
+                    self._prediction = tf.identity(x, name="output")
+
+            _input()
+            x = tf.concat((self._aa_x, self._mod_x), axis=2)
+            x = MultiLayerRNN(x)
+            _output(x)
+
+            self.GetVariableList()
+            self.GetTensorList()
+
+            self.restart_session()
+            self.Optimizer()
+            init_op = tf.global_variables_initializer()
+            self.sess.run(init_op)
+
+    def Optimizer(self):
+        with self.graph.as_default():
+            self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._prediction - self._y)))
+
+            self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name=self.optim_name)
+
+            self._mininize = self._optimizer.minimize(self._loss)
+
+    def BuildTransferModel(self, model_file):
+        with self.graph.as_default():
+            print("Fine-tuning pDeep model ...")
+            self.LoadModel(model_file)
+
+            transfer_vars = []
+            transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "output_nn")
+            transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_0")
+            # transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.instrument_ce_scope)
+
+            # print(transfer_vars)
+
+            self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._prediction - self._y)))
+
+            self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
+
+            self._mininize = self._optimizer.minimize(self._loss, var_list=transfer_vars)
+
+            # self.merged_summary_op = tf.summary.merge_all()
+
+            adam_vars = self.GetVariablesBySubstr("_power") + self.GetVariablesBySubstr(self.optim_name)
+            init_op = tf.variables_initializer(var_list=adam_vars, name="transfer_init")
+            # init_op = tf.global_variables_initializer()
+            self.sess.run(init_op)
+
     def TrainModel(self, buckets, save_as=None):
         with self.graph.as_default():
             if self.sess is None:
@@ -218,7 +234,8 @@ class pDeepRTModel:
                         self._dropout: self.dropout
                     }
 
-                    cost, _ = self.sess.run([self._loss, self._mininize], feed_dict=feed_dict)
+                    pred, cost, _ = self.sess.run([self._prediction, self._loss, self._mininize], feed_dict=feed_dict)
+                    # print(pred)
                     end_time = time.perf_counter()
                     batch_time_cost.append(end_time - start_time)
                     batch_cost.append(cost)
@@ -251,8 +268,9 @@ class pDeepRTModel:
                     self._mod_x: mod_x,
                     self._time_step: peplen - 1,
                 }
-                predictions = self.sess.run(self._prediction, feed_dict=feed_dict)*self.RT_norm
-                _buckets = {peplen[0]: (predictions,)}
+                predictions = self.sess.run(self._prediction, feed_dict=feed_dict)
+                # print(predictions)
+                _buckets = {peplen[0]: (predictions*self.RT_norm,)}
                 output_buckets = merge_buckets(output_buckets, _buckets)
             return output_buckets
 

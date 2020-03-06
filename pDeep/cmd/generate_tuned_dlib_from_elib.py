@@ -7,6 +7,7 @@ from ..spectral_library.encyclopedia.dlib import DLIB
 from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
 from . import tune_and_predict
+from ..sequence.protein_infer import infer_protein
 
 def CheckScanHasPrecursorMz(rawFile, scan, precursorMz):
     if scan < 1: return False
@@ -69,9 +70,9 @@ if __name__ == "__main__":
     
     if '-fasta' in argd:
         seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1000)
-        fasta_peplist, fasta_peptopro_dict = seqlib.PeptideListFromFasta(argd['-fasta'])
+        fasta_peplist, protein_dict = seqlib.PeptideListFromFasta(argd['-fasta'])
     else:
-        fasta_peplist, fasta_peptopro_dict = [], {}
+        fasta_peplist, protein_dict = [], {}
         
         
     if elib_db and RawFileReader:
@@ -149,5 +150,10 @@ if __name__ == "__main__":
             peptide_list.append(pepinfo)
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
+    
+    
+    pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
+    fasta_peptopro_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])
+    
     dlib.UpdateByPrediction(prediction, fasta_peptopro_dict)
     dlib.Close()
