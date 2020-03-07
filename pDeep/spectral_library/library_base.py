@@ -34,12 +34,14 @@ class SequenceLibrary(object):
         self.peptide_list = []
         self.protein_dict = {}
         
-    def PeptideListFromFasta(self, fasta):
+    def PeptideListFromFasta(self, fasta, protein_AC_list = None):
         self.peptide_list = []
         self.protein_dict = {}
         fmt = "Generated %d peptides (length: {} to {})".format(self.digest_config.min_len, self.digest_config.max_len)
-        
-        modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
+        if not protein_AC_list:
+            modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
+        else:
+            modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod, protein_AC_list)
         print(fmt%(len(modseq_list)))
         
         fmt = "Generated %d precursors (charge: {} to {}, m/z: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)

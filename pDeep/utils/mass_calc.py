@@ -64,6 +64,9 @@ class PeptideIonCalculator:
 
     def set_aamass(self, aa, mass):
         self.AAMass[ord(aa)] = mass
+        
+    def set_aa_label(self, aa, label_mass):
+        self.AAMass[ord(aa)] += label_mass
 
     def calc_aamass_cumsum(self, peptide):
         return np.cumsum(self.AAMass[[ord(aa) for aa in peptide]])

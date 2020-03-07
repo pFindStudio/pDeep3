@@ -1,13 +1,17 @@
 from math import log
-try:
-    from ..pyRawFileReader.RawFileReader import RawFileReader
-except:
-    RawFileReader = None
+import sys
+import os
+from shutil import copyfile
+
 from ..spectral_library.encyclopedia.dlib import DLIB
 from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
 from . import tune_and_predict
 from ..sequence.protein_infer import infer_protein
+try:
+    from ..pyRawFileReader.RawFileReader import RawFileReader
+except:
+    RawFileReader = None
 
 def CheckScanHasPrecursorMz(rawFile, scan, precursorMz):
     if scan < 1: return False
@@ -27,15 +31,15 @@ def FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT):
         elif CheckScanHasPrecursorMz(rawFile, scan-i, precursorMz): return scan-i
     return None
     
-def GenerateCFGpsmLabel(cfg_file, input_PSM, raw_file):
+def GenerateCFGpsmLabel(cfg_file, input_PSM, raw_path):
     cfg_str =  "psm_type = none\n"
     cfg_str += "mode = pDeep\n"
     cfg_str += "num_psm_file = 1\n"
     cfg_str += "psm_file1 = %s\n"%input_PSM
     cfg_str += "ms2_type = raw\n"
     cfg_str += "num_ms2_file = 1\n"
-    cfg_str += "ms2_file1 = %s\n"%raw_file
-    cfg_str += "output_folder = %s\n"%os.path.split(raw_file)[0]
+    cfg_str += "ms2_file1 = %s\n"%raw_path
+    cfg_str += "output_folder = %s\n"%(os.path.split(raw_path)[0])
     cfg_str += "NH3_loss = true\n"
     cfg_str += "H2O_loss = true\n"
     cfg_str += "Mod_loss = true\n"
@@ -47,73 +51,48 @@ def GenerateCFGpsmLabel(cfg_file, input_PSM, raw_file):
     
 def GenerateCFGpDeep(cfg_file, psmLabel):
     with open('tmp/predict/pDeep-tune-template.cfg') as f, open(cfg_file, "w") as out:
-        cfg_str = "".join(f.readlines())
+        lines = f.readlines()
+        cfg_str = "".join(lines)
         out.write(cfg_str.format(psmLabel))
-
-if __name__ == "__main__":
-    import sys
-    import os
-    from shutil import copyfile
-    
-    argd = {}
-    for i in range(1, len(sys.argv), 2):
-        argd[sys.argv[i]] = sys.argv[i+1]
-    
-    elib_db = argd['-elib'] if '-elib' in argd else None
-    dlib_db = argd['-dlib']
-    raw_path = argd['-raw']
+        
+def Run_psmLabel(elib_db, raw_path):
+    PSMfile = elib_db+".psm.txt"
+    rawName = os.path.splitext(os.path.basename(raw_path))[0]
     raw_dir = os.path.split(raw_path)[0]
-    new_dlib = os.path.join(raw_dir, "pdeep_tune.dlib")
-    copyfile(dlib_db, new_dlib)
-    dlib_db = new_dlib
+    rawFile = RawFileReader(raw_path)
     
+    elib = DLIB()
+    elib.Open(elib_db)
+    elib.GetAllPeptides()
     
-    if '-fasta' in argd:
-        seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1000)
-        fasta_peplist, protein_dict = seqlib.PeptideListFromFasta(argd['-fasta'])
-    else:
-        fasta_peplist, protein_dict = [], {}
+    with open(PSMfile, "w") as output:
+        output.write("raw_name\tscan\tpeptide\tmodinfo\tcharge\n")
         
+        ion_calc = PeptideIonCalculator()
         
-    if elib_db and RawFileReader:
-        PSMfile = elib_db+".psm.txt"
-        rawName,_ = os.path.splitext(os.path.basename(raw_path))
-        rawFile = RawFileReader(raw_path)
-        
-        elib = DLIB()
-        elib.Open(elib_db)
-        elib.GetAllPeptides()
-        
-        with open(PSMfile, "w") as output:
-            output.write("raw_name\tscan\tpeptide\tmodinfo\tcharge\n")
-            
-            ion_calc = PeptideIonCalculator()
-            
-            for pepinfo, (_, charge, RT, _, _) in elib.peptide_dict.items():
-                peptide, modinfo, _ = pepinfo.split("|")
-                precursorMz = ion_calc.calc_pepmass(peptide, modinfo)
-                precursorMz = precursorMz/charge + ion_calc.base_mass.mass_proton
-                scan = FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT)
-                if scan:
-                    output.write("{}\t{}\t{}\t{}\t{}\n".format(rawName, scan, peptide, modinfo, charge))
-                else:
-                    print("no scan found for {}".format(pepinfo))
-        elib.Close()
-        rawFile.Close()
-                
-        raw_filename = raw_path
-        cfg_file = os.path.join(os.path.split(raw_filename)[0], "psmLabel.cfg")
-        print(raw_filename, cfg_file, PSMfile)
-        
-        GenerateCFGpsmLabel(cfg_file, PSMfile, raw_filename)
-        os.chdir("psmLabel")
-        os.system('psmLabel.exe "%s"'%cfg_file)
-        os.chdir("..")
+        for pepinfo, (_, charge, RT, _, _) in elib.peptide_dict.items():
+            peptide, modinfo, _ = pepinfo.split("|")
+            precursorMz = ion_calc.calc_pepmass(peptide, modinfo)
+            precursorMz = precursorMz/charge + ion_calc.base_mass.mass_proton
+            scan = FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT)
+            if scan:
+                output.write("{}\t{}\t{}\t{}\t{}\n".format(rawName, scan, peptide, modinfo, charge))
+            else:
+                print("no scan found for {}".format(pepinfo))
+    elib.Close()
+    rawFile.Close()
     
-    psmLabel = os.path.splitext(raw_path)[0]+".psmlabel"
-    pDeep_cfg = os.path.join(os.path.split(raw_path)[0], "pDeep-tune.cfg")
-    GenerateCFGpDeep(pDeep_cfg, psmLabel)
+    cfg_file = os.path.join(raw_dir, "psmLabel.cfg")
+    print(raw_path, cfg_file, PSMfile)
     
+    GenerateCFGpsmLabel(cfg_file, PSMfile, raw_path)
+    
+    os.chdir("psmLabel")
+    os.system('psmLabel.exe "%s"'%cfg_file)
+    os.chdir("..")
+    return os.path.splitext(raw_path)[0]+".psmlabel"
+    
+def SortPSM(psmLabel):
     with open(psmLabel) as f:
         head_line = f.readline()
         head = head_line.strip().split("\t")
@@ -137,10 +116,45 @@ if __name__ == "__main__":
         TIC += get_PSM_score(item, 'y')
         new_items.append( (TIC, line) )
     new_items.sort(key = lambda x: -x[0])
+    
     with open(psmLabel, 'w') as f:
         f.write(head_line)
         f.writelines([item[1] for item in new_items])
+
+if __name__ == "__main__":
+    argd = {}
+    for i in range(1, len(sys.argv), 2):
+        argd[sys.argv[i].lower()] = sys.argv[i+1]
     
+    dlib_db = argd['-dlib']
+    
+    if '-fasta' in argd:
+        seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1000)
+        fasta_peplist, protein_dict = seqlib.PeptideListFromFasta(argd['-fasta'])
+    else:
+        fasta_peplist, protein_dict = [], {}
+        
+    if '-elib' in argd and RawFileReader:
+        raw_path = argd['-raw']
+        raw_dir = os.path.split(raw_path)[0]
+        psmLabel = Run_psmLabel(argd['-elib'], raw_path)
+    elif '-psmlabel' in argd:
+        raw_dir = os.path.split(psmLabel)
+        psmLabel = argd['-psmlabel']
+    else:
+        raw_dir = argd['-dir']
+        psmLabel = ""
+    
+    new_dlib = os.path.join(raw_dir, "pdeep_tune.dlib")
+    copyfile(dlib_db, new_dlib)
+    dlib_db = new_dlib
+        
+    pDeep_cfg = os.path.join(raw_dir, "pDeep-tune.cfg")
+    GenerateCFGpDeep(pDeep_cfg, psmLabel)
+    
+    if psmLabel:
+        SortPSM(psmLabel)
+        
     dlib = DLIB()
     dlib.Open(dlib_db)
     
@@ -150,7 +164,6 @@ if __name__ == "__main__":
             peptide_list.append(pepinfo)
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
-    
     
     pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
     fasta_peptopro_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])

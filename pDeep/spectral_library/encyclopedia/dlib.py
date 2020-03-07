@@ -11,8 +11,10 @@ mod_dict = {
     "Carbamidomethyl[C]": "[+57.021464]",
     "Oxidation[M]": "[+15.994915]",
     "Phospho[S]": "[+79.966331]",
-    "Phospho[T]": "[79.966331]",
-    "Phospho[Y]": "[79.966331]",
+    "Phospho[T]": "[+79.966331]",
+    "Phospho[Y]": "[+79.966331]",
+    "SILACnoLabel_13C(6)15N(2)[K]": "[+8.014199]",
+    "SILACnoLabel_13C(6)15N(4)[R]": "[+10.008269]",
 }
 # from ...prediction import pDeepPrediction as prediction
 
@@ -31,6 +33,10 @@ class DLIB(LibraryBase):
     def Close(self):
         self.sql_conn.close()
         self.dlib_file = None
+        
+    def SetAALabel(self, aa_label_list):
+        for aa, label_mass in aa_label_list:
+            self._ion_calc.set_aa_label(aa, label_mass)
         
     def GetAllPeptides(self):
         start = time.perf_counter()
