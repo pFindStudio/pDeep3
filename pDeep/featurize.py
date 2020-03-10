@@ -2,6 +2,8 @@ import warnings
 
 import numpy as np
 
+from .bucket import bucket_item_dict
+
 # warnings.filterwarnings('error')
 warnings.simplefilter("default")
 
@@ -211,19 +213,23 @@ class Seq2Tensor:
 
         items = f.readline().strip().split('\t')
         headeridx = dict(zip(items, range(len(items))))
+        
+        if 'RT' in headeridx: RTidx = headeridx['RT']
+        elif 'RTInSeconds' in headeridx: RTidx = headeridx['RTInSeconds']
+        else: RTidx = headeridx['RT']
 
         sample_count = 0
         while True:
             line = f.readline()
             if line == "": break
             items = line.strip().split("\t")
-            peptide = items[1]
-            modinfo = items[2]
+            peptide = items[headeridx["peptide"]]
+            modinfo = items[headeridx["modinfo"]]
 
             x = self.FeaturizeOnePeptide(peptide, modinfo)
             if x is None: continue
             pre_charge = int(items[headeridx["charge"]])
-            RT = float(items[headeridx['RT']])
+            RT = float(items[RTidx])
 
             peplen = len(peptide)
 
@@ -258,12 +264,12 @@ class Seq2Tensor:
             type2inten = {}
             allinten = []
             items = line.rstrip("\r\n").split("\t")
-            peptide = items[1]
+            peptide = items[headeridx["peptide"]]
+            modinfo = items[headeridx["modinfo"]]
             if charge_in_spec:
                 pre_charge = int(items[0].split(".")[-3])
             else:
                 pre_charge = int(items[headeridx["charge"]])
-            modinfo = items[2]
 
             x = self.FeaturizeOnePeptide(peptide, modinfo)
             if x is None: continue

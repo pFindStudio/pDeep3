@@ -32,6 +32,9 @@ def init_pdeep(param):
     pdeep.dropout = 0
     if param.RT_model:
         pdeep_RT = pDeepRTModel(param.config)
+        pdeep_RT.epochs = param.epochs
+        pdeep_RT.num_threads = param.threads
+        pdeep_RT.dropout = 0
     else:
         pdeep_RT = None
         
@@ -46,8 +49,12 @@ def tune(param):
         pdeep.BuildTransferModel(param.model) # load the trainable pre-trained model
     else:
         pdeep.LoadModel(param.model) # no transfer learning
+        
     if pdeep_RT:
-        pdeep_RT.LoadModel(param.RT_model)
+        if param.tune_RT_psmlabel:
+            pdeep_RT.BuildTransferModel(param.RT_model)
+        else:
+            pdeep_RT.LoadModel(param.RT_model)
     
     if param.test_psmlabels:
         print("\n############################\ntest of pre-trained model")
@@ -68,9 +75,19 @@ def tune(param):
         train_buckets = load_data.load_plabel_as_buckets(param.tune_psmlabels, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
         pdeep.TrainModel(train_buckets, save_as=None)
         print("tuning time = %.3fs"%(time.perf_counter() - start_time))
-        train_buckets = None # release the memory
+        train_buckets = None # release the memory?
+        
+    if param.tune_RT_psmlabel and pdeep_RT:
+        try:
+            start_time = time.perf_counter()
+            train_buckets = load_data.load_RT_file_as_buckets(param.tune_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
+            pdeep_RT.TrainModel(train_buckets, save_as=None)
+            print("RT tuning time = %.3fs"%(time.perf_counter() - start_time))
+        except:
+            print("exception in tuning RT: '{}'".format(param.tune_RT_psmlabel))
     
     pdeep.batch_size = param.predict_batch
+    if pdeep_RT: pdeep_RT.batch_size = param.predict_batch
     
     if param.test_psmlabels:
         print("\n############################\ntest of fine-tuned model")

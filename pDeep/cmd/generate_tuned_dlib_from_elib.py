@@ -49,11 +49,11 @@ def GenerateCFGpsmLabel(cfg_file, input_PSM, raw_path):
     cfg_str += "num_new_aa = 0"
     with open(cfg_file, "w") as f: f.write(cfg_str)
     
-def GenerateCFGpDeep(cfg_file, psmLabel):
+def GenerateCFGpDeep(cfg_file, psmLabel, psmRT):
     with open('tmp/predict/pDeep-tune-template.cfg') as f, open(cfg_file, "w") as out:
         lines = f.readlines()
         cfg_str = "".join(lines)
-        out.write(cfg_str.format(psmLabel))
+        out.write(cfg_str.format(psmLabel, psmRT))
         
 def Run_psmLabel(elib_db, raw_path):
     PSMfile = elib_db+".psm.txt"
@@ -66,7 +66,7 @@ def Run_psmLabel(elib_db, raw_path):
     elib.GetAllPeptides()
     
     with open(PSMfile, "w") as output:
-        output.write("raw_name\tscan\tpeptide\tmodinfo\tcharge\n")
+        output.write("raw_name\tscan\tpeptide\tmodinfo\tcharge\tRTInSeconds\n")
         
         ion_calc = PeptideIonCalculator()
         
@@ -76,7 +76,7 @@ def Run_psmLabel(elib_db, raw_path):
             precursorMz = precursorMz/charge + ion_calc.base_mass.mass_proton
             scan = FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT)
             if scan:
-                output.write("{}\t{}\t{}\t{}\t{}\n".format(rawName, scan, peptide, modinfo, charge))
+                output.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(rawName, scan, peptide, modinfo, charge, RT))
             else:
                 print("no scan found for {}".format(pepinfo))
     elib.Close()
@@ -90,7 +90,7 @@ def Run_psmLabel(elib_db, raw_path):
     os.chdir("psmLabel")
     os.system('psmLabel.exe "%s"'%cfg_file)
     os.chdir("..")
-    return os.path.splitext(raw_path)[0]+".psmlabel"
+    return os.path.splitext(raw_path)[0]+".psmlabel", PSMfile
     
 def SortPSM(psmLabel):
     with open(psmLabel) as f:
@@ -137,20 +137,24 @@ if __name__ == "__main__":
     if '-elib' in argd and RawFileReader:
         raw_path = argd['-raw']
         raw_dir = os.path.split(raw_path)[0]
-        psmLabel = Run_psmLabel(argd['-elib'], raw_path)
+        psmLabel, psmRT = Run_psmLabel(argd['-elib'], raw_path)
     elif '-psmlabel' in argd:
         raw_dir = os.path.split(psmLabel)
         psmLabel = argd['-psmlabel']
+        if '-psmRT' in argd: psmRT = argd['-psmRT']
+        else: psmRT = ""
     else:
         raw_dir = argd['-dir']
         psmLabel = ""
+        if '-psmRT' in argd: psmRT = argd['-psmRT']
+        else: psmRT = ""
     
     new_dlib = os.path.join(raw_dir, "pdeep_tune.dlib")
     copyfile(dlib_db, new_dlib)
     dlib_db = new_dlib
         
     pDeep_cfg = os.path.join(raw_dir, "pDeep-tune.cfg")
-    GenerateCFGpDeep(pDeep_cfg, psmLabel)
+    GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)
     
     if psmLabel:
         SortPSM(psmLabel)

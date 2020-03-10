@@ -41,22 +41,27 @@ if __name__ == "__main__":
         raw_path = argd['-raw']
         raw_dir = os.path.split(raw_path)[0]
         if '-elib' in argd and RawFileReader:
-            psmLabel = Run_psmLabel(argd['-elib'], raw_path)
+            psmLabel, psmRT = Run_psmLabel(argd['-elib'], raw_path)
         else:
             psmLabel = ""
+            psmRT = ""
     elif '-psmlabel' in argd:
         raw_dir = os.path.split(psmLabel)
         psmLabel = argd['-psmlabel']
+        if '-psmRT' in argd: psmRT = argd['-psmRT']
+        else: psmRT = ""
     else:
         raw_dir = argd['-dir']
         psmLabel = ""
+        if '-psmRT' in argd: psmRT = argd['-psmRT']
+        else: psmRT = ""
     
     new_dlib = os.path.join(raw_dir, "pdeep_tune.dlib")
     copyfile(dlib_db, new_dlib)
     dlib_db = new_dlib
         
     pDeep_cfg = os.path.join(raw_dir, "pDeep-tune.cfg")
-    GenerateCFGpDeep(pDeep_cfg, psmLabel)
+    GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)
     
     if psmLabel:
         SortPSM(psmLabel)

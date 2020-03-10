@@ -19,6 +19,7 @@ class pDeepParameter:
 
         # tune parameters:
         self.tune_psmlabels = []
+        self.tune_RT_psmlabel = ""
         self.epochs = 2
         self.n_tune_per_psmlabel = 100
         self.tune_batch = 1024
@@ -86,6 +87,8 @@ class pDeepParameter:
                     self.train_batch = get_int(line)
                 elif line.startswith("n_tune_per_psmlabel"):
                     self.n_tune_per_psmlabel = get_int(line)
+                elif line.startswith("tune_RT_psmlabel"):
+                    self.tune_RT_psmlabel = get_str(line)
                     
                 elif line.startswith("test_psmlabels"):
                     line = get_str(line)

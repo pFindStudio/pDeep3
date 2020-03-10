@@ -4,6 +4,7 @@ import time
 import tensorflow as tf
 
 from .bucket import *
+from . import tf_ops
 
 np.random.seed(1337)  # for reproducibility
 # tf.compat.v1.set_random_seed(1337)
@@ -17,18 +18,17 @@ pdeep_lstm_cell = tf.nn.rnn_cell.LSTMCell
 
 class pDeepRTModel:
     def __init__(self, conf):
-        self.batch_size = 1024
+        self.batch_size = 128
         self.layer_size = 256
-        self.attention_size = 32
         self.epochs = 100
         self.config = conf
         self.sess = None
         self.learning_rate = 0.001
         self.num_threads = 2
-        self.dropout = 0.2
+        self.dropout = 0.0
         self.optim_name = "Adam"
         self.graph = tf.Graph()
-        self.RT_norm = 3600
+        self.RT_norm = 3600 # seconds to hours
 
     def use_cuda(self, _use_cuda=True):
         pass
@@ -91,6 +91,9 @@ class pDeepRTModel:
     def BuildModel(self, aa_size, mod_size, output_size, nlayers=1):
         with self.graph.as_default():
             print("BuildModel ... ")
+            
+            def _get_pos_embedding(pos_code, x):
+                return tf_ops.get_pos_embedding(pos_code, self._time_step[0]+1, tf.shape(x)[0])
 
             def _input():
                 self._aa_x = tf.placeholder("float", [None, None, aa_size], name="input_aa_x")
@@ -100,17 +103,19 @@ class pDeepRTModel:
                 self._dropout = tf.placeholder_with_default(0.0, shape=(), name="dropout")
                 
             def _attention(x):
-                attention_weight = tf.Variable(tf.random_uniform([self.config.time_step]), trainable=True, name="input_attention")
-                attention_weight = tf.tile(attention_weight[tf.newaxis, tf.newaxis, ...,], [tf.shape(x)[0], 1, int(self.config.time_step/self.attention_len)+self.attention_len])
-                attention_weight = tf.slice(attention_weight, [0, 0, 0], [tf.shape(x)[0], 1, self._time_step[0]])
-                x = tf.matmul(attention_weight, x) 
+                return tf_ops.multihead_self_attention(x, self.layer_size)
+                
+            def _conv2d(x, filter_h, filter_w, in_channels, out_channels):
+                #x: batch, in_channels, time, input_shape
+                filter = tf.Variable(tf.random_uniform([filter_h, filter_w, in_channels, out_channels]), trainable=True, name="CNN2D_filter")
+                x = tf.nn.conv2d(x, filter, strides=[1,1,1,1], padding = "SAME")
+                return x #x: batch, out_channels, filter_h, filter_w
 
             def MultiLayerRNN(x):
                 def BiLSTM(x, id):
                     lstm_fw_cell = pdeep_lstm_cell(self.layer_size)
                     lstm_bw_cell = pdeep_lstm_cell(self.layer_size)
-                    x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step,
-                                                           time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
+                    x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step+1, time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
                     x = tf.concat(x, axis=2)
                     x = tf.nn.dropout(x, rate=self._dropout)
                     return x
@@ -121,46 +126,65 @@ class pDeepRTModel:
                 return x
 
             def _output(x):
-                def _reduce_attention_dim(x):
-                    attention_weight = tf.Variable(tf.random_uniform([self.attention_len]), trainable=True, name="attention_weight")
-                    attention_weight = tf.tile(attention_weight[tf.newaxis, tf.newaxis, ...,], [tf.shape(x)[0], 1, int(self.config.time_step/self.attention_len)+self.attention_len])
-                    attention_weight = tf.slice(attention_weight, [0, 0, 0], [tf.shape(x)[0], 1, self._time_step[0]])
-                    x = tf.matmul(attention_weight, x) 
-                    return tf.layers.Flatten()(x) #batch, self.layer_size*2
-                def _reduce_time_step(x):
-                    x1 = tf.reduce_max(x, axis=1)[..., tf.newaxis]
-                    x2 = tf.reduce_min(x, axis=1)[..., tf.newaxis]
-                    x3 = tf.reduce_mean(x, axis=1)[..., tf.newaxis]
-                    w = tf.Variable(tf.random_uniform([3]), trainable=True, name="reduce_weight")
-                    w = tf.tile(w[tf.newaxis, ..., tf.newaxis], [tf.shape(x)[0], 1, 1])
-                    x = tf.matmul(tf.concat((x1, x2, x3), axis=2), w)
-                    return tf.layers.Flatten()(x) #batch, self.layer_size*2
-                x = tf.reduce_max(x, axis=1)
+                with tf.variable_scope("output_nn"):
+                    x = tf_ops.weight_through_time(x, self.layer_size*2)
+                    def _reduce_time_step(x):
+                        x1 = tf.reduce_max(x, axis=1)[..., tf.newaxis]
+                        x2 = tf.reduce_min(x, axis=1)[..., tf.newaxis]
+                        x3 = tf.reduce_mean(x, axis=1)[..., tf.newaxis]
+                        w = tf.Variable(tf.random_uniform([3]), trainable=True, name="reduce_weight")
+                        w = tf.tile(w[tf.newaxis, ..., tf.newaxis], [tf.shape(x)[0], 1, 1])
+                        x = tf.matmul(tf.concat((x1, x2, x3), axis=2), w)
+                        return tf.layers.Flatten()(x) #batch, self.layer_size*2
+                    x = tf.reduce_sum(x, axis=1) #
                 # x = _reduce_time_step(x)
                 # x = _reduce_attention_dim(x)
-                with tf.variable_scope("output_nn"):
-                    w = tf.Variable(tf.random_uniform([self.layer_size*2, 128]), trainable=True, name="FC1_w")
-                    b = tf.Variable(tf.random_uniform([128]), trainable=True, name="FC1_b")
-                    x = tf.matmul(x, w) + b
-                    x = tf.contrib.layers.layer_norm(x)
-                    x = tf.nn.dropout(x, rate=self._dropout)
+                # x = tf.layers.Flatten()(x)
+                    # x = tf.layers.Dense(128, use_bias = False, name="FC1")(x)
+                    # x = tf.contrib.layers.layer_norm(x)
+                    # x = tf.nn.tanh(x)
+                    # x = tf.nn.dropout(x, rate=self._dropout)
                     
-                    w = tf.Variable(tf.random_uniform([128, 64]), trainable=True, name="FC2_w")
-                    b = tf.Variable(tf.random_uniform([64]), trainable=True, name="FC2_b")
-                    x = tf.matmul(x, w) + b
-                    x = tf.contrib.layers.layer_norm(x)
-                    x = tf.nn.dropout(x, rate=self._dropout)
+                    # x = tf.layers.Dense(64, use_bias = False, name="FC2")(x)
+                    # x = tf.contrib.layers.layer_norm(x)
+                    # x = tf.nn.dropout(x, rate=self._dropout)
                     
-                    w = tf.Variable(tf.random_uniform([64, 1]), trainable=True, name="FC3_w")
-                    b = tf.Variable(tf.random_uniform([1]), trainable=True, name="FC3_b")
-                    x = tf.matmul(x, w) + b
+                    # x = tf.layers.Dense(1, use_bias = True, name="FC3")(x) #why dense(1) so bad??
+                    x = tf.layers.Dense(16, use_bias = True, name="FC3")(x)
+                    # x = tf.sqrt(tf.reduce_sum(tf.square(x), axis=-1))
+                    x = tf.reduce_sum(x, axis=-1)
                     
                 with tf.name_scope("output_scope"):
                     self._prediction = tf.identity(x, name="output")
+                    
+            def _prepare_input(aa_x, mod_x):
+                _aa_x = aa_x[:,:,:20]
+                _mod_size = int(mod_size / 2)
+                _aa_x = tf.concat((_aa_x, aa_x[:,-1:,20:40]),axis=1) #from (batch, time, aa*2) to (batch, time+1, aa)
+                _mod_x = mod_x[:,:,:_mod_size]
+                _mod_x = tf.concat((_mod_x, mod_x[:,-1:,_mod_size:mod_size]),axis=1)
+                return _aa_x, 20, _mod_x, _mod_size
 
             _input()
-            x = tf.concat((self._aa_x, self._mod_x), axis=2)
+            _aa_x, aa_size, _mod_x, mod_size = _prepare_input(self._aa_x, self._mod_x)
+            x = tf.concat((_aa_x, _mod_x), axis=2)
+            
+            def _CNN(x):
+                x = x[:, :, :, tf.newaxis]
+                x = _conv2d(x, 10, aa_size+mod_size, 1, 128)
+                x = tf.contrib.layers.layer_norm(x)
+                x = tf.nn.relu(x)
+                x = _conv2d(x, 10, 16, 128, 64)
+                x = tf.contrib.layers.layer_norm(x)
+                x = tf.nn.relu(x)
+                x = tf.reduce_max(x, axis=-1)
+                return x
+                
+            # pos_code = tf_ops.positional_encoding(aa_size+mod_size)
+            # x = x + _get_pos_embedding(pos_code, x)
+            # x = _attention(x)
             x = MultiLayerRNN(x)
+            x = tf.nn.relu(x)
             _output(x)
 
             self.GetVariableList()
@@ -174,6 +198,7 @@ class pDeepRTModel:
     def Optimizer(self):
         with self.graph.as_default():
             self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._prediction - self._y)))
+            # self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
 
             self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name=self.optim_name)
 
@@ -191,7 +216,7 @@ class pDeepRTModel:
 
             # print(transfer_vars)
 
-            self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._prediction - self._y)))
+            self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
 
             self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
 

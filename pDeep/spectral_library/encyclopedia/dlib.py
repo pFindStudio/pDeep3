@@ -210,6 +210,7 @@ def pDeepFormat2PeptideModSeq(seq, modinfo):
         modlist.append((int(site), mod))
     modlist.sort(reverse=True)
     for site, mod in modlist:
+        if not mod in mod_dict: return None
         seq = seq[:site] + mod_dict[mod] + seq[site:]
     return seq
 
@@ -222,6 +223,7 @@ def PeptideModSeq2pDeepFormat(PeptideModSeq):
         elif PeptideModSeq[site-1] == 'S': modlist.append('%d,%s;'%(site, 'Phospho[S]'))
         elif PeptideModSeq[site-1] == 'T': modlist.append('%d,%s;'%(site, 'Phospho[T]'))
         elif PeptideModSeq[site-1] == 'Y': modlist.append('%d,%s;'%(site, 'Phospho[Y]'))
+        else: return None, None
         PeptideModSeq = PeptideModSeq[:site] + PeptideModSeq[PeptideModSeq.find(']')+1:]
         site = PeptideModSeq.find('[', site)
     return PeptideModSeq, "".join(modlist)

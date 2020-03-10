@@ -18,16 +18,16 @@ mod_config.max_var_mod_num = 3
 
 pdeep_rt = model.pDeepRTModel(mod_config)
 
-pdeep_rt.learning_rate = 0.0001
+pdeep_rt.learning_rate = 0.001
 pdeep_rt.layer_size = 256
 pdeep_rt.batch_size = 1024
-pdeep_rt.dropout = 0.2
+pdeep_rt.dropout = 0.0
 pdeep_rt.BuildModel(aa_size=82, mod_size=mod_config.GetModFeatureSize() * 2, output_size=mod_config.GetTFOutputSize(),
                  nlayers=1)
 
 pdeep_rt.epochs = epochs
 
-RTfile = r'tmp/data/RT/pan_human_library.RT.txt'
+RTfile = sys.argv[1]
 
 start_time = time.perf_counter()
 
@@ -42,6 +42,19 @@ print(buckets_count["total"])
 load_time = time.perf_counter()
 
 pdeep_rt.TrainModel(buckets, save_as=out_model)
+
+predict_buckets = pdeep_rt.Predict(buckets)
+import numpy as np
+pred_list = np.array([])
+real_list = np.array([])
+for key, val in predict_buckets.items():
+    pred_list = np.append(pred_list, val)
+    real_list = np.append(real_list, buckets[key][-2])
+# print(pred_arr, real_arr)
+# for pepinfo, pred, real in zip(pep_list, pred_list, real_list):
+    # print(pepinfo ,pred, real)
+from scipy.stats import pearsonr
+print(pearsonr(pred_list ,real_list)[0])
 
 train_time = time.perf_counter()
 
