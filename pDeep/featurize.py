@@ -216,7 +216,10 @@ class Seq2Tensor:
         
         if 'RT' in headeridx: RTidx = headeridx['RT']
         elif 'RTInSeconds' in headeridx: RTidx = headeridx['RTInSeconds']
-        else: RTidx = headeridx['RT']
+        else: 
+            print("[W] no column 'RT' or 'RTInSeconds' in '{}'".format(ion_file))
+            print("[W] all 'RT's will be assigned as zero")
+            RTidx = None
 
         sample_count = 0
         while True:
@@ -229,7 +232,8 @@ class Seq2Tensor:
             x = self.FeaturizeOnePeptide(peptide, modinfo)
             if x is None: continue
             pre_charge = int(items[headeridx["charge"]])
-            RT = float(items[RTidx])
+            if RTidx: RT = float(items[RTidx])
+            else: RT = 0
 
             peplen = len(peptide)
 
@@ -326,9 +330,6 @@ class Seq2Tensor_noCheck(Seq2Tensor):
 
 
 ASCII = 128
-nAAs = 20
-base_dtype = np.int8
-
 
 def _AAVec():
     AAVec = [None for _ in range(ASCII)]
@@ -380,6 +381,7 @@ def _AAIdx():
     return AAIdx
 
 
+nAAs = 20
 AAVec = _AAVec()
 AAIdx = _AAIdx()
 
