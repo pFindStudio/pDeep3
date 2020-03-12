@@ -24,6 +24,8 @@ class DLIB(LibraryBase):
     def __init__(self):
         self.sql_conn = None
         self._ion_calc = ion_calc()
+        self.peptide_dict = {}
+        self.peptide_list = []
         
     def Open(self, dlib_file):
         self.sql_conn = sqlite3.connect(dlib_file)

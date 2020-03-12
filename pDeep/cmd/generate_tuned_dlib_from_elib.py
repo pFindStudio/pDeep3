@@ -163,9 +163,9 @@ if __name__ == "__main__":
     dlib.Open(dlib_db)
     
     peptide_list = dlib.GetAllPeptides()
-    for pepinfo in fasta_peplist:
-        if pepinfo not in dlib.peptide_dict:
-            peptide_list.append(pepinfo)
+    for seq, mod, charge in fasta_peplist:
+        if "%s|%s|%d"%(seq, mod, charge) not in dlib.peptide_dict:
+            peptide_list.append((seq, mod, charge))
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
     

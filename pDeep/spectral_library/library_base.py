@@ -1,5 +1,5 @@
 from ..utils.mass_calc import PeptideIonCalculator
-from ..sequence.peptide import get_peptidoforms_from_fasta
+from ..sequence.peptide import get_peptidoforms_from_fasta, get_peptidoforms_from_pep2pro_dict
 from ..sequence.digest import DigestConfig
 from ..sequence.protein_infer import *
 
@@ -16,7 +16,7 @@ class LibraryBase(object):
         pass
 
 class SequenceLibrary(object):
-    def __init__(self, min_charge = 2, max_charge = 4, 
+    def __init__(self, min_charge = 2, max_charge = 3, 
                        min_precursor_mz = 400, max_precursor_mz = 1000, 
                        varmods = "Oxidation[M]", fixmods = "Carbamidomethyl[C]", 
                        min_varmod = 0, max_varmod = 1):
@@ -34,6 +34,39 @@ class SequenceLibrary(object):
         self.peptide_list = []
         self.protein_dict = {}
         
+    def _add_charge(self, modseq_list):
+        fmt = "Generated %d precursors (charge: {} to {}, m/z: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
+        for seq, modinfo in modseq_list:
+            pepmass = self.ion_calc.calc_pepmass(seq, modinfo)
+            for charge in range(self.min_charge, self.max_charge+1):
+                mz = pepmass/charge + self.ion_calc.base_mass.mass_proton
+                if mz >= self.min_precursor_mz and mz <= self.max_precursor_mz:
+                    self.peptide_list.append((seq, modinfo, charge))
+                    if len(self.peptide_list) % 100000 == 0:
+                        print(fmt%(len(self.peptide_list)))
+        print(fmt%(len(self.peptide_list)))
+        
+    def PeptideListFromPeptideFile(self, pepfile):
+        self.peptide_list = []
+        self.pep2pro_dict = {}
+        fmt = "Generated %d peptides"
+        with open(pepfile) as f:
+            head = f.readline().strip().split("\t")
+            headidx = dict(zip(head, range(len(head))))
+            if 'protein' in headidx: protein_idx = headidx['protein']
+            else: protein_idx = None
+            lines = f.readlines()
+            for line in lines:
+                items = line.strip().split("\t")
+                if protein_idx is not None: self.pep2pro_dict[items[headidx['peptide']]] = items[protein_idx]
+                else: self.pep2pro_dict[items[headidx['peptide']]] = "pDeep"
+        modseq_list = get_peptidoforms_from_pep2pro_dict(self.pep2pro_dict, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
+        print(fmt%(len(modseq_list)))
+        
+        self._add_charge(modseq_list)
+        
+        return self.peptide_list, self.pep2pro_dict
+        
     def PeptideListFromFasta(self, fasta, protein_AC_list = None):
         self.peptide_list = []
         self.protein_dict = {}
@@ -44,19 +77,7 @@ class SequenceLibrary(object):
             modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod, protein_AC_list)
         print(fmt%(len(modseq_list)))
         
-        fmt = "Generated %d precursors (charge: {} to {}, m/z: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
-        seq_for_proinfer = []
-        for seq, modinfo in modseq_list:
-            pepmass = self.ion_calc.calc_pepmass(seq, modinfo)
-            for charge in range(self.min_charge, self.max_charge+1):
-                mz = pepmass/charge + self.ion_calc.base_mass.mass_proton
-                if mz >= self.min_precursor_mz and mz <= self.max_precursor_mz:
-                    self.peptide_list.append((seq, modinfo, charge))
-                    if not seq_for_proinfer or seq_for_proinfer[-1] != seq:
-                        seq_for_proinfer.append(seq)
-                    if len(self.peptide_list) % 100000 == 0:
-                        print(fmt%(len(self.peptide_list)))
-        print(fmt%(len(self.peptide_list)))
+        self._add_charge(modseq_list)
         
         return self.peptide_list, self.protein_dict
         

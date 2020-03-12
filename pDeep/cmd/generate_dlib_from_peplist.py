@@ -2,6 +2,8 @@ from math import log
 import sys
 import os
 from shutil import copyfile
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
 
 from math import log
 from ..spectral_library.encyclopedia.dlib import DLIB
@@ -22,20 +24,11 @@ if __name__ == "__main__":
     
     dlib_db = argd['-dlib']
     
-    
     fasta_peplist = []
     pep_pro_dict = {}
     if '-peptide' in argd:
-        with open(argd['-peptide']) as f:
-            head = f.readline().strip().split("\t")
-            headidx = dict(zip(head, range(len(head))))
-            auto_protein = None if 'protein' in headidx else "pDeep"
-            lines = f.readlines()
-            for line in lines:
-                items = line.strip().split("\t")
-                fasta_peplist.append(tuple(items[:3]))
-                if not auto_protein: pep_pro_dict[items[0]] = items[headidx['protein']]
-                else: pep_pro_dict[items[0]] = auto_protein
+        seqlib = SequenceLibrary()
+        peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(argd['-peptide'])
         
     if '-raw' in argd:
         raw_path = argd['-raw']
@@ -55,10 +48,8 @@ if __name__ == "__main__":
         psmLabel = ""
         if '-psmRT' in argd: psmRT = argd['-psmRT']
         else: psmRT = ""
-    
-    new_dlib = os.path.join(raw_dir, "pdeep_tune.dlib")
-    copyfile(dlib_db, new_dlib)
-    dlib_db = new_dlib
+    dlib_db = os.path.join(raw_dir, dlib_db)
+    copyfile('tmp/data/library/empty.dlib', dlib_db)
         
     pDeep_cfg = os.path.join(raw_dir, "pDeep-tune.cfg")
     GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)
@@ -68,11 +59,6 @@ if __name__ == "__main__":
     
     dlib = DLIB()
     dlib.Open(dlib_db)
-    
-    peptide_list = dlib.GetAllPeptides()
-    for pepinfo in fasta_peplist:
-        if pepinfo not in dlib.peptide_dict:
-            peptide_list.append(pepinfo)
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
     

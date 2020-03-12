@@ -4,6 +4,7 @@ import time
 import tensorflow as tf
 
 from .bucket import *
+from . import tf_ops
 
 np.random.seed(1337)  # for reproducibility
 # tf.compat.v1.set_random_seed(1337)
@@ -117,6 +118,7 @@ class pDeepModel:
         x = ConcatTimeFeatures(self._aa_x, self._mod_x, ch, ins_nce)
 
         x = MultiLayerRNN(x, ch, ins_nce)
+        # x = tf_ops.attention_through_time(x, self.layer_size*2+4)
         _output(x)
 
         self.GetVariableList()

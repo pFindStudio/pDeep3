@@ -8,7 +8,7 @@ import pDeep.load_data as load_data
 import pDeep.similarity_calc as sim_calc
 from pDeep.bucket import count_buckets
 
-model_folder = './pDeep-models/model-180921-modloss'
+model_folder = 'tmp/model'
 # model_name = 'pretrain-180921-modloss-mod8D.ckpt'
 model_name = sys.argv[1]
 
@@ -46,19 +46,19 @@ pho_config.SetIonTypes(ion_types)
 pho_config.min_var_mod_num = 1
 pho_config.max_var_mod_num = 3
 
-QEHO = "../datasets/Olsen-CellSys-2017/Hela-QE-28/plabel"
-QE293O = "../datasets/Olsen-CellSys-2017/293T-QE-28/plabel"
-PT25_ts = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD25/test"
-PT30_ts = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD30/test"
-PT35_ts = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD35/test"
-VlsMilkK = "../datasets/Kuster-Human-Nature-2014/milk-Velos-40/plabel"
-EltStmK = "../datasets/Kuster-Human-Nature-2014/stomach-Elite-30/plabel"
-VlsFGP = "../datasets/Pandey-Human-Nature-2014/Fetal_Gut_Gel_Velos_72_CE35/plabel"
-VlsFBP = "../datasets/Pandey-Human-Nature-2014/Fetal_Brain_Gel_Velos_16_CE39/plabel"
-# VlsPhoSyn = "../datasets/Mann-PhoSyn-NBT-2011-Velos-40/plabel"
-QEHchyO = "../datasets/Olsen-CellSys-2017/HelaChymo-QE-28/plabel"
-QEHgluO = "../datasets/Olsen-CellSys-2017/HelaGluC-QE-28/plabel"
-QEHlysO = "../datasets/Olsen-CellSys-2017/HelaLysC-QE-28/plabel"
+QEHO = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Olsen-CellSys-2017/Hela-QE-28/plabel"
+QE293O = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Olsen-CellSys-2017/293T-QE-28/plabel"
+PT25_ts = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD25/test"
+PT30_ts = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD30/test"
+PT35_ts = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD35/test"
+VlsMilkK = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Kuster-Human-Nature-2014/milk-Velos-40/plabel"
+EltStmK = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Kuster-Human-Nature-2014/stomach-Elite-30/plabel"
+VlsFGP = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Pandey-Human-Nature-2014/Fetal_Gut_Gel_Velos_72_CE35/plabel"
+VlsFBP = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Pandey-Human-Nature-2014/Fetal_Brain_Gel_Velos_16_CE39/plabel"
+# VlsPhoSyn = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Mann-PhoSyn-NBT-2011-Velos-40/plabel"
+QEHchyO = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Olsen-CellSys-2017/HelaChymo-QE-28/plabel"
+QEHgluO = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Olsen-CellSys-2017/HelaGluC-QE-28/plabel"
+QEHlysO = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Olsen-CellSys-2017/HelaLysC-QE-28/plabel"
 
 strQE = "QE"
 strVelos = "Velos"

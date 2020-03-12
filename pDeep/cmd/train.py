@@ -8,7 +8,7 @@ import pDeep.similarity_calc as sim_calc
 from pDeep.bucket import merge_buckets, print_buckets, count_buckets
 from pDeep.load_data import load_folder_as_buckets as load_folder
 
-out_folder = './pDeep-models/model-180921-modloss'
+out_folder = 'tmp/model'
 # model_name = 'pretrain-180921-modloss-mod8D.ckpt'
 model_name = sys.argv[1]
 
@@ -72,22 +72,22 @@ try:
 except:
     pass
 
-QEMM = "../datasets/Mann-MouseBrain-NNeu-2015-QEHF-27/new_plabel"
-QEYM = "../datasets/Mann-FissionYeast-NM-2014-QE-25/new_plabel"
-QEHG = "../datasets/Gygi-HEK293-NBT-2015-QE-25/plabel"
-QEHpO = "../datasets/Olsen-CellSys-2017/HelaPhos-QE-28/plabel"  # Hela Phospho
-EliteHP_CD4 = "../datasets/Pandey-Human-Nature-2014/Adult_CD4Tcells_bRP_Elite_28_CE32/plabel"
-VelosHP_CD4 = "../datasets/Pandey-Human-Nature-2014/Adult_CD4Tcells_bRP_Velos_29_CE41/plabel"
-VelosHP_Gel_CD4 = "../datasets/Pandey-Human-Nature-2014/Adult_CD4Tcells_Gel_Velos_30_CE41/plabel"
-VelosHP_Lung = "../datasets/Pandey-Human-Nature-2014/Adult_Lung_bRP_Velos_12_CE39/plabel"
-VelosHK_Rectum = "../datasets/Kuster-Human-Nature-2014/rectum-Velos-30/plabel"
-PT25_tr = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD25/train"
-PT30_tr = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD30/train"
-PT35_tr = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD35/train"
+QEMM = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Mann-MouseBrain-NNeu-2015-QEHF-27/new_plabel"
+QEYM = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Mann-FissionYeast-NM-2014-QE-25/new_plabel"
+QEHG = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Gygi-HEK293-NBT-2015-QE-25/plabel"
+QEHpO = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Olsen-CellSys-2017/HelaPhos-QE-28/plabel"  # Hela Phospho
+EliteHP_CD4 = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Pandey-Human-Nature-2014/Adult_CD4Tcells_bRP_Elite_28_CE32/plabel"
+VelosHP_CD4 = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Pandey-Human-Nature-2014/Adult_CD4Tcells_bRP_Velos_29_CE41/plabel"
+VelosHP_Gel_CD4 = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Pandey-Human-Nature-2014/Adult_CD4Tcells_Gel_Velos_30_CE41/plabel"
+VelosHP_Lung = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Pandey-Human-Nature-2014/Adult_Lung_bRP_Velos_12_CE39/plabel"
+VelosHK_Rectum = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/Kuster-Human-Nature-2014/rectum-Velos-30/plabel"
+PT25_tr = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD25/train"
+PT30_tr = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD30/train"
+PT35_tr = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD35/train"
 
-PT25_ts = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD25/test"
-PT30_ts = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD30/test"
-PT35_ts = "../datasets/zengwenfeng-ProteomeTools/plabel/HCD35/test"
+PT25_ts = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD25/test"
+PT30_ts = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD30/test"
+PT35_ts = "/home/pfind/Documents/pDeep/pDeepMS2/datasets/zengwenfeng-ProteomeTools/plabel/HCD35/test"
 
 start_time = time.perf_counter()
 

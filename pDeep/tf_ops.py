@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-def weight_through_time(x, num_units):
+def attention_through_time(x, num_units):
     # shape of x: batch, time, num_units)
     s = tf.reduce_max(x, axis=1)
     s = tf.layers.Dense(num_units, use_bias = False)(s)

@@ -127,7 +127,7 @@ class pDeepRTModel:
 
             def _output(x):
                 with tf.variable_scope("output_nn"):
-                    x = tf_ops.weight_through_time(x, self.layer_size*2)
+                    x = tf_ops.attention_through_time(x, self.layer_size*2)
                     def _reduce_time_step(x):
                         x1 = tf.reduce_max(x, axis=1)[..., tf.newaxis]
                         x2 = tf.reduce_min(x, axis=1)[..., tf.newaxis]
