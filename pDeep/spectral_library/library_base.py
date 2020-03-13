@@ -12,12 +12,10 @@ class LibraryBase(object):
         pass
     def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.01, mass_upper = 2000):
         pass
-    def Submit(self):
-        pass
 
 class SequenceLibrary(object):
-    def __init__(self, min_charge = 2, max_charge = 3, 
-                       min_precursor_mz = 400, max_precursor_mz = 1000, 
+    def __init__(self, min_charge = 2, max_charge = 4, 
+                       min_precursor_mz = 400, max_precursor_mz = 1200, 
                        varmods = "Oxidation[M]", fixmods = "Carbamidomethyl[C]", 
                        min_varmod = 0, max_varmod = 1):
         self.ion_calc = PeptideIonCalculator()

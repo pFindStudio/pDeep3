@@ -7,7 +7,7 @@ import time
 from ...utils.mass_calc import PeptideIonCalculator as ion_calc
 from ..library_base import LibraryBase
 
-mod_dict = {
+__mod_dict = {
     "Carbamidomethyl[C]": "[+57.021464]",
     "Oxidation[M]": "[+15.994915]",
     "Phospho[S]": "[+79.966331]",
@@ -73,7 +73,7 @@ class DLIB(LibraryBase):
                 RT,
             ))
         if ProteinACs:
-            for ProteinAccession in ProteinACs.split(";"):
+            for ProteinAccession in ProteinACs.split("/"):
                 cursor = self.cursor.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
                 if not cursor.fetchone():
                     self.cursor.execute("INSERT INTO peptidetoprotein(PeptideSeq, isDecoy, ProteinAccession) VALUES ('%s', '0', '%s')"%(PeptideSeq, ProteinAccession))
@@ -212,23 +212,23 @@ def pDeepFormat2PeptideModSeq(seq, modinfo):
         modlist.append((int(site), mod))
     modlist.sort(reverse=True)
     for site, mod in modlist:
-        if not mod in mod_dict: return None
-        seq = seq[:site] + mod_dict[mod] + seq[site:]
+        if not mod in __mod_dict: return None
+        seq = seq[:site] + __mod_dict[mod] + seq[site:]
     return seq
 
 def PeptideModSeq2pDeepFormat(PeptideModSeq):
     site = PeptideModSeq.find('[')
     modlist = []
     while site != -1:
-        if PeptideModSeq[site-1] == 'C': modlist.append('%d,%s;'%(site, 'Carbamidomethyl[C]'))
-        elif PeptideModSeq[site-1] == 'M': modlist.append('%d,%s;'%(site, 'Oxidation[M]'))
-        elif PeptideModSeq[site-1] == 'S': modlist.append('%d,%s;'%(site, 'Phospho[S]'))
-        elif PeptideModSeq[site-1] == 'T': modlist.append('%d,%s;'%(site, 'Phospho[T]'))
-        elif PeptideModSeq[site-1] == 'Y': modlist.append('%d,%s;'%(site, 'Phospho[Y]'))
+        if PeptideModSeq[site-1] == 'C': modlist.append('%d,%s'%(site, 'Carbamidomethyl[C]'))
+        elif PeptideModSeq[site-1] == 'M': modlist.append('%d,%s'%(site, 'Oxidation[M]'))
+        elif PeptideModSeq[site-1] == 'S': modlist.append('%d,%s'%(site, 'Phospho[S]'))
+        elif PeptideModSeq[site-1] == 'T': modlist.append('%d,%s'%(site, 'Phospho[T]'))
+        elif PeptideModSeq[site-1] == 'Y': modlist.append('%d,%s'%(site, 'Phospho[Y]'))
         else: return None, None
         PeptideModSeq = PeptideModSeq[:site] + PeptideModSeq[PeptideModSeq.find(']')+1:]
         site = PeptideModSeq.find('[', site)
-    return PeptideModSeq, "".join(modlist)
+    return PeptideModSeq, ";".join(modlist)
 
 def DecodeDoubleList(code):
     bytes = zlib.decompress(code)

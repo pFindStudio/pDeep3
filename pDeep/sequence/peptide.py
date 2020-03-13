@@ -114,7 +114,7 @@ def add_modifications(peptide, varmod_dict, fixmod_dict, min_var_mod=0, max_var_
         if len(modseq_list) >= max_peptidoforms_per_seq:
             return
         elif i > len(peptide):
-            if n_var_mod >= min_var_mod: modseq_list.append((peptide, mod)) #last protein
+            if n_var_mod >= min_var_mod: modseq_list.append((peptide, mod.strip(";"))) #last protein
         else:
             add_mod_recur(modseq_list, peptide, i + 1, mod, varmod_dict, min_var_mod, max_var_mod, n_var_mod)
             if peptide[i - 1] in varmod_dict and n_var_mod < max_var_mod:

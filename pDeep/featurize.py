@@ -123,7 +123,7 @@ class Seq2Tensor:
 
         mod_idx_feature = [np.array([0] * self.mod_feature_size, dtype=base_dtype) for i in range(len(peptide))]
         if modinfo:
-            moditems = modinfo.strip(";").split(';')
+            moditems = modinfo.split(';')
             unexpected_mod = False
             modlist = []
             var_mod_count = 0
@@ -227,7 +227,7 @@ class Seq2Tensor:
             if line == "": break
             items = line.strip().split("\t")
             peptide = items[headeridx["peptide"]]
-            modinfo = items[headeridx["modinfo"]]
+            modinfo = items[headeridx["modinfo"]].strip(";")
 
             x = self.FeaturizeOnePeptide(peptide, modinfo)
             if x is None: continue
@@ -269,7 +269,7 @@ class Seq2Tensor:
             allinten = []
             items = line.rstrip("\r\n").split("\t")
             peptide = items[headeridx["peptide"]]
-            modinfo = items[headeridx["modinfo"]]
+            modinfo = items[headeridx["modinfo"]].strip(";")
             if charge_in_spec:
                 pre_charge = int(items[0].split(".")[-3])
             else:
