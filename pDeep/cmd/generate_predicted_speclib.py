@@ -2,8 +2,11 @@ from math import log
 import sys
 import os
 from shutil import copyfile
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
 
 from ..spectral_library.encyclopedia.dlib import DLIB
+from ..spectral_library.openswath.tsv import OSW_TSV
 from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
 from . import tune_and_predict
@@ -58,7 +61,7 @@ def GenerateCFGpDeep(cfg_file, psmLabel, psmRT):
 def Run_psmLabel(elib_db, raw_path):
     PSMfile = elib_db+".psm.txt"
     rawName = os.path.splitext(os.path.basename(raw_path))[0]
-    raw_dir = os.path.split(raw_path)[0]
+    out_dir = os.path.split(raw_path)[0]
     rawFile = RawFileReader(raw_path)
     
     elib = DLIB()
@@ -82,7 +85,7 @@ def Run_psmLabel(elib_db, raw_path):
     elib.Close()
     rawFile.Close()
     
-    cfg_file = os.path.join(raw_dir, "psmLabel.cfg")
+    cfg_file = os.path.join(out_dir, "psmLabel.cfg")
     print(raw_path, cfg_file, PSMfile)
     
     GenerateCFGpsmLabel(cfg_file, PSMfile, raw_path)
@@ -126,7 +129,7 @@ if __name__ == "__main__":
     for i in range(1, len(sys.argv), 2):
         argd[sys.argv[i].lower()] = sys.argv[i+1]
     
-    dlib_db = argd['-dlib']
+    speclib_file = argd['-library']
     
     if '-fasta' in argd:
         seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1000)
@@ -134,37 +137,38 @@ if __name__ == "__main__":
     else:
         fasta_peplist, protein_dict = [], {}
         
-    if '-elib' in argd and RawFileReader:
+    if '-tune' in argd and RawFileReader:
         raw_path = argd['-raw']
-        raw_dir = os.path.split(raw_path)[0]
-        psmLabel, psmRT = Run_psmLabel(argd['-elib'], raw_path)
+        out_dir = os.path.split(raw_path)[0]
+        psmLabel, psmRT = Run_psmLabel(argd['-tune'], raw_path)
     elif '-psmlabel' in argd:
-        raw_dir = os.path.split(psmLabel)
+        out_dir = os.path.split(psmLabel)
         psmLabel = argd['-psmlabel']
         if '-psmRT' in argd: psmRT = argd['-psmRT']
         else: psmRT = ""
     else:
-        raw_dir = argd['-dir']
+        out_dir = argd['-dir']
         psmLabel = ""
         if '-psmRT' in argd: psmRT = argd['-psmRT']
         else: psmRT = ""
-    
-    new_dlib = os.path.join(raw_dir, "pdeep_tune.dlib")
-    copyfile(dlib_db, new_dlib)
-    dlib_db = new_dlib
+
+    new_lib = os.path.join(out_dir, "pdeep_tune"+os.path.splitext(speclib_file)[-1])
+    copyfile(speclib_file, new_lib)
+    speclib_file = new_lib
         
-    pDeep_cfg = os.path.join(raw_dir, "pDeep-tune.cfg")
+    pDeep_cfg = os.path.join(out_dir, "pDeep-tune.cfg")
     GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)
     
     if psmLabel:
         SortPSM(psmLabel)
         
-    dlib = DLIB()
-    dlib.Open(dlib_db)
+    if speclib_file.endswith(".dlib"): speclib = DLIB()
+    elif speclib_file.endswith(".tsv"): speclib = OSW_TSV()
+    speclib.Open(speclib_file)
     
-    peptide_list = dlib.GetAllPeptides()
+    peptide_list = speclib.GetAllPeptides()
     for seq, mod, charge in fasta_peplist:
-        if "%s|%s|%d"%(seq, mod, charge) not in dlib.peptide_dict:
+        if "%s|%s|%d"%(seq, mod, charge) not in speclib.peptide_dict:
             peptide_list.append((seq, mod, charge))
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
@@ -172,5 +176,5 @@ if __name__ == "__main__":
     pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
     fasta_peptopro_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])
     
-    dlib.UpdateByPrediction(prediction, fasta_peptopro_dict)
-    dlib.Close()
+    speclib.UpdateByPrediction(prediction, fasta_peptopro_dict)
+    speclib.Close()

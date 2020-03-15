@@ -3,6 +3,13 @@ from ..sequence.peptide import get_peptidoforms_from_fasta, get_peptidoforms_fro
 from ..sequence.digest import DigestConfig
 from ..sequence.protein_infer import *
 
+from ..config.modification import mod_dict
+
+mod_mass_dict = {}
+for modname, item in mod_dict.items():
+    mod_mass_dict[modname] = float(item.split(" ")[2])
+            
+
 class LibraryBase(object):
     def Open(self):
         pass

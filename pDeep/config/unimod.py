@@ -1481,4 +1481,7 @@ def get_unimod_id():
     mod_list.append(('Xlink_DST[56]',1999))
     return mod_list
 
-unimod_id_dict = dict(get_unimod_id())
+_unimod_list = get_unimod_id()
+unimod_dict = dict(_unimod_list)
+id_unimod_dict = dict([(id, mod) for mod, id in _unimod_list])
+

@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from math import log
 from ..spectral_library.encyclopedia.dlib import DLIB
+from ..spectral_library.openswath.tsv import OSW_TSV
 from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
 from . import tune_and_predict
@@ -22,45 +23,45 @@ if __name__ == "__main__":
     for i in range(1, len(sys.argv), 2):
         argd[sys.argv[i]] = sys.argv[i+1]
     
-    dlib_db = argd['-dlib']
+    speclib = argd['-library']
     
-    fasta_peplist = []
-    pep_pro_dict = {}
-    if '-peptide' in argd:
-        seqlib = SequenceLibrary()
-        peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(argd['-peptide'])
+    seqlib = SequenceLibrary()
+    peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(argd['-peptide'])
         
     if '-raw' in argd:
         raw_path = argd['-raw']
-        raw_dir = os.path.split(raw_path)[0]
-        if '-elib' in argd and RawFileReader:
-            psmLabel, psmRT = Run_psmLabel(argd['-elib'], raw_path)
+        out_dir = os.path.split(raw_path)[0]
+        if '-' in argd and RawFileReader:
+            psmLabel, psmRT = Run_psmLabel(argd['-tune'], raw_path)
         else:
             psmLabel = ""
             psmRT = ""
     elif '-psmlabel' in argd:
-        raw_dir = os.path.split(psmLabel)
+        out_dir = os.path.split(psmLabel)
         psmLabel = argd['-psmlabel']
-        if '-psmRT' in argd: psmRT = argd['-psmRT']
+        if '-' in argd: psmRT = argd['-psmRT']
         else: psmRT = ""
     else:
-        raw_dir = argd['-dir']
+        out_dir = argd['-dir']
         psmLabel = ""
         if '-psmRT' in argd: psmRT = argd['-psmRT']
         else: psmRT = ""
-    dlib_db = os.path.join(raw_dir, dlib_db)
-    copyfile('tmp/data/library/empty.dlib', dlib_db)
+    speclib = os.path.join(out_dir, speclib)
+    if speclib.endswith(".dlib"): copyfile('tmp/data/library/empty.dlib', speclib)
         
-    pDeep_cfg = os.path.join(raw_dir, "pDeep-tune.cfg")
+    pDeep_cfg = os.path.join(out_dir, "pDeep-tune.cfg")
     GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)
     
     if psmLabel:
         SortPSM(psmLabel)
     
-    dlib = DLIB()
-    dlib.Open(dlib_db)
+    if speclib.endswith(".dlib"):
+        _lib = DLIB()
+    elif speclib.endswith(".tsv"):
+        _lib = OSW_TSV()
+    _lib.Open(speclib)
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
     
-    dlib.UpdateByPrediction(prediction, pep_pro_dict)
-    dlib.Close()
+    _lib.UpdateByPrediction(prediction, pep_pro_dict)
+    _lib.Close()
