@@ -72,14 +72,11 @@ class SequenceLibrary(object):
         
         return self.peptide_list, self.pep2pro_dict
         
-    def PeptideListFromFasta(self, fasta, protein_AC_list = None):
+    def PeptideListFromFasta(self, fasta, protein_list = None):
         self.peptide_list = []
         self.protein_dict = {}
         fmt = "Generated %d peptides (length: {} to {})".format(self.digest_config.min_len, self.digest_config.max_len)
-        if not protein_AC_list:
-            modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod)
-        else:
-            modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod, protein_AC_list)
+        modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmods, self.fixmods, self.min_varmod, self.max_varmod, protein_list)
         print(fmt%(len(modseq_list)))
         
         self._add_charge(modseq_list)

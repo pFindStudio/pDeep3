@@ -12,7 +12,7 @@ from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
 from . import tune_and_predict
 from ..sequence.protein_infer import infer_protein
-from .generate_tuned_dlib_from_elib import *
+from .generate_predicted_speclib import *
 try:
     from ..pyRawFileReader.RawFileReader import RawFileReader
 except:
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     speclib = argd['-library']
     
     seqlib = SequenceLibrary()
-    peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(argd['-peptide'])
+    peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(argd['-peptide_file'])
         
     if '-raw' in argd:
         raw_path = argd['-raw']
@@ -48,6 +48,7 @@ if __name__ == "__main__":
         else: psmRT = ""
     speclib = os.path.join(out_dir, speclib)
     if speclib.endswith(".dlib"): copyfile('tmp/data/library/empty.dlib', speclib)
+    elif speclib.endswith(".tsv"): copyfile('tmp/data/library/empty.tsv', speclib)
         
     pDeep_cfg = os.path.join(out_dir, "pDeep-tune.cfg")
     GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)

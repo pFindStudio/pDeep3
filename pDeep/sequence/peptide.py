@@ -9,11 +9,11 @@ class Protein:
         self.DE = DE
         self.seq = seq
 
-def read_proteins_by_AC_list(fasta, protein_list):
+def read_protein_list(fasta, protein_list):
     '''
     For exmaple, 'sp|P08603|CFAH_HUMAN', protein in protein_list could be 'P08603' or 'CFAH_HUMAN'.
     '''
-    def check_AC_in_protein_list(ac):
+    def check_in_protein_list(ac):
         for pro in protein_list:
             if pro in ac: return True
         return False
@@ -32,7 +32,7 @@ def read_proteins_by_AC_list(fasta, protein_list):
                     ret[ac] = Protein(ac, de, seq)
                 line = line.strip()[1:].replace("\t", " ")
                 ac, de = line.split(" ", 1)
-                if check_AC_in_protein_list(ac):
+                if check_in_protein_list(ac):
                     seq = ""
                 else:
                     seq = None
@@ -144,11 +144,11 @@ def get_peptidoforms_from_pep2pro_dict(pep2pro_dict, varmods, fixmods, min_var_m
     peptide_set = set(pep2pro_dict.keys())
     return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, min_var_mod, max_var_mod)
     
-def get_peptidoforms_from_fasta(fasta, digest_config, varmods, fixmods, min_var_mod=0, max_var_mod=1, protein_AC_list = None):
+def get_peptidoforms_from_fasta(fasta, digest_config, varmods, fixmods, min_var_mod=0, max_var_mod=1, protein_list = None):
     varmod_dict = generate_mod_dict(varmods)
     fixmod_dict = generate_mod_dict(fixmods)
-    if not protein_AC_list: protein_dict = read_all_proteins(fasta)
-    else: protein_dict = read_proteins_by_AC_list(fasta, protein_AC_list)
+    if not protein_list: protein_dict = read_all_proteins(fasta)
+    else: protein_dict = read_protein_list(fasta, protein_list)
     peptide_set = set()
     for ac, protein in protein_dict.items():
         peptide_set = digest(protein, peptide_set, digest_config)

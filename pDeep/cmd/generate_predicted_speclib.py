@@ -58,22 +58,23 @@ def GenerateCFGpDeep(cfg_file, psmLabel, psmRT):
         cfg_str = "".join(lines)
         out.write(cfg_str.format(psmLabel, psmRT))
         
-def Run_psmLabel(elib_db, raw_path):
-    PSMfile = elib_db+".psm.txt"
+def Run_psmLabel(result_file, raw_path):
+    PSMfile = result_file+".psm.txt"
     rawName = os.path.splitext(os.path.basename(raw_path))[0]
     out_dir = os.path.split(raw_path)[0]
     rawFile = RawFileReader(raw_path)
     
-    elib = DLIB()
-    elib.Open(elib_db)
-    elib.GetAllPeptides()
+    if result_file.endswith(".elib"): result = DLIB()
+    elif result_file.endswith(".osw"): result = PQP()
+    result.Open(result_file)
+    result.GetAllPeptides()
     
     with open(PSMfile, "w") as output:
         output.write("raw_name\tscan\tpeptide\tmodinfo\tcharge\tRTInSeconds\n")
         
         ion_calc = PeptideIonCalculator()
         
-        for pepinfo, (_, charge, RT, _, _) in elib.peptide_dict.items():
+        for pepinfo, (_, charge, RT, _, _) in result.peptide_dict.items():
             peptide, modinfo, _ = pepinfo.split("|")
             precursorMz = ion_calc.calc_pepmass(peptide, modinfo)
             precursorMz = precursorMz/charge + ion_calc.base_mass.mass_proton
@@ -82,7 +83,7 @@ def Run_psmLabel(elib_db, raw_path):
                 output.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(rawName, scan, peptide, modinfo, charge, RT))
             else:
                 print("no scan found for {}".format(pepinfo))
-    elib.Close()
+    result.Close()
     rawFile.Close()
     
     cfg_file = os.path.join(out_dir, "psmLabel.cfg")
@@ -132,8 +133,12 @@ if __name__ == "__main__":
     speclib_file = argd['-library']
     
     if '-fasta' in argd:
+        if '-proteins' in argd:
+            protein_list = argd['-proteins'].split(",")
+        else:
+            protein_list = None
         seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1200)
-        fasta_peplist, protein_dict = seqlib.PeptideListFromFasta(argd['-fasta'])
+        fasta_peplist, protein_dict = seqlib.PeptideListFromFasta(argd['-fasta'], protein_list)
     else:
         fasta_peplist, protein_dict = [], {}
         
@@ -176,5 +181,5 @@ if __name__ == "__main__":
     pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
     fasta_peptopro_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])
     
-    speclib.UpdateByPrediction(prediction, fasta_peptopro_dict, min_intensity = 0.05, least_n_peaks = 0, max_mz = 2000)
+    speclib.UpdateByPrediction(prediction, fasta_peptopro_dict, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000)
     speclib.Close()
