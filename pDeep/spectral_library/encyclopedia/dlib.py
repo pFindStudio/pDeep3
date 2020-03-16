@@ -86,7 +86,7 @@ class DLIB(LibraryBase):
         self.sql_conn.commit()
         
     # peak_selection = "topK" or "intensity"
-    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.05, mass_upper = 2000):
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000):
         print("updating dlib ...")
         count = 0
         start = time.perf_counter()
@@ -116,28 +116,34 @@ class DLIB(LibraryBase):
             seq, mod, charge = pepinfo.split("|")
             charge = int(charge)
             masses, pepmass = self._ion_calc.calc_by_and_pepmass(seq, mod, 2)
+            pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
             # print(seq, mod, masses)
+            
             intens = intensities[:,:masses.shape[1]]
             intens[0, 0:2] = 0 #b1+/b1++ = 0
             intens[-1, 2:] = 0 #y1+/y1++ = 0, do not consider y1/b1 in the library
             masses = masses.reshape(-1)
             intens = intens.reshape(-1)
+            intens[np.abs(masses - pepmass) < 10] = 0 #delete ions around precursor m/z
             intens = intens/np.max(intens)
             
-            if peak_selection == "intensity": 
-                masses = masses[intens > threshold]
-                intens = intens[intens > threshold]*10000
-            else:
-                intens = intens*10000
             intens = intens[masses < mass_upper]
             masses = masses[masses < mass_upper]
+            
+            if len(masses[intens > min_intensity]) >= least_n_peaks:
+                masses = masses[intens > min_intensity]
+                intens = intens[intens > min_intensity] * 10000
+            else:
+                indices = np.argsort(intens)[::-1]
+                masses = masses[indices[:least_n_peaks]]
+                intens = intens[indices[:least_n_peaks]]*10000
+                
             RT = _prediction.GetRetentionTime(pepinfo)
             
             if pepinfo in self.peptide_dict:
                 item = self.peptide_dict[pepinfo]
                 update_list.append((*_encode(masses, intens), item[2], item[0], item[1])) #item[2] = RT in dlib
             else:
-                pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
                 insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
                 insert_list.append((pDeepFormat2PeptideModSeq(seq, mod), seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
             if count%10000 == 0:

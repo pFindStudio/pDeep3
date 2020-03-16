@@ -118,7 +118,7 @@ def predict(pdeep, param, peptide_list = None):
     
 def predict_RT(pdeep_RT, param, pep_buckets):
     start_time = time.perf_counter()
-    print("RT predicting ...")
+    print("predicting RT ...")
     predict_buckets = pdeep_RT.Predict(pep_buckets)
     # print(predict_buckets)
     print('predicting time = {:.3f}s'.format(time.perf_counter() - start_time))

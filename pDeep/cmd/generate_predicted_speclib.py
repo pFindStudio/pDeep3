@@ -132,7 +132,7 @@ if __name__ == "__main__":
     speclib_file = argd['-library']
     
     if '-fasta' in argd:
-        seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1000)
+        seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1200)
         fasta_peplist, protein_dict = seqlib.PeptideListFromFasta(argd['-fasta'])
     else:
         fasta_peplist, protein_dict = [], {}
@@ -176,5 +176,5 @@ if __name__ == "__main__":
     pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
     fasta_peptopro_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])
     
-    speclib.UpdateByPrediction(prediction, fasta_peptopro_dict)
+    speclib.UpdateByPrediction(prediction, fasta_peptopro_dict, min_intensity = 0.05, least_n_peaks = 0, max_mz = 2000)
     speclib.Close()

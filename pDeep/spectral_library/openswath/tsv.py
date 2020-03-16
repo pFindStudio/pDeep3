@@ -62,10 +62,10 @@ class OSW_TSV(LibraryBase):
     def __init__(self):
         self._ion_calc = ion_calc()
         self.peptide_dict = {}
-        self.head = "PrecursorMz	ProductMz	Tr_recalibrated	transition_name	CE	LibraryIntensity	transition_group_id	decoy	PeptideSequence	ProteinName	Annotation	FullUniModPeptideName	PrecursorCharge	PeptideGroupLabel	UniprotID	FragmentType	FragmentCharge	FragmentSeriesNumber	LabelType".split("\t")
+        self.head = "PrecursorMz	ProductMz	RetentionTime	transition_name	CE	LibraryIntensity	transition_group_id	decoy	PeptideSequence	ProteinName	Annotation	FullUniModPeptideName	PrecursorCharge	PeptideGroupLabel	UniprotID	FragmentType	FragmentCharge	FragmentSeriesNumber	LabelType".split("\t")
         self.headidx = dict(zip(self.head, range(len(self.head))))
         
-        self.set_precision(6, 1)
+        self.set_precision(10, 1)
         
     def set_precision(self, mass_precision, inten_precision):
         self._mass_precision = mass_precision
@@ -122,7 +122,9 @@ class OSW_TSV(LibraryBase):
             if seq is None: continue
             charge = int(_get(items, "PrecursorCharge"))
             if not peptide_list or peptide_list[-1] != (seq, mod, charge):
-                RT = float(_get(items, "Tr_recalibrated"))*60
+                if "Tr_recalibrated" in _headidx: RT = float(_get(items, "Tr_recalibrated"))*60
+                elif "RetentionTime" in _headidx: RT = float(_get(items, "RetentionTime"))*60
+                else: RT = 0
                 protein = _get(items, "ProteinName")
                 pro_list = protein.split("/")[1:]
                 proteins = []
@@ -138,7 +140,7 @@ class OSW_TSV(LibraryBase):
         
     def _write_one_peptide(self, _file, seq, mod, pre_charge, pepmass, masses, intens, charges, types, sites, RT, protein, pep_count, transition_count):
         labeled_seq = pDeepFormat2PeptideModSeq(seq, mod)
-        #"PrecursorMz	ProductMz	Tr_recalibrated	transition_name	CE	LibraryIntensity	transition_group_id	decoy	PeptideSequence	ProteinName	Annotation	FullUniModPeptideName	PrecursorCharge	PeptideGroupLabel	UniprotID	FragmentType	FragmentCharge	FragmentSeriesNumber	LabelType"
+        #"PrecursorMz	ProductMz	RetentionTime	transition_name	CE	LibraryIntensity	transition_group_id	decoy	PeptideSequence	ProteinName	Annotation	FullUniModPeptideName	PrecursorCharge	PeptideGroupLabel	UniprotID	FragmentType	FragmentCharge	FragmentSeriesNumber	LabelType"
         items = self._init_row()
         pep_count += 1
         self._set(items, "PrecursorMz", self._str_mass(pepmass))
@@ -150,10 +152,9 @@ class OSW_TSV(LibraryBase):
         pep_id = "%d_%s_%d"%(pep_count, labeled_seq, pre_charge)
         self._set(items, "transition_group_id", pep_id)
         self._set(items, "PeptideGroupLabel", pep_id)
-        self._set(items, "Tr_recalibrated", RT/60)
+        self._set(items, "RetentionTime", RT/60)
         count = 0
         for mz, inten, charge, ion_type, site in zip(masses, intens, charges, types, sites):
-            # if abs(mz - pepmass) < 10: continue
             transition_count += 1
             self._set(items, "FragmentType", ion_type)
             self._set(items, "FragmentCharge", charge)
@@ -166,8 +167,7 @@ class OSW_TSV(LibraryBase):
             _file.write("\t".join(items)+"\n")
         return pep_count, transition_count
         
-    # peak_selection = "rank" or "absolute"
-    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "absolute", threshold = 0.05, mass_upper = 2000):
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000):
         f = open(self.tsv_file, "w")
         f.write("\t".join(self.head)+"\n")
         print("updating tsv ...")
@@ -180,6 +180,7 @@ class OSW_TSV(LibraryBase):
             charge = int(charge)
             max_ion_charge = 2
             masses, pepmass = self._ion_calc.calc_by_and_pepmass(seq, mod, max_ion_charge)
+            pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
             # print(seq, mod, masses)
             
             b_sites = np.tile(np.arange(1, len(seq)).reshape(-1,1), [1,max_ion_charge])
@@ -201,32 +202,34 @@ class OSW_TSV(LibraryBase):
             sites = sites.reshape(-1)
             types = types.reshape(-1)
             charges = charges.reshape(-1)
+            
+            intens[np.abs(masses - pepmass) < 10] = 0 #delete ions around precursor m/z
             intens = intens/np.max(intens)
-            
-            if peak_selection == "absolute": 
-                masses = masses[intens > threshold]
-                sites = sites[intens > threshold]
-                types = types[intens > threshold]
-                charges = charges[intens > threshold]
-                intens = intens[intens > threshold]*10000
-            else:
-                indices = numpy.argsort(intens)[::-1]
-                masses = masses[indices[:threshold]]
-                sites = sites[indices[:threshold]]
-                types = types[indices[:threshold]]
-                charges = charges[indices[:threshold]]
-                intens = intens[indices[:threshold]]*10000
                 
-            intens = intens[masses < mass_upper]
-            sites = sites[masses < mass_upper]
-            types = types[masses < mass_upper]
-            charges = charges[masses < mass_upper]
+            intens = intens[masses <= max_mz]
+            sites = sites[masses <= max_mz]
+            types = types[masses <= max_mz]
+            charges = charges[masses <= max_mz]
+            masses = masses[masses <= max_mz]
             
-            masses = masses[masses < mass_upper]
+            
+            if len(masses[intens > min_intensity]) >= least_n_peaks:
+                masses = masses[intens > min_intensity]
+                sites = sites[intens > min_intensity]
+                types = types[intens > min_intensity]
+                charges = charges[intens > min_intensity]
+                intens = intens[intens > min_intensity] * 10000
+            else:
+                indices = np.argsort(intens)[::-1]
+                masses = masses[indices[:least_n_peaks]]
+                sites = sites[indices[:least_n_peaks]]
+                types = types[indices[:least_n_peaks]]
+                charges = charges[indices[:least_n_peaks]]
+                intens = intens[indices[:least_n_peaks]]*10000
+            
             
             RT = _prediction.GetRetentionTime(pepinfo)
             
-            pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
             if seq in peptide_to_protein_dict:
                 protein = peptide_to_protein_dict[seq]
                 protein = str(protein.count("/")+1)+"/"+protein
