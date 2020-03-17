@@ -281,12 +281,17 @@ class pDeepRTModel:
 
     def Predict(self, buckets):
         with self.graph.as_default():
+            start = time.perf_counter()
             bbatch = Bucket_Batch(buckets, batch_size=self.batch_size, shuffle=False)
             output_buckets = {}
+            count = 0
+            batch_count = 0
             for batch in bbatch.generate_batch():
                 peplen = bbatch.get_data_from_batch(batch, "peplen")
                 x = np.float32(bbatch.get_data_from_batch(batch, "x"))
                 mod_x = np.float32(bbatch.get_data_from_batch(batch, "mod_x"))
+                count += peplen.shape[0]
+                batch_count += 1
 
                 feed_dict = {
                     self._aa_x: x,
@@ -297,6 +302,8 @@ class pDeepRTModel:
                 # print(predictions)
                 _buckets = {peplen[0]: (predictions*self.RT_norm,)}
                 output_buckets = merge_buckets(output_buckets, _buckets)
+                if (batch_count % 10) == 0: print("[pDeep Info] predicted %d peptide precursors (RT) using %.3f seconds"%(count, time.perf_counter()-start), end='\r')
+            print("[pDeep Info] predicted %d peptide precursors (RT) using %.3f seconds"%(count, time.perf_counter()-start))
             return output_buckets
 
     def SaveModel(self, model_file):

@@ -66,6 +66,7 @@ class OSW_TSV(LibraryBase):
         self.headidx = dict(zip(self.head, range(len(self.head))))
         
         self.set_precision(10, 1)
+        self.decoy = "pseudo_reverse" #or reverse
         
     def set_precision(self, mass_precision, inten_precision):
         self._mass_precision = mass_precision
@@ -85,7 +86,6 @@ class OSW_TSV(LibraryBase):
         items = ["0"] * len(self.head)
         self._set(items, 'CE', '-1')
         self._set(items, 'LabelType', 'light')
-        self._set(items, 'decoy', '0')
         return items
         
     def _set(self, items, key, val):

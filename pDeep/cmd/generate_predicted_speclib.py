@@ -7,6 +7,7 @@ import tensorflow as tf
 
 from ..spectral_library.encyclopedia.dlib import DLIB
 from ..spectral_library.openswath.tsv import OSW_TSV
+from ..spectral_library.openswath.pqp import PQP,OSW
 from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
 from . import tune_and_predict
@@ -65,7 +66,7 @@ def Run_psmLabel(result_file, raw_path):
     rawFile = RawFileReader(raw_path)
     
     if result_file.endswith(".elib"): result = DLIB()
-    elif result_file.endswith(".osw"): result = PQP()
+    elif result_file.endswith(".osw"): result = OSW()
     result.Open(result_file)
     result.GetAllPeptides()
     
@@ -74,7 +75,7 @@ def Run_psmLabel(result_file, raw_path):
         
         ion_calc = PeptideIonCalculator()
         
-        for pepinfo, (_, charge, RT, _, _) in result.peptide_dict.items():
+        for pepinfo, (_, charge, RT, _) in result.peptide_dict.items():
             peptide, modinfo, _ = pepinfo.split("|")
             precursorMz = ion_calc.calc_pepmass(peptide, modinfo)
             precursorMz = precursorMz/charge + ion_calc.base_mass.mass_proton
@@ -126,11 +127,15 @@ def SortPSM(psmLabel):
         f.writelines([item[1] for item in new_items])
 
 if __name__ == "__main__":
+    import argparse
     argd = {}
     for i in range(1, len(sys.argv), 2):
         argd[sys.argv[i].lower()] = sys.argv[i+1]
     
-    speclib_file = argd['-library']
+    out_lib = argd['-out_library']
+    out_dir = os.path.split(out_lib)[0]
+    if '-decoy' in argd: decoy = argd['-decoy']
+    else: decoy = "pseudo_reverse"
     
     if '-fasta' in argd:
         if '-proteins' in argd:
@@ -142,24 +147,19 @@ if __name__ == "__main__":
     else:
         fasta_peplist, protein_dict = [], {}
         
-    if '-tune' in argd and RawFileReader:
+    if '-tune_psm' in argd and RawFileReader:
         raw_path = argd['-raw']
-        out_dir = os.path.split(raw_path)[0]
-        psmLabel, psmRT = Run_psmLabel(argd['-tune'], raw_path)
+        psmLabel, psmRT = Run_psmLabel(argd['-tune_psm'], raw_path)
     elif '-psmlabel' in argd:
-        out_dir = os.path.split(psmLabel)
         psmLabel = argd['-psmlabel']
         if '-psmRT' in argd: psmRT = argd['-psmRT']
         else: psmRT = ""
     else:
-        out_dir = argd['-dir']
         psmLabel = ""
         if '-psmRT' in argd: psmRT = argd['-psmRT']
         else: psmRT = ""
 
-    new_lib = os.path.join(out_dir, "pdeep_tune"+os.path.splitext(speclib_file)[-1])
-    copyfile(speclib_file, new_lib)
-    speclib_file = new_lib
+    copyfile('tmp/data/library/empty'+os.path.splitext(out_lib)[-1], out_lib)
         
     pDeep_cfg = os.path.join(out_dir, "pDeep-tune.cfg")
     GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)
@@ -167,19 +167,34 @@ if __name__ == "__main__":
     if psmLabel:
         SortPSM(psmLabel)
         
-    if speclib_file.endswith(".dlib"): speclib = DLIB()
-    elif speclib_file.endswith(".tsv"): speclib = OSW_TSV()
-    speclib.Open(speclib_file)
+    if '-transition_tsv' in argd:
+        speclib_file = argd['-transition_tsv']
+        tsv = OSW_TSV()
     
-    peptide_list = speclib.GetAllPeptides()
-    for seq, mod, charge in fasta_peplist:
-        if "%s|%s|%d"%(seq, mod, charge) not in speclib.peptide_dict:
-            peptide_list.append((seq, mod, charge))
+        tsv.Open(speclib_file)
+        
+        peptide_list = tsv.GetAllPeptides()
+        for seq, mod, charge in peptide_list:
+            if "%s|%s|%d"%(seq, mod, charge) not in tsv.peptide_dict:
+                peptide_list.append((seq, mod, charge))
+        
+        tsv.Close()
+    else:
+        peptide_list = fasta_peplist
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
     
     pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
     fasta_peptopro_dict = dict([(peptide, ";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in pep_pro_dict.items()])
     
-    speclib.UpdateByPrediction(prediction, fasta_peptopro_dict, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000)
-    speclib.Close()
+    if out_lib.endswith(".dlib"):
+        _lib = DLIB()
+    elif out_lib.endswith(".tsv"):
+        _lib = OSW_TSV()
+    elif out_lib.endswith(".pqp"):
+        _lib = PQP()
+    _lib.Open(out_lib)
+    
+    _lib.decoy = decoy
+    _lib.UpdateByPrediction(prediction, fasta_peptopro_dict, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000)
+    _lib.Close()

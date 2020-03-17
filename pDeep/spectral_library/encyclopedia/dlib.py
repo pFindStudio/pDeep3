@@ -50,7 +50,7 @@ class DLIB(LibraryBase):
             charge = int(row[1])
             RT = float(row[2])
             peptide_list.append((seq, mod, charge))
-            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT, None, None] #items = [PeptideModSeq, PrecursorCharge, PredictedMassList, PredictedIntensityList]
+            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT, ""] #items = [PeptideModSeq, PrecursorCharge, RT, protein]
         print("reading dlib time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
         
@@ -140,19 +140,19 @@ class DLIB(LibraryBase):
                 
             RT = _prediction.GetRetentionTime(pepinfo)
             
-            if pepinfo in self.peptide_dict:
-                item = self.peptide_dict[pepinfo]
-                update_list.append((*_encode(masses, intens), item[2], item[0], item[1])) #item[2] = RT in dlib
-            else:
+            # if pepinfo in self.peptide_dict:
+                # item = self.peptide_dict[pepinfo]
+                # update_list.append((*_encode(masses, intens), item[2], item[0], item[1])) #item[2] = RT in dlib
+            if True:
                 insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
                 insert_list.append((pDeepFormat2PeptideModSeq(seq, mod), seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
             if count%10000 == 0:
                 print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
                 if count%1000000 == 0:
-                    self.cursor.executemany(update_sql, update_list)
+                    # self.cursor.executemany(update_sql, update_list)
                     self.cursor.executemany(insert_sql, insert_list)
                     self.cursor.executemany(insert_pep2pro_sql, insert_pep2pro_list)
-                    update_list = []
+                    # update_list = []
                     insert_list = []
                     insert_pep2pro_list = []
         self.cursor.executemany(update_sql, update_list)

@@ -5,17 +5,17 @@ Set-Location -Path "e:/DIATools/openswath/OpenMS-2.4.0-nightly-2019-08-09/bin/"
 # $global:lib_TDA="e:/DIATools/openswath/library/phl004_s32_TDA.pqp"
 # $global:irt="e:/DIATools/openswath/library/phl004_s32_iRT_cells.tsv"
 
-# $output_dir="e:\DIAData\PECAN\5mz\phl-pDeep-QE27-mixed-osw"
-# $lib="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.tsv"
-# $global:lib_TDA="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27_mixed_TDA.pqp"
-# $global:irt="e:/DIATools/openswath/library/pDeep/pDeep_iRT_cells.tsv"
+$output_dir="e:\DIAData\PECAN\20mz\pDeep_decoy_test"
+$lib="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.tsv"
+$global:lib_TDA="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27_try_decoy.pqp"
+$global:irt="e:/DIATools/openswath/library/pDeep/pDeep_iRT_cells.tsv"
 
-$output_dir="e:\DIAData\PECAN\plasma\peptide-list-mixed-osw"
-$lib="e:/DIATools/openswath/library/pDeep/peptide_list_QE27.tsv"
-$global:lib_TDA="e:/DIATools/openswath/library/pDeep/peptide_list_QE27_TDA.pqp"
-$global:irt="e:/DIATools/openswath/library/pDeep/blood_RT_proteins_fasta_QE27.tsv"
+# $output_dir="e:\DIAData\PECAN\plasma\peptide-list-mixed-osw"
+# $lib="e:/DIATools/openswath/library/pDeep/peptide_list_QE2.tsv"
+# $global:lib_TDA="e:/DIATools/openswath/library/pDeep/peptide_list_QE27_TDA.pqp"
+# $global:irt="e:/DIATools/openswath/library/pDeep/blood_RT_proteins_fasta_QE27.tsv"
 
-$raw_dir="e:\DIAData\PECAN\plasma"
+$raw_dir="e:\DIAData\PECAN\20mz"
 
 $ms1_tol_type='ppm' # or 'Th'
 $ms1_tol=10
@@ -35,15 +35,15 @@ function Compare-File-Date($f1, $f2)
 New-Item -Path $output_dir -ItemType Directory
 if (!(Test-Path $global:lib_TDA -PathType leaf))
 {
-    Write-Host "========== Generating decoy =========="
-    $pqp=-join($lib.substring(0, $lib.Length-3), 'pqp')
-    TargetedFileConverter.exe -in $lib -out $pqp
     Write-Host "========== Converting to PQP =========="
-    OpenSWATHDecoyGenerator.exe -in $pqp -out $global:lib_TDA -method reverse
+    $pqp=-join($lib.substring(0, $lib.Length-3), 'pqp')
+    TargetedFileConverter.exe -in $lib -out $pqp -threads 4
+    Write-Host "========== Generating decoy =========="
+    OpenSWATHDecoyGenerator.exe -in $pqp -out $global:lib_TDA -method reverse -threads 4
 }
 function run_one($raw, $out)
 {
-    OpenSwathWorkflow.exe -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only -matching_window_only -$overlapDIA -min_coverage 0.01 -min_rsq 0.95
+    OpenSwathWorkflow.exe -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95
     # OpenSwathWorkflow.exe '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring

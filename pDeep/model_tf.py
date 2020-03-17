@@ -272,8 +272,11 @@ class pDeepModel:
             self.SaveModel(save_as)
 
     def Predict(self, buckets):
+        start = time.perf_counter()
         bbatch = Bucket_Batch(buckets, batch_size=self.batch_size, shuffle=False)
         output_buckets = {}
+        count = 0
+        batch_count = 0
         for batch in bbatch.generate_batch():
             peplen = bbatch.get_data_from_batch(batch, "peplen")
             ch = np.float32(bbatch.get_data_from_batch(batch, "charge"))
@@ -281,6 +284,8 @@ class pDeepModel:
             mod_x = np.float32(bbatch.get_data_from_batch(batch, "mod_x"))
             instrument = np.float32(bbatch.get_data_from_batch(batch, "instrument"))
             nce = np.float32(bbatch.get_data_from_batch(batch, "nce"))
+            count += peplen.shape[0]
+            batch_count += 1
 
             feed_dict = {
                 self._aa_x: x,
@@ -295,6 +300,8 @@ class pDeepModel:
             predictions[predictions < 0] = 0
             _buckets = {peplen[0]: (predictions,)}
             output_buckets = merge_buckets(output_buckets, _buckets)
+            if (batch_count % 10) == 0: print("[pDeep Info] predicted %d peptide precursors using %.3f seconds"%(count, time.perf_counter()-start), end='\r')
+        print("[pDeep Info] predicted %d peptide precursors using %.3f seconds"%(count, time.perf_counter()-start))
         return output_buckets
 
     def SaveModel(self, model_file):

@@ -66,7 +66,7 @@ def tune(param):
             return evaluate.cum_plot([pcc], sim_names, evaluate.thres_list)
         test_buckets = load_data.load_plabel_as_buckets(param.test_psmlabels, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
         eval_model(pdeep, test_buckets)
-        print("testing time = %.3fs"%(time.perf_counter() - start_time))
+        print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
 
     if param.tune_psmlabels:
@@ -74,7 +74,7 @@ def tune(param):
         start_time = time.perf_counter()
         train_buckets = load_data.load_plabel_as_buckets(param.tune_psmlabels, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
         pdeep.TrainModel(train_buckets, save_as=None)
-        print("tuning time = %.3fs"%(time.perf_counter() - start_time))
+        print("[pDeep Info] tuning time = %.3fs"%(time.perf_counter() - start_time))
         print("\n\n")
         
     if param.tune_RT_psmlabel and pdeep_RT:
@@ -82,9 +82,9 @@ def tune(param):
             start_time = time.perf_counter()
             train_buckets = load_data.load_RT_file_as_buckets(param.tune_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
             pdeep_RT.TrainModel(train_buckets, save_as=None)
-            print("RT tuning time = %.3fs"%(time.perf_counter() - start_time))
+            print("[pDeep Info] RT tuning time = %.3fs"%(time.perf_counter() - start_time))
         except:
-            print("[E] exception in tuning RT: '{}'".format(param.tune_RT_psmlabel))
+            print("[Error] exception in tuning RT: '{}'".format(param.tune_RT_psmlabel))
         print("\n\n")
     
     pdeep.batch_size = param.predict_batch
@@ -99,29 +99,30 @@ def tune(param):
             sim_names = ['PCC']
             return evaluate.cum_plot([pcc], sim_names, evaluate.thres_list)
         eval_model(pdeep, test_buckets)
-        print("testing time = %.3fs"%(time.perf_counter() - start_time))
+        print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
         test_buckets = None # release the memory
         
     return pdeep, pdeep_RT
      
 def predict(pdeep, param, peptide_list = None):
+    print("[pDeep Info] loading peptides ...")
     if peptide_list is not None:
         pep_buckets = load_data.load_peptides_as_buckets(peptide_list, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
     else:
         pep_buckets = load_data.load_peptide_file_as_buckets(param.predict_input, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
     start_time = time.perf_counter()
-    print("predicting ...")
+    print("[pDeep Info] predicting ...")
     predict_buckets = pdeep.Predict(pep_buckets)
-    print('predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
+    print('[pDeep Info] predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
     return pep_buckets,predict_buckets
     
 def predict_RT(pdeep_RT, param, pep_buckets):
     start_time = time.perf_counter()
-    print("predicting RT ...")
+    print("[pDeep Info] predicting RT ...")
     predict_buckets = pdeep_RT.Predict(pep_buckets)
     # print(predict_buckets)
-    print('predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
+    print('[pDeep Info] predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
     return predict_buckets
     
 def run(pDeep_cfg, peptide_list = None):
