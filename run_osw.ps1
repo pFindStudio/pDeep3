@@ -7,7 +7,7 @@ Set-Location -Path "e:/DIATools/openswath/OpenMS-2.4.0-nightly-2019-08-09/bin/"
 
 $output_dir="e:\DIAData\PECAN\20mz\pDeep_decoy_test"
 $lib="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.tsv"
-$global:lib_TDA="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27_try_decoy.pqp"
+$global:lib_TDA="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27_try_reverse.pqp"
 $global:irt="e:/DIATools/openswath/library/pDeep/pDeep_iRT_cells.tsv"
 
 # $output_dir="e:\DIAData\PECAN\plasma\peptide-list-mixed-osw"

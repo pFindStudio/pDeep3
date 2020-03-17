@@ -36,15 +36,13 @@ class OSW(LibraryBase):
 # not support insertion, only create from empty.pqp
 class PQP(LibraryBase):
     def __init__(self):
+        super(self.__class__, self).__init__()
         self.sql_conn = None
         self._ion_calc = ion_calc()
         self.peptide_dict = {}
         self.peptide_list = []
         self.precursor_peptide_dict = {}
         self.peptide_protein_dict = {}
-        
-        self.decoy = "pseudo_reverse" #or reverse
-        self.decoy_tag = "DECOY_"
         
         #CREATE TABLE TRANSITION(ID INT PRIMARY KEY NOT NULL,TRAML_ID TEXT NULL,PRODUCT_MZ REAL NOT NULL,CHARGE INT NULL,TYPE CHAR(1) NULL,ANNOTATION TEXT NULL,ORDINAL INT NULL,DETECTING INT NOT NULL,IDENTIFYING INT NOT NULL,QUANTIFYING INT NOT NULL,LIBRARY_INTENSITY REAL NULL,DECOY INT NOT NULL)
         self.transition_insert_sql = "INSERT INTO TRANSITION(ID, TRAML_ID, PRODUCT_MZ, CHARGE, TYPE, ANNOTATION, ORDINAL, DETECTING, IDENTIFYING, QUANTIFYING, LIBRARY_INTENSITY, DECOY) VALUES(?, ?, ?, ?, ?, ?, ?, 1, 0, 1, ?, ?)"

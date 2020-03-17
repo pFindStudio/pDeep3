@@ -24,7 +24,7 @@ for modname, modmass in mod_mass_dict.items():
         if _name in unimod_dict:
             _mod_dict[modname] = '%s(UniMod:%d)'%(_aa, unimod_dict[_name])
         else:
-            print('[Warning] modification "%s" not found in unimod.xml'%modname)
+            # print('[Warning] modification "%s" not found in unimod.xml'%modname)
             _mod_dict[modname] = '%s(%f)'%(_aa, modmass)
 
 def pDeepFormat2PeptideModSeq(seq, modinfo):
@@ -130,7 +130,7 @@ class OSW_TSV(LibraryBase):
                 proteins = []
                 for pro in pro_list:
                     if not pro.startswith("DECOY_"): proteins.append(pro)
-                protein = str(len(proteins))+"/"+"/".join(proteins)
+                protein = "/".join(proteins)
                 peptide_list.append((seq, mod, charge))
                 self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [mod_seq, charge, RT, protein]
         print("reading tsv time = %.3fs"%(time.perf_counter() - start))

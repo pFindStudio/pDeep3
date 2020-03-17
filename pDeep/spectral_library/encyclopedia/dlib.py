@@ -87,7 +87,7 @@ class DLIB(LibraryBase):
         
     # peak_selection = "topK" or "intensity"
     def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000):
-        print("updating dlib ...")
+        print("[pDeep Info] updating dlib ...")
         count = 0
         start = time.perf_counter()
         
@@ -107,7 +107,7 @@ class DLIB(LibraryBase):
             if not ProteinACs: return insert_pep2pro_list
             cursor = self.cursor.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
             if not cursor.fetchone():
-                for ProteinAccession in ProteinACs.split(";"):
+                for ProteinAccession in ProteinACs.split("/"):
                     insert_pep2pro_list.append((PeptideSeq, ProteinAccession))
             return insert_pep2pro_list
         
@@ -127,8 +127,8 @@ class DLIB(LibraryBase):
             intens[np.abs(masses - pepmass) < 10] = 0 #delete ions around precursor m/z
             intens = intens/np.max(intens)
             
-            intens = intens[masses < mass_upper]
-            masses = masses[masses < mass_upper]
+            intens = intens[masses < max_mz]
+            masses = masses[masses < max_mz]
             
             if len(masses[intens > min_intensity]) >= least_n_peaks:
                 masses = masses[intens > min_intensity]
@@ -160,7 +160,7 @@ class DLIB(LibraryBase):
         self.cursor.executemany(insert_pep2pro_sql, insert_pep2pro_list)
         print("[SQL UPDATE] 100%: {}".format(self.dlib_file))
         self.sql_conn.commit()
-        print("updating dlib time = %.3fs"%(time.perf_counter()-start))
+        print("[pDeep Info] updating dlib time = %.3fs"%(time.perf_counter()-start))
     
     # peak_selection = "topK" or "intensity"
     def SlowUpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.05, mass_upper = 2000):

@@ -11,6 +11,9 @@ for modname, item in mod_dict.items():
             
 
 class LibraryBase(object):
+    def __init__(self):
+        self.decoy = "reverse" # or pseudo_reverse
+        self.decoy_tag = "DECOY_"
     def Open(self):
         pass
     def Close(self):
