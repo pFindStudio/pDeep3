@@ -5,17 +5,17 @@ Set-Location -Path "e:/DIATools/openswath/OpenMS-2.4.0-nightly-2019-08-09/bin/"
 # $global:lib_TDA="e:/DIATools/openswath/library/phl004_s32_TDA.pqp"
 # $global:irt="e:/DIATools/openswath/library/phl004_s32_iRT_cells.tsv"
 
-$output_dir="e:\DIAData\PECAN\20mz\pDeep_decoy_test"
-$lib="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.tsv"
-$global:lib_TDA="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27_try_reverse.pqp"
-$global:irt="e:/DIATools/openswath/library/pDeep/pDeep_iRT_cells.tsv"
+# $output_dir="e:\DIAData\PECAN\20mz\pDeep_decoy_test"
+# $lib="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.tsv"
+# $global:lib_TDA="e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27_try_reverse.pqp"
+# $global:irt="e:/DIATools/openswath/library/pDeep/pDeep_iRT_cells.tsv"
 
-# $output_dir="e:\DIAData\PECAN\plasma\peptide-list-mixed-osw"
-# $lib="e:/DIATools/openswath/library/pDeep/peptide_list_QE2.tsv"
-# $global:lib_TDA="e:/DIATools/openswath/library/pDeep/peptide_list_QE27_TDA.pqp"
-# $global:irt="e:/DIATools/openswath/library/pDeep/blood_RT_proteins_fasta_QE27.tsv"
+$output_dir="e:\DIAData\PECAN\plasma\peptide-list-mixed-osw"
+$lib="e:/DIATools/openswath/library/pDeep/peptide_list_QE2.tsv"
+$global:lib_TDA="e:/DIATools/openswath/library/pDeep/peptide_list_QE27_TDA.pqp"
+$global:irt="e:/DIATools/openswath/library/pDeep/blood_RT_proteins_fasta_QE27.tsv"
 
-$raw_dir="e:\DIAData\PECAN\20mz"
+$raw_dir="e:\DIAData\PECAN\plasma"
 
 $ms1_tol_type='ppm' # or 'Th'
 $ms1_tol=10

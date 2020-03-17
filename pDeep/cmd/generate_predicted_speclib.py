@@ -130,16 +130,12 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Generating spectral library for OpenSWATH and EncyclopDIA by pDeep.')
     
-    parser.add_argument('--out_library', type=str, required=True, help='The genereted library file.')
+    parser.add_argument('--input', type=str, required=True, help='The peptide file: .txt file for peptide library; .fasta for generating peptides from fasta; .tsv file for transition or assays file (for example pan-human library).')
+    parser.add_argument('--output', type=str, required=True, help='The genereted library file.')
+    
+    parser.add_argument('--proteins', type=str, required=False, help='Only considering these proteins when input is fasta, seperated by "," (default: use all proteins).')
     
     parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse'], default='reverse', help='Decoy method when generating OSW PQP file.')
-    
-    parser.add_argument('--fasta', type=str, required=False, help='Generating peptides from fasta file.')
-    parser.add_argument('--proteins', type=str, required=False, help='Only considering these proteins in the faste file, seperated by ",".')
-    
-    parser.add_argument('--peptide_library', type=str, required=False, help='The peptide library file.')
-    
-    parser.add_argument('--transition_tsv', type=str, required=False, help='Generating peptides from transition or assays file (for example pan-human library).')
     
     parser.add_argument('--tune_psm', type=str, required=False, help='.osw or .elib file for tuning pDeep and pDeepRT.')
     parser.add_argument('--raw', type=str, required=False, help='Raw file for tuning pDeep and pDeepRT.')
@@ -151,24 +147,32 @@ if __name__ == "__main__":
     
     
     
-    out_lib = args.out_library
+    out_lib = args.output
     out_dir = os.path.split(out_lib)[0]
     decoy = args.decoy
     
     copyfile('tmp/data/library/empty'+os.path.splitext(out_lib)[-1], out_lib)
     
     seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1200)
-    if args.peptide_library:
-        fasta_peplist, infer_pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.peptide_library)
-    elif args.fasta:
+    if args.input.endswith('.txt'):
+        peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
+    elif args.input.endswith('.fasta'):
         if args.proteins:
             protein_list = args.proteins.split(",")
         else:
             protein_list = None
-        fasta_peplist, protein_dict = seqlib.PeptideListFromFasta(args.fasta, protein_list)
+        peptide_list, protein_dict = seqlib.PeptideListFromFasta(args.input, protein_list)
         infer_pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
+        pep_pro_dict = dict([(peptide,"/".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in infer_pep_pro_dict])
+    elif args.input.endswith('.tsv'):
+        speclib_file = args.input
+        tsv = OSW_TSV()
+        tsv.Open(speclib_file)
+        peptide_list = tsv.GetAllPeptides()
+        pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in tsv.peptide_dict.items()])
+        tsv.Close()
     else:
-        fasta_peplist, infer_pep_pro_dict = [], {}
+        peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
         
     if args.tune_psm and RawFileReader:
         raw_path = args.raw
@@ -182,31 +186,8 @@ if __name__ == "__main__":
     
     if psmLabel:
         SortPSM(psmLabel)
-        
-    if args.transition_tsv:
-        speclib_file = args.transition_tsv
-        tsv = OSW_TSV()
-    
-        tsv.Open(speclib_file)
-        
-        peptide_list = tsv.GetAllPeptides()
-        for seq, mod, charge in fasta_peplist:
-            if "%s|%s|%d"%(seq, mod, charge) not in tsv.peptide_dict:
-                peptide_list.append((seq, mod, charge))
-        
-        pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in tsv.peptide_dict.items()])
-        
-        tsv.Close()
-    else:
-        peptide_list = fasta_peplist
-        pep_pro_dict = {}
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
-    
-    for peptide, prosites in infer_pep_pro_dict:
-        if peptide not in pep_pro_dict:
-            pep_pro_dict[peptide] = "/".join([pro_ac for pro_ac, site in prosites])
-            
     
     if out_lib.endswith(".dlib"):
         _lib = DLIB()
