@@ -127,7 +127,9 @@ class LibraryBase(object):
             charges = charges[indices[:self.least_n_peaks]]
             if self.decoy: decoy_masses = decoy_masses[indices[:self.least_n_peaks]]
             intens = intens[indices[:self.least_n_peaks]] * 10000
-            
+        if self.decoy:
+            u_masses = decoy_masses[decoy_masses < 10]
+            decoy_masses[decoy_masses < 10] = np.random.random_sample(u_masses.shape)*(self.max_mz - self.min_mz) + self.min_mz
         return pepmass, masses, intens, sites, types, charges, decoy_seq, decoy_mod, decoy_masses
     
     def GetAllPeptides(self):
