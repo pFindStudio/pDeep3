@@ -13,40 +13,35 @@ from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
 from . import tune_and_predict
 from ..sequence.protein_infer import infer_protein
-from .generate_predicted_speclib import *
-try:
-    from ..pyRawFileReader.RawFileReader import RawFileReader
-except:
-    RawFileReader = None
+from ..data_generator import *
 
 if __name__ == "__main__":
     argd = {}
     for i in range(1, len(sys.argv), 2):
         argd[sys.argv[i]] = sys.argv[i+1]
     
-    speclib = argd['-out_library']
+    speclib = argd['--output']
     out_dir = os.path.split(speclib)[0]
     
-    if '-decoy' in argd: decoy = argd['-decoy']
-    else: decoy = "pseudo_reverse"
+    if '--decoy' in argd: decoy = argd['--decoy']
+    else: decoy = "reverse"
     
     seqlib = SequenceLibrary()
-    peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(argd['-peptide_file'])
-        
-    if '-raw' in argd:
-        raw_path = argd['-raw']
-        if '-tune_psm' in argd and RawFileReader:
-            psmLabel, psmRT = Run_psmLabel(argd['-tune_psm'], raw_path)
+    peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(argd['--input'])
+    if '--raw' in argd:
+        raw_path = argd['--raw']
+        if '--tune_psm' in argd and RawFileReader:
+            psmLabel, psmRT = Run_psmLabel(argd['--tune_psm'], raw_path)
         else:
             psmLabel = ""
             psmRT = ""
-    elif '-psmlabel' in argd:
-        psmLabel = argd['-psmlabel']
-        if '-psmRT' in argd: psmRT = argd['-psmRT']
+    elif '--psmlabel' in argd:
+        psmLabel = argd['--psmlabel']
+        if '--psmRT' in argd: psmRT = argd['--psmRT']
         else: psmRT = ""
     else:
         psmLabel = ""
-        if '-psmRT' in argd: psmRT = argd['-psmRT']
+        if '--psmRT' in argd: psmRT = argd['--psmRT']
         else: psmRT = ""
         
     copyfile('tmp/data/library/empty'+os.path.splitext(speclib)[-1], speclib)

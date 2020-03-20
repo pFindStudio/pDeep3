@@ -8,18 +8,19 @@ from ..library_base import LibraryBase, mod_mass_dict
 from ...config.unimod import unimod_dict
     
 _mod_dict = {
+    "Acetyl[ProteinN-term]": ".(UniMod:1)",
     "Carbamidomethyl[C]": "C(UniMod:4)",
     "Oxidation[M]": "M(UniMod:35)",
     "Phospho[S]": "S(UniMod:21)",
     "Phospho[T]": "T(UniMod:21)",
     "Phospho[Y]": "Y(UniMod:21)",
-    "SILACnoLabel_13C(6)15N(2)[K]": "K(8.014199)",
-    "SILACnoLabel_13C(6)15N(4)[R]": "R(10.008269)",
+    "Label_13C(6)15N(2)[K]": "K(UniMod:259)", #SILAC
+    "Label_13C(6)15N(4)[R]": "R(UniMod:267)", #SILAC
 }
 for modname, modmass in mod_mass_dict.items():
     if modname not in _mod_dict:
         _name = modname[:modname.rfind('[')]
-        if modname.endswith("N-term]")or modname.endswith("C-term]"): _aa = '.'
+        if modname.endswith("N-term]") or modname.endswith("C-term]"): _aa = '.'
         else: _aa = modname[-2]
         if _name in unimod_dict:
             _mod_dict[modname] = '%s(UniMod:%d)'%(_aa, unimod_dict[_name])
@@ -45,8 +46,12 @@ def pDeepFormat2PeptideModSeq(seq, modinfo):
     return seq
 
 def PeptideModSeq2pDeepFormat(PeptideModSeq):
-    site = PeptideModSeq.find('(')
+    PeptideModSeq = PeptideModSeq.strip('.')
     modlist = []
+    if PeptideModSeq.startswith('(UniMod:1)'): 
+        modlist.append('0,%s'%('Acetyl[ProteinN-term]'))
+        PeptideModSeq = PeptideModSeq[len('(UniMod:1)'):]
+    site = PeptideModSeq.find('(')
     while site != -1:
         if PeptideModSeq[site-1:].startswith('C(UniMod:4)'): modlist.append('%d,%s'%(site, 'Carbamidomethyl[C]'))
         elif PeptideModSeq[site-1:].startswith('M(UniMod:35)'): modlist.append('%d,%s'%(site, 'Oxidation[M]'))
@@ -132,7 +137,7 @@ class OSW_TSV(LibraryBase):
                     if not pro.startswith("DECOY_"): proteins.append(pro)
                 protein = "/".join(proteins)
                 peptide_list.append((seq, mod, charge))
-                self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [mod_seq, charge, RT, protein]
+                self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = (mod_seq, charge, RT, '', -1, protein) # scan=-1, unknown
         print("reading tsv time = %.3fs"%(time.perf_counter() - start))
         f.close()
         
@@ -170,7 +175,7 @@ class OSW_TSV(LibraryBase):
     def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000):
         f = open(self.tsv_file, "w")
         f.write("\t".join(self.head)+"\n")
-        print("updating tsv ...")
+        print("[pDeep Info] updating tsv ...")
         transition_count = 0
         count = 0
         start = time.perf_counter()
@@ -243,7 +248,8 @@ class OSW_TSV(LibraryBase):
                 print("[TSV UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
         print("[TSV UPDATE] 100%: {}".format(self.tsv_file))
         f.close()
-        print("updating tsv time = %.3fs"%(time.perf_counter()-start))
+        print("[pDeep Info] updating tsv time = %.3fs"%(time.perf_counter()-start))
+        print("[pDeep Info] only target transitions can be generated for tsv!")
         
         
         

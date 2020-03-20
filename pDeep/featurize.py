@@ -124,7 +124,6 @@ class Seq2Tensor:
         mod_idx_feature = [np.array([0] * self.mod_feature_size, dtype=base_dtype) for i in range(len(peptide))]
         if modinfo:
             moditems = modinfo.split(';')
-            unexpected_mod = False
             modlist = []
             var_mod_count = 0
 
@@ -141,10 +140,8 @@ class Seq2Tensor:
                     mod_idx_feature[idx] = self.mod_feature[modname]
                     var_mod_count += 1
                 else:
-                    unexpected_mod = True
-                    break
+                    return None
             if var_mod_count < self.config.min_var_mod_num or var_mod_count > self.config.max_var_mod_num: return None
-            if unexpected_mod: return None
             if not self.config.CheckFixMod(peptide, modlist): return None
         if not CheckPeptide(peptide): return None
 
@@ -217,9 +214,8 @@ class Seq2Tensor:
         if 'RT' in headeridx: RTidx = headeridx['RT']
         elif 'RTInSeconds' in headeridx: RTidx = headeridx['RTInSeconds']
         else: 
-            print("[W] no column 'RT' or 'RTInSeconds' in '{}'".format(ion_file))
-            print("[W] all 'RT's will be assigned as zero")
-            RTidx = None
+            raise Exception("[Error] no column 'RT' or 'RTInSeconds' in '{}'".format(ion_file))
+            # print("[Error] all 'RT's will be assigned as zero")
 
         sample_count = 0
         while True:

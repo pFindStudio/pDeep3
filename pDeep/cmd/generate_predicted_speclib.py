@@ -1,150 +1,44 @@
-from math import log
 import sys
 import os
 from shutil import copyfile
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 
-from ..spectral_library.encyclopedia.dlib import DLIB
-from ..spectral_library.openswath.tsv import OSW_TSV
-from ..spectral_library.openswath.pqp import PQP,OSW
-from ..utils.mass_calc import PeptideIonCalculator
 from ..spectral_library.library_base import SequenceLibrary 
-from . import tune_and_predict
 from ..sequence.protein_infer import infer_protein
-try:
-    from ..pyRawFileReader.RawFileReader import RawFileReader
-except:
-    RawFileReader = None
-
-def CheckScanHasPrecursorMz(rawFile, scan, precursorMz):
-    if scan < 1: return False
-    elif rawFile.GetMSOrderForScanNum(scan) <= 1: return False
-    iso_radius = rawFile.GetIsolationWidthForScanNum(scan)/2
-    spectrumPrecursorMz = rawFile.GetPrecursorMassForScanNum(scan)
-    if precursorMz >= spectrumPrecursorMz-iso_radius and precursorMz <= spectrumPrecursorMz+iso_radius:
-        return True
-    else:
-        return False
-
-def FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT):
-    scan = rawFile.ScanNumFromRTInSeconds(RT)
-    if CheckScanHasPrecursorMz(rawFile, scan, precursorMz): return scan
-    for i in range(1, 100):
-        if CheckScanHasPrecursorMz(rawFile, scan+i, precursorMz): return scan+i
-        elif CheckScanHasPrecursorMz(rawFile, scan-i, precursorMz): return scan-i
-    return None
-    
-def GenerateCFGpsmLabel(cfg_file, input_PSM, raw_path):
-    cfg_str =  "psm_type = none\n"
-    cfg_str += "mode = pDeep\n"
-    cfg_str += "num_psm_file = 1\n"
-    cfg_str += "psm_file1 = %s\n"%input_PSM
-    cfg_str += "ms2_type = raw\n"
-    cfg_str += "num_ms2_file = 1\n"
-    cfg_str += "ms2_file1 = %s\n"%raw_path
-    cfg_str += "output_folder = %s\n"%(os.path.split(raw_path)[0])
-    cfg_str += "NH3_loss = true\n"
-    cfg_str += "H2O_loss = true\n"
-    cfg_str += "Mod_loss = true\n"
-    cfg_str += "num_ion_type = 2\n"
-    cfg_str += "iontype1 = b|N_term|0\n"
-    cfg_str += "iontype2 = y|C_term|0\n"
-    cfg_str += "num_new_aa = 0"
-    with open(cfg_file, "w") as f: f.write(cfg_str)
-    
-def GenerateCFGpDeep(cfg_file, psmLabel, psmRT):
-    with open('tmp/predict/pDeep-tune-template.cfg') as f, open(cfg_file, "w") as out:
-        lines = f.readlines()
-        cfg_str = "".join(lines)
-        out.write(cfg_str.format(psmLabel, psmRT))
-        
-def Run_psmLabel(result_file, raw_path):
-    PSMfile = result_file+".psm.txt"
-    rawName = os.path.splitext(os.path.basename(raw_path))[0]
-    out_dir = os.path.split(raw_path)[0]
-    rawFile = RawFileReader(raw_path)
-    
-    if result_file.endswith(".elib"): result = DLIB()
-    elif result_file.endswith(".osw"): result = OSW()
-    result.Open(result_file)
-    result.GetAllPeptides()
-    
-    with open(PSMfile, "w") as output:
-        output.write("raw_name\tscan\tpeptide\tmodinfo\tcharge\tRTInSeconds\n")
-        
-        ion_calc = PeptideIonCalculator()
-        
-        for pepinfo, (_, charge, RT, _) in result.peptide_dict.items():
-            peptide, modinfo, _ = pepinfo.split("|")
-            precursorMz = ion_calc.calc_pepmass(peptide, modinfo)
-            precursorMz = precursorMz/charge + ion_calc.base_mass.mass_proton
-            scan = FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT)
-            if scan:
-                output.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(rawName, scan, peptide, modinfo, charge, RT))
-            else:
-                print("no scan found for {}".format(pepinfo))
-    result.Close()
-    rawFile.Close()
-    
-    cfg_file = os.path.join(out_dir, "psmLabel.cfg")
-    print(raw_path, cfg_file, PSMfile)
-    
-    GenerateCFGpsmLabel(cfg_file, PSMfile, raw_path)
-    
-    os.chdir("psmLabel")
-    os.system('psmLabel.exe "%s"'%cfg_file)
-    os.chdir("..")
-    return os.path.splitext(raw_path)[0]+".psmlabel", PSMfile
-    
-def SortPSM(psmLabel):
-    with open(psmLabel) as f:
-        head_line = f.readline()
-        head = head_line.strip().split("\t")
-        headidx = dict(zip(head, range(len(head))))
-        lines = f.readlines()
-        
-    def get_PSM_score(item, ion_type):
-        item = item[headidx[ion_type]]
-        if not item: return 0
-        intens = []
-        for ion_inten in item.strip(";").split(";"):
-            if ion_inten[ion_inten.find('+')+1]!='0':
-                intens.append(float(ion_inten.split(",")[1]))
-        if len(intens) == 0: return 0
-        return log(sum(intens))*len(intens)/len(item[headidx['peptide']])
-        
-    new_items = []
-    for line in lines:
-        item = line.split("\t")
-        TIC = get_PSM_score(item, 'b')
-        TIC += get_PSM_score(item, 'y')
-        new_items.append( (TIC, line) )
-    new_items.sort(key = lambda x: -x[0])
-    
-    with open(psmLabel, 'w') as f:
-        f.write(head_line)
-        f.writelines([item[1] for item in new_items])
+from . import tune_and_predict
+from ..data_generator import *
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Generating spectral library for OpenSWATH and EncyclopDIA by pDeep.')
     
-    parser.add_argument('--input', type=str, required=True, help='The peptide file: .txt file for peptide library; .fasta for generating peptides from fasta; .tsv file for transition or assays file (for example pan-human library).')
+    parser.add_argument('--input', type=str, required=True, help='.peplib (text) file for peptide library; or .fasta for generating peptides from fasta; or .tsv file for transitions/assays file (for example pan-human library).')
     parser.add_argument('--output', type=str, required=True, help='The genereted library file.')
+    
+    parser.add_argument('--varmod', type=str, default="Oxidation[M]", required=False, help='Variable modifications, seperated by ",".')
+    parser.add_argument('--fixmod', type=str, default="Carbamidomethyl[C]", required=False, help='Fixed modifications, seperated by ",".')
     
     parser.add_argument('--proteins', type=str, required=False, help='Only considering these proteins when input is fasta, seperated by "," (default: use all proteins).')
     
+    
+    parser.add_argument('--spikein', type=str, required=False, help='Spike-in file could be: .peplib file for peptide library; or .fasta for generating peptides from fasta; or .tsv file for transition or assays file (for example pan-human library), or .txt spike-in file with title "peptide", "modinfo", "charge", and "protein" in pDeep format, pDeep will not add modifications to peptides from this .txt file.')
+    parser.add_argument('--spikein_proteins', type=str, required=False, help='Only considering these proteins when spikein is fasta, seperated by "," (default: use all proteins).')
+    # parser.add_argument('--spikein_mod', type=str, default="", required=False, help='Modifications within spike-in peptides, all of them are considered as fixed, seperated by ","')
+    
+    
+    parser.add_argument('--instrument', type=str, default="QE", required=False, help='Instrument type for prediction.')
+    parser.add_argument('--ce', type=float, default=27, required=False, help='Collision energy for prediction.')
+    
     parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse'], default='reverse', help='Decoy method when generating OSW PQP file.')
     
-    parser.add_argument('--tune_psm', type=str, required=False, help='.osw or .elib file for tuning pDeep and pDeepRT.')
+    parser.add_argument('--tune_psm', type=str, required=False, help='.osw (OpenSWATH), .elib (EncyclopDIA), evidence.txt (MaxQuant) or .spectra (pFind) file for tuning pDeep and pDeepRT.')
     parser.add_argument('--raw', type=str, required=False, help='Raw file for tuning pDeep and pDeepRT.')
     
     parser.add_argument('--psmlabel', type=str, default="", required=False, help='psmLabel file for tuning pDeep, could be generated by psmLabel.exe.')
-    parser.add_argument('--psmRT', type=str, default="", required=False, help='psm file for tuning pDeep and pDeepRT, must containing a column with title "RT".')
+    parser.add_argument('--psmRT', type=str, default="", required=False, help='psm file for tuning pDeepRT, must containing a column with title "RT" or "RTInSeconds".')
     
     args = parser.parse_args()
-    
     
     
     out_lib = args.output
@@ -153,50 +47,77 @@ if __name__ == "__main__":
     
     copyfile('tmp/data/library/empty'+os.path.splitext(out_lib)[-1], out_lib)
     
-    seqlib = SequenceLibrary(min_precursor_mz = 400, max_precursor_mz = 1200)
-    if args.input.endswith('.txt'):
-        peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
-    elif args.input.endswith('.fasta'):
-        if args.proteins:
-            protein_list = args.proteins.split(",")
+    _lib = GetLibraryWriter(out_lib)
+    _lib.Open(out_lib)
+    _lib.decoy = decoy
+    
+    seqlib = SequenceLibrary(min_charge = 2, max_charge = 4, min_precursor_mz = 400, max_precursor_mz = 1200, varmod=args.varmod, fixmod=args.fixmod)
+    
+    def _from_fasta(fasta, proteins = None):
+        if proteins:
+            protein_list = proteins.split(",")
         else:
             protein_list = None
         peptide_list, protein_dict = seqlib.PeptideListFromFasta(args.input, protein_list)
-        infer_pep_pro_dict = infer_protein([seq for seq, mod, charge in fasta_peplist], protein_dict)
-        pep_pro_dict = dict([(peptide,"/".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in infer_pep_pro_dict])
-    elif args.input.endswith('.tsv'):
-        speclib_file = args.input
+        infer_pep_pro_dict = infer_protein([seq for seq, mod, charge in peptide_list], protein_dict)
+        pep_pro_dict = dict([(peptide,"/".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in infer_pep_pro_dict.items()])
+        return peptide_list, pep_pro_dict
+        
+    def _from_tsv(tsvfile):
         tsv = OSW_TSV()
-        tsv.Open(speclib_file)
+        tsv.Open(tsvfile)
         peptide_list = tsv.GetAllPeptides()
         pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in tsv.peptide_dict.items()])
         tsv.Close()
+        return peptide_list, pep_pro_dict
+        
+    if args.input.endswith('.peplib'):
+        peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
+    elif args.input.endswith('.fasta'):
+        peptide_list, pep_pro_dict = _from_fasta(args.input, args.proteins)
+    elif args.input.endswith('.tsv'):
+        peptide_list, pep_pro_dict = _from_tsv(args.input)
     else:
         peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
+    
+    if args.spikein:
+        if args.spikein.endswith('.txt'):
+            spkin_list, spkin_dict = ReadSpikein(args.spikein)
+        elif args.input.endswith('.peplib'):
+            spkin_list, spkin_dict = seqlib.PeptideListFromPeptideFile(args.spikein)
+        elif args.input.endswith('.fasta'):
+            spkin_list, spkin_dict = _from_fasta(args.spikein, args.spikein_proteins)
+        elif args.input.endswith('.tsv'):
+            spkin_list, spkin_dict = _from_tsv(args.spikein)
+        else:
+            spkin_list, spkin_dict = ReadSpikein(args.spikein)
+            
+        peptide_list.extend(spkin_list)
+        for seq, pro in spkin_dict.items():
+            if seq not in pep_pro_dict:
+                pep_pro_dict[seq] = pro
+        for seq,mod,charge in spkin_list:
+            if mod:
+                for modname in mod.strip(";").split(";"):
+                    modname = modname[modname.find(",")+1:]
+                    if modname not in args.fixmod and modname not in args.varmod:
+                        args.fixmod += ","+modname
+        args.fixmod = args.fixmod.strip(',')
+        print("[pDeep Info] fix modification included in spike-in peptides: '%s'"%args.fixmod)
         
-    if args.tune_psm and RawFileReader:
+    if args.tune_psm and args.raw and RawFileReader:
         raw_path = args.raw
-        psmLabel, psmRT = Run_psmLabel(args.tune_psm, raw_path)
+        psmRT = GeneratePSMFile(args.tune_psm, raw_path)
+        psmLabel = Run_psmLabel(psmRT, raw_path)
     else:
         psmLabel = args.psmlabel
         psmRT = args.psmRT
-        
-    pDeep_cfg = os.path.join(out_dir, "pDeep-tune.cfg")
-    GenerateCFGpDeep(pDeep_cfg, psmLabel, psmRT)
-    
     if psmLabel:
-        SortPSM(psmLabel)
+        Sort_psmLabel(psmLabel)
+        
+    pDeep_cfg = Generate_pDeepParam(instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod)
     
     prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
     
-    if out_lib.endswith(".dlib"):
-        _lib = DLIB()
-    elif out_lib.endswith(".tsv"):
-        _lib = OSW_TSV()
-    elif out_lib.endswith(".pqp"):
-        _lib = PQP()
-    _lib.Open(out_lib)
-    
-    _lib.decoy = decoy
     _lib.UpdateByPrediction(prediction, pep_pro_dict, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000)
     _lib.Close()

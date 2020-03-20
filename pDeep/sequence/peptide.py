@@ -87,6 +87,7 @@ def generate_mod_dict(modstr):
     '''
     modstr: Oxidation[M],Deamidated[N] or Oxidation[M];Deamidated[N]
     '''
+    if not modstr: return {}
     if ',' in modstr: return gen_mod_dict(modstr.strip(',').split(','))
     else: return gen_mod_dict(modstr.strip(';').split(';'))
 
@@ -138,15 +139,15 @@ def get_peptidoforms(pep_set, varmod_dict, fixmod_dict, min_var_mod=0, max_var_m
         modseq_list.extend(add_modifications(pep, varmod_dict, fixmod_dict, min_var_mod, max_var_mod))
     return modseq_list
     
-def get_peptidoforms_from_pep2pro_dict(pep2pro_dict, varmods, fixmods, min_var_mod=0, max_var_mod=1):
-    varmod_dict = generate_mod_dict(varmods)
-    fixmod_dict = generate_mod_dict(fixmods)
+def get_peptidoforms_from_pep2pro_dict(pep2pro_dict, varmod, fixmod, min_var_mod=0, max_var_mod=1):
+    varmod_dict = generate_mod_dict(varmod)
+    fixmod_dict = generate_mod_dict(fixmod)
     peptide_set = set(pep2pro_dict.keys())
     return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, min_var_mod, max_var_mod)
     
-def get_peptidoforms_from_fasta(fasta, digest_config, varmods, fixmods, min_var_mod=0, max_var_mod=1, protein_list = None):
-    varmod_dict = generate_mod_dict(varmods)
-    fixmod_dict = generate_mod_dict(fixmods)
+def get_peptidoforms_from_fasta(fasta, digest_config, varmod, fixmod, min_var_mod=0, max_var_mod=1, protein_list = None):
+    varmod_dict = generate_mod_dict(varmod)
+    fixmod_dict = generate_mod_dict(fixmod)
     if not protein_list: protein_dict = read_all_proteins(fasta)
     else: protein_dict = read_protein_list(fasta, protein_list)
     peptide_set = set()

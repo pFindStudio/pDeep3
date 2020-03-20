@@ -29,7 +29,7 @@ class OSW(LibraryBase):
             charge = int(row[1])
             RT = float(row[2])
             peptide_list.append((seq, mod, charge))
-            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT] #items = [PeptideModSeq, CHARGE, RT]
+            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = (row[0], charge, RT, '', -1, '') #items = [PeptideModSeq, CHARGE, RT, raw, scan, protein]
         print("[pDeep Info] reading osw time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
 
@@ -87,7 +87,7 @@ class PQP(LibraryBase):
             charge = int(row[1])
             RT = float(row[2])*60
             peptide_list.append((seq, mod, charge))
-            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT, ""] #items = [PeptideModSeq, CHARGE, RT, protein]
+            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT, -1, ""] #items = [PeptideModSeq, CHARGE, RT, scan, protein]
         print("[pDeep Info] reading pqp time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
         

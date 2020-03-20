@@ -1,27 +1,27 @@
 class pDeepParameter:
-    def __init__(self, cfg):
+    def __init__(self, cfg = None):
         self._ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
     
-        self.model = ""
-        self.RT_model = ""
+        self.model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
+        self.RT_model = "tmp/model/RT_model.ckpt"
         self.threads = 4
         self.predict_batch = 4096
         
-        self.fixmod = []
-        self.varmod = []
+        self.fixmod = ["Carbamidomethyl[C]"]
+        self.varmod = "Acetyl[ProteinN-term],Oxidation[M],Phospho[Y],Phospho[S],Phospho[T]".split(",")
         self.min_varmod = 0
         self.max_varmod = 3
 
-        self.predict_input = "peptide.txt"
+        self.predict_input = "none"
         self.predict_instrument = "QE"
-        self.predict_nce = 28
-        self.predict_output = "predict.pdp"
+        self.predict_nce = 27
+        self.predict_output = "none"
 
         # tune parameters:
         self.tune_psmlabels = []
         self.tune_RT_psmlabel = ""
         self.epochs = 2
-        self.n_tune_per_psmlabel = 100
+        self.n_tune_per_psmlabel = 1000
         self.tune_batch = 1024
         
         self.test_psmlabels = []
@@ -29,7 +29,7 @@ class pDeepParameter:
 
         self.fasta = None
 
-        self._read_cfg(cfg)
+        if cfg: self._read_cfg(cfg)
 
     def _read_cfg(self, cfg):
         with open(cfg) as f:

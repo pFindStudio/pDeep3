@@ -13,8 +13,8 @@ __mod_dict = {
     "Phospho[S]": "[+79.966331]",
     "Phospho[T]": "[+79.966331]",
     "Phospho[Y]": "[+79.966331]",
-    "SILACnoLabel_13C(6)15N(2)[K]": "[+8.014199]",
-    "SILACnoLabel_13C(6)15N(4)[R]": "[+10.008269]",
+    "Label_13C(6)15N(2)[K]": "[+8.014199]",
+    "Label_13C(6)15N(4)[R]": "[+10.008269]",
 }
 # from ...prediction import pDeepPrediction as prediction
 
@@ -50,7 +50,7 @@ class DLIB(LibraryBase):
             charge = int(row[1])
             RT = float(row[2])
             peptide_list.append((seq, mod, charge))
-            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT, ""] #items = [PeptideModSeq, PrecursorCharge, RT, protein]
+            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = (row[0], charge, RT, '', -1, "") #items = [PeptideModSeq, PrecursorCharge, RT, raw, scan, protein]
         print("reading dlib time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
         

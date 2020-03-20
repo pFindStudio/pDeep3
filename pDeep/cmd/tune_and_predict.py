@@ -131,7 +131,8 @@ def run(pDeep_cfg, peptide_list = None):
     
     @return dict with peptide as key, and prediction as value. Example of a peptide: "ACDEFG|2,Carbamidomethyl[C];|2", where the peptide sequence is "ACDEFG", modification is "2,Carbamidomethyl[C];", precursor charge is "2". Prediction is a np.ndarray with shape (n-1, 8), where n is len(sequence), 8 is len(ion_types)*max_ion_charge ( ion_types=[b, y, b-ModLoss, y-ModLoss], max_ion_charge=2, 1+ and 2+ prodoct ions). The order for 8 ion_types is [b+, b++, y+, y++, b-ModLoss+, b-ModLoss++, y-ModLoss+, y-ModLoss++]. You can use pDeepPrediction.GetPredictionByIonType to get the intensities for a given ion_type and ion_charge. All the prediction order is from N-term to C-term.
     '''
-    param = load_param(pDeep_cfg)
+    if type(pDeep_cfg) is not pDeepParameter: param = load_param(pDeep_cfg)
+    else: param = pDeep_cfg
     init_config(param)
     pdeep, pdeep_RT = tune(param)
     pep_buckets, predict_buckets = predict(pdeep, param, peptide_list)
