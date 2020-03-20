@@ -64,8 +64,8 @@ def PeptideModSeq2pDeepFormat(PeptideModSeq):
     return PeptideModSeq, ";".join(modlist)
 
 class OSW_TSV(LibraryBase):
-    def __init__(self):
-        self._ion_calc = ion_calc()
+    def __init__(self, pDeepParam = None):
+        super(self.__class__, self).__init__(pDeepParam)
         self.peptide_dict = {}
         self.head = "PrecursorMz	ProductMz	RetentionTime	transition_name	CE	LibraryIntensity	transition_group_id	decoy	PeptideSequence	ProteinName	Annotation	FullUniModPeptideName	PrecursorCharge	PeptideGroupLabel	UniprotID	FragmentType	FragmentCharge	FragmentSeriesNumber	LabelType".split("\t")
         self.headidx = dict(zip(self.head, range(len(self.head))))
@@ -172,7 +172,7 @@ class OSW_TSV(LibraryBase):
             _file.write("\t".join(items)+"\n")
         return pep_count, transition_count
         
-    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000):
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}):
         f = open(self.tsv_file, "w")
         f.write("\t".join(self.head)+"\n")
         print("[pDeep Info] updating tsv ...")
@@ -183,55 +183,8 @@ class OSW_TSV(LibraryBase):
         for pepinfo, intensities in _prediction.peptide_intensity_dict.items():
             seq, mod, charge = pepinfo.split("|")
             charge = int(charge)
-            max_ion_charge = 2
-            masses, pepmass = self._ion_calc.calc_by_and_pepmass(seq, mod, max_ion_charge)
-            pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
-            # print(seq, mod, masses)
             
-            b_sites = np.tile(np.arange(1, len(seq)).reshape(-1,1), [1,max_ion_charge])
-            y_sites = len(seq)-b_sites
-            sites = np.concatenate((b_sites, y_sites), axis=1)
-            
-            b_types = np.array(['b']*((len(seq)-1)*max_ion_charge)).reshape(-1, max_ion_charge)
-            y_types = np.array(['y']*((len(seq)-1)*max_ion_charge)).reshape(-1, max_ion_charge)
-            types = np.concatenate((b_types, y_types), axis=1)
-            
-            charges = np.concatenate([np.full(len(seq)-1, i, dtype=int).reshape(-1,1) for i in range(1, max_ion_charge+1)], axis=1)
-            charges = np.concatenate((charges, charges), axis=1)
-            
-            intens = intensities[:,:masses.shape[1]]
-            intens[0, 0:2] = 0 #b1+/b1++ = 0
-            intens[-1, 2:] = 0 #y1+/y1++ = 0, do not consider y1/b1 in the library
-            masses = masses.reshape(-1)
-            intens = intens.reshape(-1)
-            sites = sites.reshape(-1)
-            types = types.reshape(-1)
-            charges = charges.reshape(-1)
-            
-            intens[np.abs(masses - pepmass) < 10] = 0 #delete ions around precursor m/z
-            intens = intens/np.max(intens)
-                
-            intens = intens[masses <= max_mz]
-            sites = sites[masses <= max_mz]
-            types = types[masses <= max_mz]
-            charges = charges[masses <= max_mz]
-            masses = masses[masses <= max_mz]
-            
-            
-            if len(masses[intens > min_intensity]) >= least_n_peaks:
-                masses = masses[intens > min_intensity]
-                sites = sites[intens > min_intensity]
-                types = types[intens > min_intensity]
-                charges = charges[intens > min_intensity]
-                intens = intens[intens > min_intensity] * 10000
-            else:
-                indices = np.argsort(intens)[::-1]
-                masses = masses[indices[:least_n_peaks]]
-                sites = sites[indices[:least_n_peaks]]
-                types = types[indices[:least_n_peaks]]
-                charges = charges[indices[:least_n_peaks]]
-                intens = intens[indices[:least_n_peaks]]*10000
-            
+            pepmass, masses, intens, sites, types, charges, decoy_seq, decoy_mod, decoy_masses = self._calc_ions(seq, mod, charge, intensities)
             
             RT = _prediction.GetRetentionTime(pepinfo)
             
@@ -249,7 +202,7 @@ class OSW_TSV(LibraryBase):
         print("[TSV UPDATE] 100%: {}".format(self.tsv_file))
         f.close()
         print("[pDeep Info] updating tsv time = %.3fs"%(time.perf_counter()-start))
-        print("[pDeep Info] only target transitions can be generated for tsv!")
+        if not self.decoy: print("[pDeep Info] only target transitions can be generated for tsv!")
         
         
         

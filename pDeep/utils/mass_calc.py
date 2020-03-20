@@ -77,7 +77,7 @@ class PeptideIonCalculator:
             return modmass, None, None
             
         lossmass = np.zeros(len(peptide) + 2)
-        retmods = [""]*(len(peptide)+1)
+        retmods = [""]*(len(peptide)+2)
 
         items = modinfo.strip(";").split(";")
         modlist = []
@@ -122,6 +122,26 @@ class PeptideIonCalculator:
         ions.extend([yions/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
         
         return np.array(ions).T, pepmass #.T, from 4xn to nx4, time step first
+        
+    def calc_pepmass_and_ions_from_iontypes(self, peptide, modinfo, ion_types, max_charge):
+        mod_cumsum, modloss_list, modname_list = self.calc_modification_mass(peptide, modinfo)
+        bions, pepmass = self.calc_b_ions_and_pepmass(peptide, mod_cumsum)
+        yions = self.calc_y_from_b(bions, pepmass)
+        ions = []
+        for _type in ion_types:
+            _type = _type.format('')
+            if _type == 'b':
+                ions.extend([bions/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
+            elif _type == 'y':
+                ions.extend([yions/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
+            elif _type == 'b-ModLoss':
+                bloss = self.calc_Nterm_modloss(bions, modloss_list, modname_list)
+                ions.extend([bloss/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
+            elif _type == 'y-ModLoss':
+                yloss = self.calc_Cterm_modloss(yions, modloss_list, modname_list)
+                ions.extend([yloss/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
+        return pepmass, np.array(ions).T # shape should be (seq_len, ion_type)
+                
 
     def calc_a_from_b(self, bions):
         return bions - self.base_mass.mass_CO
@@ -139,12 +159,12 @@ class PeptideIonCalculator:
         return ions - self.base_mass.mass_NH3
 
     def calc_Nterm_modloss(self, ions, modloss_list, modname_list):
+        ret = np.zeros(len(ions), dtype=float)
+        if modloss_list is None or np.all(modloss_list == 0): return ret
+        
         loss_nterm = modloss_list[0]
         prev_prior = PTM_NL_priority[modname_list[0]] if modname_list[0] in PTM_NL_priority else 0
 
-        if not modloss_list or np.all(modloss_list == 0): return None
-
-        ret = np.zeros(len(ions), dtype=float)
         for i in range(len(ions)):
             if modloss_list[i + 1] != 0:
                 if modname_list[i + 1] in PTM_NL_priority:
@@ -161,13 +181,13 @@ class PeptideIonCalculator:
         return ret
 
     def calc_Cterm_modloss(self, ions, modloss_list, modname_list):
+        ret = np.zeros(len(ions), dtype=float)
+        if modloss_list is None or np.all(modloss_list == 0): return ret
+        
         last_idx = len(modloss_list) - 1
         loss_cterm = modloss_list[last_idx]
         prev_prior = PTM_NL_priority[modname_list[last_idx]] if modname_list[last_idx] in PTM_NL_priority else 0
 
-        if not modloss_list or np.all(modloss_list == 0): return None
-
-        ret = np.zeros(len(ions), dtype=float)
         for i in range(len(ions) - 1, -1, -1):
             if modloss_list[i + 2] != 0:
                 if modname_list[i + 2] in PTM_NL_priority:

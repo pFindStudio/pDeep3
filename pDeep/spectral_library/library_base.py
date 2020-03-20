@@ -1,3 +1,5 @@
+import numpy as np
+
 from ..utils.mass_calc import PeptideIonCalculator
 from ..sequence.peptide import get_peptidoforms_from_fasta, get_peptidoforms_from_pep2pro_dict
 from ..sequence.digest import DigestConfig
@@ -10,16 +12,127 @@ for modname, item in mod_dict.items():
     mod_mass_dict[modname] = float(item.split(" ")[2])
     
 class LibraryBase(object):
-    def __init__(self):
-        self.decoy = "reverse" # or pseudo_reverse
+    def __init__(self, pDeepParam = None):
+        self.decoy = "reverse" # or pseudo_reverse or None
         self.decoy_tag = "DECOY_"
+        self._ion_calc = PeptideIonCalculator()
+        if pDeepParam:
+            self.ion_types = pDeepParam._ion_types #['b{}','y{}','b{}-ModLoss','y{}-ModLoss']
+            self.ion_terms = pDeepParam._ion_terms
+            self.max_ion_charge = pDeepParam._max_ion_charge
+        self.min_mz = 300
+        self.max_mz = 3000
+        self.min_intensity = 0.1
+        self.least_n_peaks = 6
+        
     def Open(self):
         pass
     def Close(self):
         pass
+        
+    def _get_decoy_peptide(self, seq, mod):
+        if self.decoy == 'reverse':
+            seq = seq[::-1]
+            if mod:
+                mods = mod.strip(";").split(";")
+                modlist = []
+                for onemod in mods:
+                    site, modname = onemod.split(",")
+                    site = int(site)
+                    if site <= len(seq) and site != 0:
+                        site = len(seq)-site+1
+                    modlist.append((site, modname))
+                modlist.sort(key=lambda x: x[0])
+                mod = ";".join(['%d,%s'%(site, modname) for site, modname in modlist])
+        else:
+            seq = seq[:-1][::-1]+seq[-1]
+            if mod:
+                mods = mod.strip(";").split(";")
+                modlist = []
+                for onemod in mods:
+                    site, modname = onemod.split(",")
+                    site = int(site)
+                    if site < len(seq) and site != 0:
+                        site = len(seq)-site
+                    modlist.append((site, modname))
+                modlist.sort(key=lambda x: x[0])
+                mod = ";".join(['%d,%s'%(site, modname) for site, modname in modlist])
+        return seq, mod
+    
+    def _calc_ions(self, seq, mod, charge, intens):
+        pepmass, masses = self._ion_calc.calc_pepmass_and_ions_from_iontypes(seq, mod, self.ion_types, self.max_ion_charge)
+            
+        if self.decoy: 
+            decoy_seq, decoy_mod = self._get_decoy_peptide(seq, mod)
+            _, decoy_masses = self._ion_calc.calc_pepmass_and_ions_from_iontypes(decoy_seq, decoy_mod, self.ion_types, self.max_ion_charge)
+        else:
+            decoy_seq, decoy_mod, decoy_masses = None, None, None
+            
+        pepmass = pepmass / charge + self._ion_calc.base_mass.mass_proton
+        # print(seq, mod, masses)
+        
+        _ion_sites = []
+        _ion_types = []
+        b_sites = np.tile(np.arange(1, len(seq)).reshape(-1,1), [1,self.max_ion_charge])
+        for iontype in self.ion_types:
+            iontype = iontype.format('')
+            if self.ion_terms[iontype] == 'n':
+                _ion_sites.append(b_sites)
+            else:
+                _ion_sites.append(len(seq)-b_sites)
+            _ion_types.append(np.array([iontype]*((len(seq)-1)*self.max_ion_charge)).reshape(-1, self.max_ion_charge))
+        sites = np.concatenate(_ion_sites, axis=1)
+        types = np.concatenate(_ion_types, axis=1)
+        
+        charges = np.concatenate([np.full(len(seq)-1, i, dtype=int).reshape(-1,1) for i in range(1, self.max_ion_charge+1)], axis=1)
+        charges = np.concatenate([charges]*len(self.ion_types), axis=1)
+        
+        masses = masses.reshape(-1)
+        intens = intens.reshape(-1)
+        sites = sites.reshape(-1)
+        types = types.reshape(-1)
+        charges = charges.reshape(-1)
+        if self.decoy: decoy_masses = decoy_masses.reshape(-1)
+        
+        intens[np.abs(masses - pepmass) < 10] = 0 #delete ions around precursor m/z
+        intens = intens/np.max(intens)
+        
+        masses = masses[intens > 0]
+        sites = sites[intens > 0]
+        types = types[intens > 0]
+        charges = charges[intens > 0]
+        if self.decoy: decoy_masses = decoy_masses[intens > 0]
+        intens = intens[intens > 0]
+        
+            
+        intens = intens[np.logical_and(masses<=self.max_mz, masses>=self.min_mz)]
+        sites = sites[np.logical_and(masses<=self.max_mz, masses>=self.min_mz)]
+        types = types[np.logical_and(masses<=self.max_mz, masses>=self.min_mz)]
+        charges = charges[np.logical_and(masses<=self.max_mz, masses>=self.min_mz)]
+        if self.decoy: decoy_masses = decoy_masses[np.logical_and(masses<=self.max_mz, masses>=self.min_mz)]
+        masses = masses[np.logical_and(masses<=self.max_mz, masses>=self.min_mz)]
+        
+        if len(masses[intens > self.min_intensity]) >= self.least_n_peaks:
+            masses = masses[intens > self.min_intensity]
+            sites = sites[intens > self.min_intensity]
+            types = types[intens > self.min_intensity]
+            charges = charges[intens > self.min_intensity]
+            if self.decoy: decoy_masses = decoy_masses[intens > self.min_intensity]
+            intens = intens[intens > self.min_intensity] * 10000
+        else:
+            indices = np.argsort(intens)[::-1]
+            masses = masses[indices[:self.least_n_peaks]]
+            sites = sites[indices[:self.least_n_peaks]]
+            types = types[indices[:self.least_n_peaks]]
+            charges = charges[indices[:self.least_n_peaks]]
+            if self.decoy: decoy_masses = decoy_masses[indices[:self.least_n_peaks]]
+            intens = intens[indices[:self.least_n_peaks]] * 10000
+            
+        return pepmass, masses, intens, sites, types, charges, decoy_seq, decoy_mod, decoy_masses
+    
     def GetAllPeptides(self):
         pass
-    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, peak_selection = "intensity", threshold = 0.01, mass_upper = 2000):
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}):
         pass
 
 class SequenceLibrary(object):

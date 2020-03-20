@@ -3,8 +3,10 @@ from .modification import get_modification
 
 class Common_Config(object):
     def __init__(self):
-        self.ion_terms = {'b{}': 'n', 'y{}': 'c', 'c{}': 'n', 'z{}': 'c', 'b{}-ModLoss': 'n', 'y{}-ModLoss': 'c',
-                          'b{}-H2O': 'n', 'y{}-H2O': 'c', 'b{}-NH3': 'n', 'y{}-NH3': 'c'}
+        self.ion_terms = {'a{}': 'n', 'x{}': 'c', 'b{}': 'n', 'y{}': 'c', 'c{}': 'n', 'z{}': 'c', 'b{}-ModLoss': 'n', 'y{}-ModLoss': 'c', 'b{}-H2O': 'n', 'y{}-H2O': 'c', 'b{}-NH3': 'n', 'y{}-NH3': 'c'}
+        for iontype, term in list(self.ion_terms.items()):
+            self.ion_terms[iontype.format("")] = term
+            
         self.all_mod_dict = get_modification()
 
         self.time_step = 100  # at most time_step+1 length peptides

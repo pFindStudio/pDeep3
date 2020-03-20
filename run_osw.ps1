@@ -1,23 +1,46 @@
-Set-Location -Path "e:/DIATools/openswath/OpenMS-2.4.0-nightly-2019-08-09/bin/"
+If ($IsWindows)
+{
+    Set-Location -Path "e:/DIATools/openswath/OpenMS-2.4.0-nightly-2019-08-09/bin/"
+    $cache='cache'
+    $temp="E:/temp" #if cache=cache
+}
+else
+{
+    $cache='normal' #normal, cache, cacheWorkingInMemory, workingInMemory
+}
 
-
+# $raw_dir="e:\DIAData\PECAN\5mz"
 # $output_dir="e:\DIAData\PECAN\5mz\test_spikein"
-# $global:lib_TDA="e:/DIATools/openswath/library/phl004_s32_TDA.pqp"
-# $global:irt="e:/DIATools/openswath/library/phl004_s32_iRT_cells.tsv"
+# $global:lib_TDA="e:/DIATools/openswath/library/pDeep/test.pqp"
+# $global:irt="e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
+# $temp="E:/temp" #if cache=cache
 
-$raw_dir="e:\DIAData\Specter\HEK_SpikeP100\108ng"
-$output_dir="e:\DIAData\Specter\HEK_SpikeP100\108ng\osw"
-$lib="e:\DIAData\Specter\HEK_SpikeP100\osw_lib\phl_spikein.tsv"
-$global:lib_TDA="e:\DIAData\Specter\HEK_SpikeP100\osw_lib\phl_spikein.pqp"
-$global:irt="e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
+# $raw_dir="e:\DIAData\Specter\HEK_SpikeP100\108ng"
+# $output_dir="e:\DIAData\Specter\HEK_SpikeP100\108ng\osw"
+# $lib="e:\DIAData\Specter\HEK_SpikeP100\osw_lib\phl_spikein.tsv"
+# $global:lib_TDA="e:\DIAData\Specter\HEK_SpikeP100\osw_lib\phl_spikein.pqp"
+# $global:irt="e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
+# $temp="E:/temp" #if cache=cache
+# $global:win="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow.txt"
+# $global:win_left="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-left.txt"
+# $global:win_right="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-right.txt"
 
 # $output_dir="e:\DIAData\PECAN\plasma\peptide-list-test-reverse"
 # $lib="e:/DIATools/openswath/library/pDeep/peptide_list_QE27.tsv"
 # $global:lib_TDA="e:/DIATools/openswath/library/pDeep/peptide_list_QE27_reverse.pqp"
 # $global:irt="e:/DIATools/openswath/library/pDeep/blood_RT_proteins_fasta_QE27.tsv"
 
+###################################### Linux ################################
+$raw_dir="/home/pfind/DIA/Data/Specter/6.75ng"
+$output_dir="/home/pfind/DIA/Data/Specter/6.75ng/phl-spikein"
+$global:lib_TDA="/home/pfind/DIA/Data/Specter/phl_spikein.pqp"
+$global:irt="/home/pfind/DIA/Tools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
+$temp="/home/pfind/DIA/Tools/openswath/temp"
+$global:win="/home/pfind/DIA/Data/Specter/DIAwindow.txt"
 
-$temp="E:/temp"
+
+
+
 $ms1_tol_type='ppm' # or 'Th'
 $ms1_tol=10
 $ms2_tol_type='ppm' # or 'Th'
@@ -25,10 +48,7 @@ $ms2_tol=20
 $batch=5000
 $thread=6
 $overlapDIA='false'
-$use_window=1
-$global:win="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-left.txt"
-$global:win_left="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-left.txt"
-$global:win_right="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-right.txt"
+$use_window=0
 
 function Compare-File-Date($f1, $f2)
 {
@@ -47,7 +67,7 @@ if (!(Test-Path $global:lib_TDA -PathType leaf))
 function run_one($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95
+    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force
     # OpenSwathWorkflow '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -56,7 +76,7 @@ function run_one($raw, $out)
 function run_one_window($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force
+    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force
     # OpenSwathWorkflow '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -127,13 +147,14 @@ Foreach ($raw in $raw_files)
     $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.osw
     If ($use_window -eq 1)
     {
-        $global:win=$global:win_left
-        $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.left.osw
         run_one_window $raw $out_path
+        # $global:win=$global:win_left
+        # $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.left.osw
+        # run_one_window $raw $out_path
         
-        $global:win=$global:win_right
-        $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.right.osw
-        run_one_window $raw $out_path
+        # $global:win=$global:win_right
+        # $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.right.osw
+        # run_one_window $raw $out_path
     }
     else
     {
@@ -145,3 +166,5 @@ Foreach ($raw in $raw_files)
 $subsample=1/(@($raw_files).Length)
 run_pyprophet $output_dir $subsample
 
+$temp=Join-Path -Path $temp -ChildPath *
+Remove-Item -Path $temp -Recurse

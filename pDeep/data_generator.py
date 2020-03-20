@@ -18,9 +18,9 @@ _library_writer_dict = {}
 def _register_library_writer(ext, _class):
     _library_writer_dict[ext] = _class
     
-def GetLibraryWriter(filename):
+def GetLibraryWriter(filename, pDeepParam):
     for ext, _class in _library_writer_dict.items():
-        if filename.lower().endswith(ext): return _class()
+        if filename.lower().endswith(ext): return _class(pDeepParam)
     return None
     
 _register_library_writer('.dlib', DLIB)
@@ -83,8 +83,7 @@ def ReadSpikein(spikein_file):
             pep_pro_dict[seq] = protein
     return peptide_list, pep_pro_dict
     
-def Generate_pDeepParam(instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4):
-    param = pDeepParameter()
+def Set_pDeepParam(param, instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4):
     param.predict_instrument = instrument
     param.predict_nce = ce
     if psmLabel: param.tune_psmlabels.append(psmLabel)

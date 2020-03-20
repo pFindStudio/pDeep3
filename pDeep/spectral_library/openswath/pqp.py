@@ -7,7 +7,7 @@ from ..library_base import LibraryBase
 from .tsv import pDeepFormat2PeptideModSeq, PeptideModSeq2pDeepFormat
 
 class OSW(LibraryBase):
-    def __init__(self):
+    def __init__(self, pDeepParam=None):
         self.sql_conn = None
         
     def Open(self, osw_file):
@@ -35,10 +35,9 @@ class OSW(LibraryBase):
 
 # not support insertion, only create from empty.pqp
 class PQP(LibraryBase):
-    def __init__(self):
-        super(self.__class__, self).__init__()
+    def __init__(self, pDeepParam = None):
+        super(self.__class__, self).__init__(pDeepParam)
         self.sql_conn = None
-        self._ion_calc = ion_calc()
         self.peptide_dict = {}
         self.peptide_list = []
         self.precursor_peptide_dict = {}
@@ -90,60 +89,6 @@ class PQP(LibraryBase):
             self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = [row[0], charge, RT, -1, ""] #items = [PeptideModSeq, CHARGE, RT, scan, protein]
         print("[pDeep Info] reading pqp time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
-        
-    # def _write_one_decoy_peptide(self, seq, mod, pre_charge, pepmass, masses, intens, charges, types, sites, RT, protein, transition_count, transition_list, transition2precursor_list, precursor_list, precursor2peptide, precursor2peptide_list, peptide_dict, peptide_list, peptide2protein, peptide2protein_list, protein_dict, protein_list):
-        # if self.decoy == 'reverse':
-            # seq = seq[::-1]
-            # if mod:
-                # mods = mod.strip(";").split(";")
-                # modlist = []
-                # for onemod in mods:
-                    # site, modname = onemod.split(",")
-                    # site = int(site)
-                    # if site <= len(seq) and site != 0:
-                        # site = len(seq)-site+1
-                    # modlist.append((site, modname))
-                # modlist.sort(key=lambda x: x[0])
-                # mod = ";".join(['%d,%s'%(site, modname) for site, modname in modlist])
-            # labeled_seq = pDeepFormat2PeptideModSeq(seq, mod)
-            
-            # changed_y_idx = (types=='y')
-            # changed_b_idx = (types=='b')
-            # changed_idx = np.logical_or(changed_y_idx, changed_b_idx)
-            # sites[changed_idx] = len(seq)-sites[changed_idx]
-            # peptide_mass = (pepmass - self._ion_calc.base_mass.mass_proton)*pre_charge
-            # peptide_charged_masses = peptide_mass*charges + self._ion_calc.base_mass.mass_proton
-            # masses[changed_y_idx] = peptide_charged_masses[changed_y_idx] - masses[changed_y_idx] + self._ion_calc.get_aamass(seq[-1])/charges[changed_y_idx]
-            # masses[changed_b_idx] = peptide_charged_masses[changed_b_idx] - masses[changed_b_idx] - self._ion_calc.get_aamass(seq[-1])/charges[changed_b_idx]
-            # types[changed_y_idx] = 'b'
-            # types[changed_b_idx] = 'y'
-        # else:
-            # seq = seq[:-1][::-1]+seq[-1]
-            # if mod:
-                # mods = mod.strip(";").split(";")
-                # modlist = []
-                # for onemod in mods:
-                    # site, modname = onemod.split(",")
-                    # site = int(site)
-                    # if site < len(seq) and site != 0:
-                        # site = len(seq)-site
-                    # modlist.append((site, modname))
-                # modlist.sort(key=lambda x: x[0])
-                # mod = ";".join(['%d,%s'%(site, modname) for site, modname in modlist])
-            # labeled_seq = pDeepFormat2PeptideModSeq(seq, mod)
-            
-            # changed_y_idx = np.logical_and(sites > 1, types=='y')
-            # changed_b_idx = np.logical_and(sites < len(seq)-1, types=='b')
-            # changed_idx = np.logical_or(changed_y_idx, changed_b_idx)
-            # sites[changed_idx] = (len(seq)-1)-sites[changed_idx]
-            # peptide_mass = (pepmass - self._ion_calc.base_mass.mass_proton)*pre_charge
-            # peptide_charged_masses = peptide_mass*charges + self._ion_calc.base_mass.mass_proton
-            # masses[changed_y_idx] = peptide_charged_masses[changed_y_idx] - masses[changed_y_idx] + self._ion_calc.get_aamass(seq[-1])/charges[changed_y_idx]
-            # masses[changed_b_idx] = peptide_charged_masses[changed_b_idx] - masses[changed_b_idx] - self._ion_calc.get_aamass(seq[-1])/charges[changed_b_idx]
-            # types[changed_y_idx] = 'b'
-            # types[changed_b_idx] = 'y'
-            
-        # return self._write_one_peptide(seq, mod, pre_charge, pepmass, masses, intens, charges, types, sites, RT, protein, transition_count, transition_list, transition2precursor_list, precursor_list, precursor2peptide, precursor2peptide_list, peptide_dict, peptide_list, peptide2protein, peptide2protein_list, protein_dict, protein_list, 1)
         
     def _write_one_peptide(self, seq, mod, pre_charge, pepmass, masses, intens, charges, types, sites, RT, protein, transition_count, transition_list, transition2precursor_list, precursor_list, precursor2peptide, precursor2peptide_list, peptide_dict, peptide_list, peptide2protein, peptide2protein_list, protein_dict, protein_list, decoy=0):
     
@@ -202,36 +147,7 @@ class PQP(LibraryBase):
             
         return transition_count
         
-    def _get_decoy_peptide(self, seq, mod):
-        if self.decoy == 'reverse':
-            seq = seq[::-1]
-            if mod:
-                mods = mod.strip(";").split(";")
-                modlist = []
-                for onemod in mods:
-                    site, modname = onemod.split(",")
-                    site = int(site)
-                    if site <= len(seq) and site != 0:
-                        site = len(seq)-site+1
-                    modlist.append((site, modname))
-                modlist.sort(key=lambda x: x[0])
-                mod = ";".join(['%d,%s'%(site, modname) for site, modname in modlist])
-        else:
-            seq = seq[:-1][::-1]+seq[-1]
-            if mod:
-                mods = mod.strip(";").split(";")
-                modlist = []
-                for onemod in mods:
-                    site, modname = onemod.split(",")
-                    site = int(site)
-                    if site < len(seq) and site != 0:
-                        site = len(seq)-site
-                    modlist.append((site, modname))
-                modlist.sort(key=lambda x: x[0])
-                mod = ";".join(['%d,%s'%(site, modname) for site, modname in modlist])
-        return seq, mod
-        
-    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000):
+    def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}):
         print("[pDeep Info] updating pqp ...")
         transition_count = 0
         count = 0
@@ -245,63 +161,7 @@ class PQP(LibraryBase):
             seq, mod, charge = pepinfo.split("|")
             
             pre_charge = int(charge)
-            max_ion_charge = 2
-            masses, pepmass = self._ion_calc.calc_by_and_pepmass(seq, mod, max_ion_charge)
-            
-            if self.decoy: 
-                decoy_seq, decoy_mod = self._get_decoy_peptide(seq, mod)
-                decoy_masses, _ = self._ion_calc.calc_by_and_pepmass(decoy_seq, decoy_mod, max_ion_charge)
-            pepmass = pepmass / pre_charge + self._ion_calc.base_mass.mass_proton
-            # print(seq, mod, masses)
-            
-            b_sites = np.tile(np.arange(1, len(seq)).reshape(-1,1), [1,max_ion_charge])
-            y_sites = len(seq)-b_sites
-            sites = np.concatenate((b_sites, y_sites), axis=1)
-            
-            b_types = np.array(['b']*((len(seq)-1)*max_ion_charge)).reshape(-1, max_ion_charge)
-            y_types = np.array(['y']*((len(seq)-1)*max_ion_charge)).reshape(-1, max_ion_charge)
-            types = np.concatenate((b_types, y_types), axis=1)
-            
-            charges = np.concatenate([np.full(len(seq)-1, i, dtype=int).reshape(-1,1) for i in range(1, max_ion_charge+1)], axis=1)
-            charges = np.concatenate((charges, charges), axis=1)
-            
-            intens = intensities[:,:masses.shape[1]]
-            intens[0, 0:2] = 0 #b1+/b1++ = 0
-            intens[-1, 2:] = 0 #y1+/y1++ = 0, do not consider y1/b1 in the library
-            masses = masses.reshape(-1)
-            intens = intens.reshape(-1)
-            sites = sites.reshape(-1)
-            types = types.reshape(-1)
-            charges = charges.reshape(-1)
-            if self.decoy: decoy_masses = decoy_masses.reshape(-1)
-            
-            intens[np.abs(masses - pepmass) < 10] = 0 #delete ions around precursor m/z
-            intens = intens/np.max(intens)
-                
-            intens = intens[masses <= max_mz]
-            sites = sites[masses <= max_mz]
-            types = types[masses <= max_mz]
-            charges = charges[masses <= max_mz]
-            if self.decoy: decoy_masses = decoy_masses[masses <= max_mz]
-            masses = masses[masses <= max_mz]
-            
-            
-            if len(masses[intens > min_intensity]) >= least_n_peaks:
-                masses = masses[intens > min_intensity]
-                sites = sites[intens > min_intensity]
-                types = types[intens > min_intensity]
-                charges = charges[intens > min_intensity]
-                if self.decoy: decoy_masses = decoy_masses[intens > min_intensity]
-                intens = intens[intens > min_intensity] * 10000
-            else:
-                indices = np.argsort(intens)[::-1]
-                masses = masses[indices[:least_n_peaks]]
-                sites = sites[indices[:least_n_peaks]]
-                types = types[indices[:least_n_peaks]]
-                charges = charges[indices[:least_n_peaks]]
-                if self.decoy: decoy_masses = decoy_masses[indices[:least_n_peaks]]
-                intens = intens[indices[:least_n_peaks]]*10000
-            
+            pepmass, masses, intens, sites, types, charges, decoy_seq, decoy_mod, decoy_masses = self._calc_ions(seq, mod, pre_charge, intensities)
             
             RT = _prediction.GetRetentionTime(pepinfo)
             

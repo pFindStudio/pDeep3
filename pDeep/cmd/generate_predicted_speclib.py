@@ -2,12 +2,12 @@ import sys
 import os
 from shutil import copyfile
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
 
 from ..spectral_library.library_base import SequenceLibrary 
 from ..sequence.protein_infer import infer_protein
-from . import tune_and_predict
 from ..data_generator import *
+from ..parameter import pDeepParameter
+from . import tune_and_predict
 
 if __name__ == "__main__":
     import argparse
@@ -40,14 +40,15 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    
     out_lib = args.output
     out_dir = os.path.split(out_lib)[0]
     decoy = args.decoy
     
+    param = pDeepParameter()
+    
     copyfile('tmp/data/library/empty'+os.path.splitext(out_lib)[-1], out_lib)
     
-    _lib = GetLibraryWriter(out_lib)
+    _lib = GetLibraryWriter(out_lib, param)
     _lib.Open(out_lib)
     _lib.decoy = decoy
     
@@ -115,9 +116,9 @@ if __name__ == "__main__":
     if psmLabel:
         Sort_psmLabel(psmLabel)
         
-    pDeep_cfg = Generate_pDeepParam(instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod)
+    param = Set_pDeepParam(param, instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod)
     
-    prediction = tune_and_predict.run(pDeep_cfg, peptide_list)
+    prediction = tune_and_predict.run(param, peptide_list)
     
-    _lib.UpdateByPrediction(prediction, pep_pro_dict, min_intensity = 0.1, least_n_peaks = 6, max_mz = 2000)
+    _lib.UpdateByPrediction(prediction, pep_pro_dict)
     _lib.Close()
