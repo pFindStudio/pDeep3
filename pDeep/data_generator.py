@@ -66,7 +66,7 @@ def Generate_psmLabelCFG(cfg_file, input_PSM, raw_path):
     cfg_str += "num_new_aa = 0"
     with open(cfg_file, "w") as f: f.write(cfg_str)
     
-def ReadSpikein(spikein_file):
+def ReadModSeq(spikein_file):
     peptide_list = []
     pep_pro_dict = {}
     with open(spikein_file) as f:

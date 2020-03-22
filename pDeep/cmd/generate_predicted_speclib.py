@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument('--instrument', type=str, default="QE", required=False, help='Instrument type for prediction.')
     parser.add_argument('--ce', type=float, default=27, required=False, help='Collision energy for prediction.')
     
-    parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse'], default='reverse', help='Decoy method when generating OSW PQP file.')
+    parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse','no_decoy'], default='reverse', help='Decoy method when generating OSW PQP file.')
     
     parser.add_argument('--tune_psm', type=str, required=False, help='.osw (OpenSWATH), .elib (EncyclopDIA), evidence.txt (MaxQuant) or .spectra (pFind) file for tuning pDeep and pDeepRT.')
     parser.add_argument('--raw', type=str, required=False, help='Raw file for tuning pDeep and pDeepRT.')
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     _lib.decoy = decoy
     
     seqlib = SequenceLibrary(min_charge = 2, max_charge = 4, min_precursor_mz = 400, max_precursor_mz = 1200, varmod=args.varmod, fixmod=args.fixmod)
-    
+                
     def _from_fasta(fasta, proteins = None):
         if proteins:
             protein_list = proteins.split(",")
@@ -71,40 +71,54 @@ if __name__ == "__main__":
         pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in tsv.peptide_dict.items()])
         tsv.Close()
         return peptide_list, pep_pro_dict
+    
+    varmod_set = set(args.varmod.strip(',').split(",")) if args.varmod else set()
+    fixmod_set = set(args.fixmod.strip(',').split(",")) if args.fixmod else set()
+    def _add_mod_from_library(peptide_list):
+        for seq,mod,charge in peptide_list:
+            if mod:
+                mods = mod.strip(";").split(";")
+                for mod in mods:
+                    modname = mod[mod.find(',')+1:]
+                    if modname not in varmod_set and modname not in fixmod_set: 
+                        fixmod_set.add(modname)
+                        args.fixmod += ','+modname
         
-    if args.input.endswith('.peplib'):
+    if args.input.endswith('.peplib') or args.input.endswith('.peplib.txt') :
         peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
+    elif args.input.endswith('.modseq') or args.input.endswith('.modseq.txt'):
+        peptide_list, pep_pro_dict = ReadModSeq(args.input)
+        _add_mod_from_library(peptide_list)
     elif args.input.endswith('.fasta'):
         peptide_list, pep_pro_dict = _from_fasta(args.input, args.proteins)
-    elif args.input.endswith('.tsv'):
+    elif args.input.endswith('.tsv') or args.input.endswith('.csv'):
         peptide_list, pep_pro_dict = _from_tsv(args.input)
+        _add_mod_from_library(peptide_list)
     else:
         peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
     
     if args.spikein:
-        if args.spikein.endswith('.txt'):
-            spkin_list, spkin_dict = ReadSpikein(args.spikein)
-        elif args.input.endswith('.peplib'):
+        if args.spikein.endswith('.txt') or args.spikein.endswith('.modseq') or args.spikein.endswith('.modseq.txt'):
+            spkin_list, spkin_dict = ReadModSeq(args.spikein)
+            _add_mod_from_library(spkin_list)
+        elif args.spikein.endswith('.peplib') or args.spikein.endswith('.peplib.txt'):
             spkin_list, spkin_dict = seqlib.PeptideListFromPeptideFile(args.spikein)
-        elif args.input.endswith('.fasta'):
+        elif args.spikein.endswith('.fasta'):
             spkin_list, spkin_dict = _from_fasta(args.spikein, args.spikein_proteins)
-        elif args.input.endswith('.tsv'):
+        elif args.spikein.endswith('.tsv') or args.spikein.endswith('.csv'):
             spkin_list, spkin_dict = _from_tsv(args.spikein)
+            _add_mod_from_library(spkin_list)
         else:
-            spkin_list, spkin_dict = ReadSpikein(args.spikein)
+            spkin_list, spkin_dict = ReadModSeq(args.spikein)
+            _add_mod_from_library(spkin_list)
             
         peptide_list.extend(spkin_list)
         for seq, pro in spkin_dict.items():
             if seq not in pep_pro_dict:
                 pep_pro_dict[seq] = pro
-        for seq,mod,charge in spkin_list:
-            if mod:
-                for modname in mod.strip(";").split(";"):
-                    modname = modname[modname.find(",")+1:]
-                    if modname not in args.fixmod and modname not in args.varmod:
-                        args.fixmod += ","+modname
-        args.fixmod = args.fixmod.strip(',')
-        print("[pDeep Info] fix modification included in spike-in peptides: '%s'"%args.fixmod)
+                
+    print("[pDeep Info] fix modifications included: '%s'"%args.fixmod)
+    print("[pDeep Info] var modifications included: '%s'"%args.varmod)
         
     if args.tune_psm and args.raw and RawFileReader:
         raw_path = args.raw

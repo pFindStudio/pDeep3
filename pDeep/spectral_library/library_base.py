@@ -13,7 +13,7 @@ for modname, item in mod_dict.items():
     
 class LibraryBase(object):
     def __init__(self, pDeepParam = None):
-        self.decoy = "reverse" # or pseudo_reverse or None
+        self._decoy = "reverse" # or pseudo_reverse or None
         self.decoy_tag = "DECOY_"
         self._ion_calc = PeptideIonCalculator()
         if pDeepParam:
@@ -24,6 +24,14 @@ class LibraryBase(object):
         self.max_mz = 3000
         self.min_intensity = 0.1
         self.least_n_peaks = 6
+        
+    @property
+    def decoy(self):
+        return self._decoy
+    @decoy.setter
+    def decoy(self, _decoy):
+        if _decoy == "no_decoy": self._decoy = None
+        else: self._decoy = _decoy
         
     def Open(self):
         pass

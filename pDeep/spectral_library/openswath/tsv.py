@@ -202,7 +202,7 @@ class OSW_TSV(LibraryBase):
         print("[TSV UPDATE] 100%: {}".format(self.tsv_file))
         f.close()
         print("[pDeep Info] updating tsv time = %.3fs"%(time.perf_counter()-start))
-        if not self.decoy: print("[pDeep Info] only target transitions can be generated for tsv!")
+        if not self.decoy: print("[pDeep Info] only target transitions were generated!")
         
         
         

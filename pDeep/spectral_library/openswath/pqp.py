@@ -202,6 +202,7 @@ class PQP(LibraryBase):
         self.sql_conn.commit()
         print("[PQP UPDATE] 100%: {}".format(self.pqp_file))
         print("[pDeep Info] updating pqp time = %.3fs"%(time.perf_counter()-start))
+        if not self.decoy: print("[pDeep Info] only target transitions were generated!")
         
         
         
