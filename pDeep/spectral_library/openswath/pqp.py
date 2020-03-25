@@ -77,6 +77,7 @@ class PQP(LibraryBase):
         self.pqp_file = None
     
     def GetAllPeptides(self):
+        print("[pDeep Info] reading pqp ...")
         start = time.perf_counter()
         self.peptide_dict = {}
         peptide_list = []

@@ -12,6 +12,8 @@ class pFindSpectraReader(ReaderBase):
         lines = self._file.readlines()
         for line in lines:
             items = line.strip().split("\t")
+            if len(items) < 10: break
+            if float(items[headidx['Q-value']]) > self.FDR: continue
             seq = items[headidx['Sequence']]
             mod = items[headidx['Modification']].strip(";")
             charge = int(items[headidx['Charge']])

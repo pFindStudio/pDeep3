@@ -3,6 +3,7 @@ class ReaderBase(object):
         self.peptide_dict = {}
         self._file = None
         self._filename = None
+        self.FDR = 0.01
     def Open(self, file):
         self._file = open(file)
         self._filename = file
