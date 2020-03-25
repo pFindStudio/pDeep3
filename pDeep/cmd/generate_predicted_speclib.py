@@ -32,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--least_n_peaks', type=int, default=6, required=False, help='Keep at least n fragments in the library')
     parser.add_argument('--min_mz', type=float, default=300, required=False, help='Min mz of fragments in the library')
     parser.add_argument('--max_mz', type=float, default=2000, required=False, help='Max mz of fragments in the library')
+    parser.add_argument('--ion_type', type=str, default="b,y,b-ModLoss,y-ModLoss", required=False, help='Ion types in the library')
     
     parser.add_argument('--min_precursor_charge', type=int, default=2, required=False, help='Min precursor charge of fragments in the library')
     parser.add_argument('--max_precursor_charge', type=int, default=4, required=False, help='Max precursor charge of fragments in the library')
@@ -57,7 +58,6 @@ if __name__ == "__main__":
     decoy = args.decoy
     
     param = pDeepParameter()
-    param.library_ion_types = param._ion_types[:2]
     
     copyfile('tmp/data/library/empty'+os.path.splitext(out_lib)[-1], out_lib)
     
@@ -150,5 +150,6 @@ if __name__ == "__main__":
     _lib.min_mz = args.min_mz
     _lib.max_mz = args.max_mz
     _lib.min_intensity = args.min_intensity
+    _lib.ion_types = args.ion_type.split(",")
     _lib.UpdateByPrediction(prediction, pep_pro_dict)
     _lib.Close()

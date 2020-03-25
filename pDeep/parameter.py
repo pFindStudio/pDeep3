@@ -5,6 +5,10 @@ class pDeepParameter:
         self._ion_terms = {'a{}': 'n', 'x{}': 'c', 'b{}': 'n', 'y{}': 'c', 'c{}': 'n', 'z{}': 'c', 'b{}-ModLoss': 'n', 'y{}-ModLoss': 'c', 'b{}-H2O': 'n', 'y{}-H2O': 'c', 'b{}-NH3': 'n', 'y{}-NH3': 'c'}
         for iontype, term in list(self._ion_terms.items()):
             self._ion_terms[iontype.format("")] = term
+        self._ion_type_idx = {}
+        for i in range(len(self._ion_types)):
+            self._ion_type_idx[self._ion_types[i]] = i
+            self._ion_type_idx[self._ion_types[i].format('')] = i
             
         ######################################################################
         
@@ -39,6 +43,9 @@ class pDeepParameter:
 
         if cfg: self._read_cfg(cfg)
 
+    def GetPredictedIonTypeIndices(self, ion_types):
+        return [self._ion_type_idx[iontype]*self._max_ion_charge+ch for iontype in ion_types for ch in range(self._max_ion_charge)]
+    
     def _read_cfg(self, cfg):
         with open(cfg) as f:
             lines = f.readlines()

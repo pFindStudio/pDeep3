@@ -2,6 +2,7 @@ param (
     [switch]$rescore = $false,
     [switch]$export = $false,
     [switch]$use_window = $false,
+    [switch]$tune = $false,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
     [string]$lib = "e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.pqp",
@@ -203,6 +204,7 @@ else
                 $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.osw
                 run_one $raw $out_path
             }
+            if ($tune) { break }
             $i++
         }
         # $temp=Join-Path -Path $temp -ChildPath *

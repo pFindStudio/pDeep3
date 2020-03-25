@@ -17,13 +17,23 @@ class LibraryBase(object):
         self.decoy_tag = "DECOY_"
         self._ion_calc = PeptideIonCalculator()
         if pDeepParam:
-            self.ion_types = pDeepParam.library_ion_types 
+            self.pDeepParam = pDeepParam
+            self.ion_types = pDeepParam.library_ion_types
+            # print("self.intensity_indices", self.intensity_indices)
             self.ion_terms = pDeepParam._ion_terms
             self.max_ion_charge = pDeepParam._max_ion_charge
         self.min_mz = 300
         self.max_mz = 2000
         self.min_intensity = 0.1
         self.least_n_peaks = 6
+        
+    @property
+    def ion_types(self):
+        return self._ion_types
+    @ion_types.setter
+    def ion_types(self, _ion_types):
+        self._ion_types = _ion_types
+        self.intensity_indices = self.pDeepParam.GetPredictedIonTypeIndices(self._ion_types)
         
     @property
     def decoy(self):
@@ -67,8 +77,9 @@ class LibraryBase(object):
                 mod = ";".join(['%d,%s'%(site, modname) for site, modname in modlist])
         return seq, mod
     
-    def _calc_ions(self, seq, mod, charge, intens):
+    def _calc_ions(self, seq, mod, charge, intensities):
         pepmass, masses = self._ion_calc.calc_pepmass_and_ions_from_iontypes(seq, mod, self.ion_types, self.max_ion_charge)
+        intens = intensities[:,self.intensity_indices]
             
         if self.decoy: 
             decoy_seq, decoy_mod = self._get_decoy_peptide(seq, mod)
