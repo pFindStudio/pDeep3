@@ -177,7 +177,7 @@ if __name__ == "__main__":
         RT_lib = GetLibraryWriter(args.RT_tsv_lib, param)
         RT_lib.Open(args.RT_tsv_lib)
         RT_lib.decoy = None
-        RT_prediction = tune_and_predict.run(param, RT_peptide_list)
+        RT_prediction = tune_and_predict.run_predict(param, RT_peptide_list)
         RT_lib.min_mz = args.min_mz
         RT_lib.max_mz = args.max_mz
         RT_lib.min_intensity = args.min_intensity

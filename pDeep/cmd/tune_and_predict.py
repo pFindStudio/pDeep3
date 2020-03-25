@@ -102,7 +102,9 @@ def tune(param):
         print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
         test_buckets = None # release the memory
-        
+    
+    param._pDeepModel = pdeep
+    param._pDeepRT = pdeep_RT
     return pdeep, pdeep_RT
      
 def predict(pdeep, param, peptide_list = None):
@@ -124,6 +126,14 @@ def predict_RT(pdeep_RT, param, pep_buckets):
     # print(predict_buckets)
     print('[pDeep Info] predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
     return predict_buckets
+    
+def run_predict(param, peptide_list):
+    pep_buckets, predict_buckets = predict(param._pDeepModel, param, peptide_list)
+    if param._pDeepRT:
+        RT_buckets = predict_RT(param._pDeepRT, param, pep_buckets)
+    else:
+        RT_buckets = None
+    return pDeepPrediction(param.config, pep_buckets, predict_buckets, RT_buckets)
     
 def run(pDeep_cfg, peptide_list = None):
     '''

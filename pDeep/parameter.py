@@ -16,6 +16,10 @@ class pDeepParameter:
     
         self.model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
         self.RT_model = "tmp/model/RT_model.ckpt"
+        
+        self._pDeepModel = None
+        self._pDeepRT = None
+        
         self.threads = 4
         self.predict_batch = 4096
         
