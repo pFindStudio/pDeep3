@@ -110,7 +110,7 @@ def GeneratePSMFile(result_file, raw_path):
     elif result_file.lower().endswith("evidence.txt"): 
         result = MQE()
         multi_raw_in_result = True
-    elif result_file.lower().endswith(".spectra"):
+    elif result_file.lower().endswith("Filtered.spectra"):
         result = pFind()
         multi_raw_in_result = True
     result.Open(result_file)

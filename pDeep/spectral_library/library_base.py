@@ -13,15 +13,15 @@ for modname, item in mod_dict.items():
     
 class LibraryBase(object):
     def __init__(self, pDeepParam = None):
-        self._decoy = "reverse" # or pseudo_reverse or None
+        self._decoy = "reverse" # or pseudo_reverse or no_decoy
         self.decoy_tag = "DECOY_"
         self._ion_calc = PeptideIonCalculator()
         if pDeepParam:
-            self.ion_types = pDeepParam._ion_types #['b{}','y{}','b{}-ModLoss','y{}-ModLoss']
+            self.ion_types = pDeepParam.library_ion_types 
             self.ion_terms = pDeepParam._ion_terms
             self.max_ion_charge = pDeepParam._max_ion_charge
         self.min_mz = 300
-        self.max_mz = 3000
+        self.max_mz = 2000
         self.min_intensity = 0.1
         self.least_n_peaks = 6
         

@@ -1,12 +1,14 @@
 class pDeepParameter:
     def __init__(self, cfg = None):
-        self._ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss'] # ion order for default pDeep model
-        self._max_ion_charge = 2 # ion charge = 1 or 2 for default pDeep model
+        self._ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss'] # ion order for pDeep model, do not change this
+        self._max_ion_charge = 2 # ion charge = 1 or 2 for pDeep model
         self._ion_terms = {'a{}': 'n', 'x{}': 'c', 'b{}': 'n', 'y{}': 'c', 'c{}': 'n', 'z{}': 'c', 'b{}-ModLoss': 'n', 'y{}-ModLoss': 'c', 'b{}-H2O': 'n', 'y{}-H2O': 'c', 'b{}-NH3': 'n', 'y{}-NH3': 'c'}
         for iontype, term in list(self._ion_terms.items()):
             self._ion_terms[iontype.format("")] = term
             
-        ######################################################################3
+        ######################################################################
+        
+        self.library_ion_types = self._ion_types
     
         self.model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
         self.RT_model = "tmp/model/RT_model.ckpt"

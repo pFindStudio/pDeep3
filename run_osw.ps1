@@ -1,5 +1,11 @@
 param (
-    [switch]$rescore = $false
+    [switch]$rescore = $false,
+    [switch]$export = $false,
+    [switch]$use_window = $false,
+    [string]$raw_dir = $(throw "-raw_dir is required."),
+    [string]$output_dir = $(throw "-output_dir is required."),
+    [string]$lib = "e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.pqp",
+    [string]$irt = "e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
 )
 
 If ($ENV:OS)
@@ -19,10 +25,8 @@ else
 # $global:irt="e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
 # $temp="E:/temp" #if cache=cache
 
-$raw_dir="e:\DIAData\Specter\HEK_SpikeP100\108ng"
-$output_dir="e:\DIAData\Specter\HEK_SpikeP100\108ng\osw-modloss"
-$global:lib_TDA="e:\DIAData\Specter\HEK_SpikeP100\osw_lib\phl_spikein_modloss.pqp"
-$global:irt="e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
+$global:lib_TDA=$lib
+$global:irt=$irt
 $global:win="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow.txt"
 $global:win_left="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-left.txt"
 $global:win_right="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-right.txt"
@@ -50,14 +54,13 @@ $ms2_tol=20
 $batch=5000
 $thread=6
 $overlapDIA='false'
-$use_window=1 # or 0
+# $use_window=1 # or 0
 
 # function Compare-File-Date($f1, $f2)
 # {
     # return ([datetime](Get-ItemProperty -Path $f1 -Name LastWriteTime).lastwritetime).ToOADate() -lt ([datetime](Get-ItemProperty -Path $f2 -Name LastWriteTime).lastwritetime).ToOADate()
 # }
 
-# New-Item -Path $output_dir -ItemType Directory
 # if (!(Test-Path $global:lib_TDA -PathType leaf))
 # {
     # Write-Host "========== Converting to PQP =========="
@@ -85,10 +88,10 @@ function run_one_window($raw, $out)
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
 }
 
-function run_pyprophet($dir, $subsample=0)
+function run_pyprophet($output_dir, $subsample=0)
 {   
     Write-Host "========== Run PyProphet =========="
-    Set-Location -Path $dir
+    Set-Location -Path $output_dir
     $tmpl=-join("--template=", $global:lib_TDA)
     $osw_files = Get-ChildItem -Path . -Recurse -Include raw*.osw
     $sub_files = @()
@@ -117,10 +120,10 @@ function run_pyprophet($dir, $subsample=0)
     }
     
     Write-Host "========== Scoring =========="
-    pyprophet score --in=score.model --level=ms1 score --in=score.model --level=ms2
+    pyprophet score --in=score.model --level=ms2
     Foreach ($run in $osw_files)
     {
-        pyprophet score --in=$run --apply_weights=score.model --level=ms1 score --in=$run --apply_weights=score.model --level=ms2
+        pyprophet score --in=$run --apply_weights=score.model --level=ms2
     }
     
     Write-Host "========== Reducing =========="
@@ -143,56 +146,72 @@ function run_pyprophet($dir, $subsample=0)
     }
 }
 
-Remove-Item ${output_dir}/*.sub
-Remove-Item ${output_dir}/*.reduce
-Remove-Item ${output_dir}/*.model
-
-$raw_files = Get-ChildItem -Path $raw_dir -Recurse -Include *.mzML
-Write-Host $raw_files
-$i = 1
-if ($rescore)
+if ($export)
 {
-    Foreach ($raw in $raw_files)
+    $osw_files = Get-ChildItem -Path $output_dir -Recurse -Include raw*.osw
+    Write-Host $osw_files
+    Foreach ($run in $osw_files)
     {
-        If ($use_window)
-        {
-            Move-Item -Path ${output_dir}/raw${i}.left.osw.bak -Destination ${output_dir}/raw${i}.left.osw -Force
-            
-            Move-Item -Path ${output_dir}/raw${i}.right.osw.bak -Destination ${output_dir}/raw${i}.right.osw -Force
-        }
-        else
-        {
-            Move-Item -Path ${output_dir}/raw${i}.osw.bak -Destination ${output_dir}/raw${i}.osw -Force
-        }
-        $i++
+        Write-Host "pyprophet export --in=$run --out=${run}.tsv --format=legacy_merged"
+        pyprophet export --in=$run --out=${run}.tsv --format=legacy_merged
     }
 }
 else
 {
-    Foreach ($raw in $raw_files)
+    New-Item -Path $output_dir -ItemType Directory
+    Remove-Item ${output_dir}/*.sub
+    Remove-Item ${output_dir}/*.reduce
+    Remove-Item ${output_dir}/*.model
+
+    $raw_files = Get-ChildItem -Path $raw_dir -Recurse -Include *.mzML
+    Write-Host $raw_files
+    $i = 1
+    if ($rescore)
     {
-        If ($use_window)
+        Foreach ($raw in $raw_files)
         {
-            # run_one_window $raw $out_path
-            $global:win=$global:win_left
-            $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.left.osw
-            run_one_window $raw $out_path
-            
-            $global:win=$global:win_right
-            $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.right.osw
-            run_one_window $raw $out_path
+            If ($use_window)
+            {
+                Move-Item -Path ${output_dir}/raw${i}.left.osw.bak -Destination ${output_dir}/raw${i}.left.osw -Force
+                
+                Move-Item -Path ${output_dir}/raw${i}.right.osw.bak -Destination ${output_dir}/raw${i}.right.osw -Force
+            }
+            else
+            {
+                Move-Item -Path ${output_dir}/raw${i}.osw.bak -Destination ${output_dir}/raw${i}.osw -Force
+            }
+            $i++
         }
-        else
-        {
-            $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.osw
-            run_one $raw $out_path
-        }
-        $i++
     }
+    else
+    {
+        Foreach ($raw in $raw_files)
+        {
+            If ($use_window)
+            {
+                # run_one_window $raw $out_path
+                $global:win=$global:win_left
+                $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.left.osw
+                run_one_window $raw $out_path
+                
+                $global:win=$global:win_right
+                $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.right.osw
+                run_one_window $raw $out_path
+            }
+            else
+            {
+                $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.osw
+                run_one $raw $out_path
+            }
+            $i++
+        }
+        # $temp=Join-Path -Path $temp -ChildPath *
+        Remove-Item -Path ${temp}/* -Recurse
+    }
+
+    if ($use_window) { $subsample=1/(@($raw_files).Length)/2 }
+    else { $subsample=1/(@($raw_files).Length) }
+    run_pyprophet $output_dir $subsample
 }
 
-$subsample=1/(@($raw_files).Length)
-run_pyprophet $output_dir $subsample
 
-$temp=Join-Path -Path $temp -ChildPath *
-Remove-Item -Path $temp -Recurse
