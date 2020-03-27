@@ -1,0 +1,1 @@
+powershell ./run_osw.ps1 -raw_dir e:\DIAData\Theraurus\ -output_dir e:\DIAData\Theraurus\QE27 -lib e:\DIATools\openswath\library\pDeep\phospho_lib.pqp -irt e:\DIATools\openswath\library\pDeep\cell_RT_proteins_fasta_QE27.tsv -ipf

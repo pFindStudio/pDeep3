@@ -45,6 +45,8 @@ class LibraryBase(object):
         
     def Open(self):
         pass
+    def CreateTables(self):
+        pass
     def Close(self):
         pass
         

@@ -3,6 +3,7 @@ param (
     [switch]$export = $false,
     [switch]$use_window = $false,
     [switch]$tune = $false,
+    [switch]$ipf = $false,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
     [string]$lib = "e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.pqp",
@@ -74,8 +75,8 @@ $overlapDIA='false'
 function run_one($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force -use_ms1_traces
-    # OpenSwathWorkflow '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces
+    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force
+    # OpenSwathWorkflow '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces -enable_uis_scoring
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
 }
@@ -83,7 +84,7 @@ function run_one($raw, $out)
 function run_one_window($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces
+    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces -enable_uis_scoring
     # OpenSwathWorkflow '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -121,10 +122,11 @@ function run_pyprophet($output_dir, $subsample=0)
     }
     
     Write-Host "========== Scoring =========="
-    pyprophet score --in=score.model --level=ms2
+    pyprophet score --in=score.model --level=ms1 score --in=score.model --level=ms2
     Foreach ($run in $osw_files)
     {
         pyprophet score --in=$run --apply_weights=score.model --level=ms2
+        pyprophet ipf --in=$run
     }
     
     Write-Host "========== Reducing =========="
@@ -144,6 +146,51 @@ function run_pyprophet($output_dir, $subsample=0)
     Foreach ($run in $osw_files)
     {
         pyprophet backpropagate --in=$run --apply_scores=global_fdr.model
+    }
+}
+
+
+function run_pyprophet_ipf($output_dir)
+{   
+    Write-Host "========== Run PyProphet (IPF) =========="
+    Set-Location -Path $output_dir
+    $osw_files = Get-ChildItem -Path . -Recurse -Include raw*.osw
+    
+    Foreach ($run in $osw_files)
+    {
+        Copy-Item -Path $run ${run}.bak
+    }
+    pyprophet merge --template=$global:lib_TDA --out=score.model $osw_files
+    
+    Write-Host "========== Scoring =========="
+    pyprophet score --in=score.model --level=ms2 
+    # pyprophet score --in=score.model --level=ms1 
+    pyprophet score --in=score.model --level=transition
+    pyprophet ipf --in=score.model
+    # Foreach ($run in $osw_files)
+    # {
+        # pyprophet score --in=$run --apply_weights=score.model --level=ms2 
+        # pyprophet score --in=$run --apply_weights=score.model --level=ms1 
+        # pyprophet score --in=$run --apply_weights=score.model --level=transition
+    # }
+    
+    # Write-Host "========== Reducing =========="
+    # $reduced_files = @()
+    # Foreach ($run in $osw_files)
+    # {
+        # $run_reduced = -join(${run},".reduce") # generates .oswr files
+        # pyprophet reduce --in=$run --out=$run_reduced
+        # $reduced_files += $run_reduced
+    # }
+        
+    Write-Host "========== Estimating FDR =========="
+    # pyprophet merge --template=score.model --out=global_fdr.model $reduced_files
+    pyprophet peptide --context=global --in=score.model
+    pyprophet protein --context=global --in=score.model
+    
+    Foreach ($run in $osw_files)
+    {
+        pyprophet backpropagate --in=$run --apply_scores=score.model
     }
 }
 
@@ -213,7 +260,8 @@ else
 
     if ($use_window) { $subsample=1/(@($raw_files).Length)/2 }
     else { $subsample=1/(@($raw_files).Length) }
-    run_pyprophet $output_dir $subsample
+    if ($ipf) {run_pyprophet_ipf $output_dir}
+    else {run_pyprophet $output_dir $subsample}
 }
 
 

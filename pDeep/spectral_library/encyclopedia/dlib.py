@@ -13,6 +13,7 @@ __mod_dict = {
     "Phospho[S]": "[+79.966331]",
     "Phospho[T]": "[+79.966331]",
     "Phospho[Y]": "[+79.966331]",
+    "Acetyl[ProteinN-term]": "[42.010565]",
     "Label_13C(6)15N(2)[K]": "[+8.014199]",
     "Label_13C(6)15N(4)[R]": "[+10.008269]",
 }
@@ -39,18 +40,34 @@ class DLIB(LibraryBase):
     def SetAALabel(self, aa_label_list):
         for aa, label_mass in aa_label_list:
             self._ion_calc.set_aa_label(aa, label_mass)
+            
+    def CreateTables(self):
+        self.cursor.execute("CREATE TABLE peptidetoprotein( PeptideSeq string not null, IsDecoy int not null, ProteinAccession string not null, PRIMARY KEY (PeptideSeq) )")
+        self.cursor.execute("CREATE TABLE entries ( PrecursorMz double not null, PrecursorCharge int not null, PeptideModSeq string not null, PeptideSeq string not null, Copies int not null, RTInSeconds double not null, Score double not null, MassEncodedLength int not null, MassArray blob not null, IntensityEncodedLength int not null, IntensityArray blob not null, CorrelationEncodedLength int, CorrelationArray blob, RTInSecondsStart double, RTInSecondsStop double, MedianChromatogramEncodedLength int, MedianChromatogramArray blob, SourceFile string not null )")
+        self.cursor.execute("CREATE TABLE metadata ( Key string not null, Value string not null, PRIMARY KEY (Key) )")
+        self.cursor.execute("CREATE TABLE fragmentquants ( PrecursorCharge int not null, PeptideModSeq string not null, SourceFile string not null, IonType string not null, FragmentMass double not null, Correlation double not null, DeltaMassPPM double not null, Intensity double not null, FOREIGN KEY (PrecursorCharge, PeptideModSeq, SourceFile) REFERENCES entries (PrecursorCharge, PeptideModSeq, SourceFile) )")
+        self.cursor.execute("CREATE TABLE peptidequants ( PrecursorCharge int not null, PeptideModSeq string not null, SourceFile string not null, RTInSecondsStart double not null, RTInSecondsStop double not null, TotalIntensity double not null, NumberOfQuantIons int not null, BestFragmentCorrelation double not null, BestFragmentDeltaMassPPM double not null, MedianChromatogramEncodedLength int not null, MedianChromatogramArray blob not null,PRIMARY KEY (PrecursorCharge, PeptideModSeq, SourceFile), FOREIGN KEY (PrecursorCharge, PeptideModSeq, SourceFile) REFERENCES entries (PrecursorCharge, PeptideModSeq, SourceFile) )")
+        
+        self.cursor.execute("INSERT INTO metadata(key,value) VALUES('version', '0.1.10')")
         
     def GetAllPeptides(self):
         start = time.perf_counter()
         self.peptide_dict = {}
         peptide_list = []
-        cursor = self.cursor.execute("SELECT PeptideModSeq, PrecursorCharge, RTInSeconds FROM entries")
+        cursor = self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='peptidetoprotein'")
+        if cursor.fetchone():
+            cursor = self.cursor.execute("SELECT entries.PeptideModSeq, entries.PrecursorCharge, entries.RTInSeconds, peptidetoprotein.ProteinAccession FROM entries INNER JOIN peptidetoprotein ON entries.PeptideSeq=peptidetoprotein.PeptideSeq")
+        else:
+            cursor = self.cursor.execute("SELECT entries.PeptideModSeq, entries.PrecursorCharge, entries.RTInSeconds, proteins.ProteinAccessions FROM entries INNER JOIN proteins ON entries.PeptideSeq=proteins.PeptideSeq")
         for row in cursor:
             seq, mod = PeptideModSeq2pDeepFormat(row[0])
+            if not seq:
+                print("[pDeep Warning] unknown modseq '%s'"%row[0])
+                continue
             charge = int(row[1])
             RT = float(row[2])
             peptide_list.append((seq, mod, charge))
-            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = (row[0], charge, RT, '', -1, "") #items = [PeptideModSeq, PrecursorCharge, RT, raw, scan, protein]
+            self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = (row[0], charge, RT, '', -1, row[3]) #items = [PeptideModSeq, PrecursorCharge, RT, raw, scan, protein]
         print("reading dlib time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
         
@@ -95,6 +112,7 @@ class DLIB(LibraryBase):
         update_list = []
         insert_list = []
         insert_pep2pro_list = []
+        insert_pep2pro_set = set()
         update_sql = "UPDATE entries SET MassEncodedLength = ?, MassArray = ?, IntensityEncodedLength = ?, IntensityArray = ?, RTInSeconds = ? WHERE PeptideModSeq = ? AND PrecursorCharge = ?"
         
         insert_sql = "INSERT INTO entries(PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, RTInSeconds, MassEncodedLength, MassArray, IntensityEncodedLength, IntensityArray, SourceFile, Copies, Score) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pDeep', 1, 0.001)"
@@ -125,9 +143,11 @@ class DLIB(LibraryBase):
                 # item = self.peptide_dict[pepinfo]
                 # update_list.append((*_encode(masses, intens), item[2], item[0], item[1])) #item[2] = RT in dlib
             if True:
-                insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
-                modseq = pDeepFormat2PeptideModSeq(seq, mod)
-                if modseq: insert_list.append((modseq, seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
+                if seq not in insert_pep2pro_set: 
+                    insert_pep2pro_set.add(seq)
+                    insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
+                    modseq = pDeepFormat2PeptideModSeq(seq, mod)
+                    if modseq: insert_list.append((modseq, seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
             if count%10000 == 0:
                 print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
                 if count%1000000 == 0:
@@ -166,13 +186,16 @@ def PeptideModSeq2pDeepFormat(PeptideModSeq):
     site = PeptideModSeq.find('[')
     modlist = []
     while site != -1:
-        if PeptideModSeq[site-1] == 'C': modlist.append('%d,%s'%(site, 'Carbamidomethyl[C]'))
-        elif PeptideModSeq[site-1] == 'M': modlist.append('%d,%s'%(site, 'Oxidation[M]'))
-        elif PeptideModSeq[site-1] == 'S': modlist.append('%d,%s'%(site, 'Phospho[S]'))
-        elif PeptideModSeq[site-1] == 'T': modlist.append('%d,%s'%(site, 'Phospho[T]'))
-        elif PeptideModSeq[site-1] == 'Y': modlist.append('%d,%s'%(site, 'Phospho[Y]'))
+        right = PeptideModSeq.find(']')
+        int_mass = round(float(PeptideModSeq[site+1:right]))
+        if PeptideModSeq[site-1] == 'C' and int_mass == 57: modlist.append('%d,%s'%(site, 'Carbamidomethyl[C]'))
+        elif PeptideModSeq[site-1] == 'M' and int_mass == 16: modlist.append('%d,%s'%(site, 'Oxidation[M]'))
+        elif PeptideModSeq[site-1] == 'S' and int_mass == 80: modlist.append('%d,%s'%(site, 'Phospho[S]'))
+        elif PeptideModSeq[site-1] == 'T' and int_mass == 80: modlist.append('%d,%s'%(site, 'Phospho[T]'))
+        elif PeptideModSeq[site-1] == 'Y' and int_mass == 80: modlist.append('%d,%s'%(site, 'Phospho[Y]'))
+        elif site == 1 and int_mass == 42: modlist.append('0,%s'%('Acetyl[ProteinN-term]'))
         else: return None, None
-        PeptideModSeq = PeptideModSeq[:site] + PeptideModSeq[PeptideModSeq.find(']')+1:]
+        PeptideModSeq = PeptideModSeq[:site] + PeptideModSeq[right+1:]
         site = PeptideModSeq.find('[', site)
     return PeptideModSeq, ";".join(modlist)
 

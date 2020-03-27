@@ -19,6 +19,8 @@ def _register_library_writer(ext, _class):
     _library_writer_dict[ext] = _class
     
 def GetLibraryWriter(filename, pDeepParam):
+    if os.path.isfile(filename):
+        os.remove(filename)
     for ext, _class in _library_writer_dict.items():
         if filename.lower().endswith(ext): return _class(pDeepParam)
     return None

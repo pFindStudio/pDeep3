@@ -1,0 +1,6 @@
+powershell ./run_enc.ps1 -mzml E:\DIAData\Theraurus\20170430_HeLa_phosp_DIA_B_01_170506220515.mzML -fasta E:\fasta\Human-H.sapiens-SP-1808.fasta -lib e:\DIATools\encyclopedia\library\pDeep_phoslib_QE27.dlib -phosite -output E:\DIAData\Theraurus\pDeep_QE27_01.elib
+powershell ./run_enc.ps1 -mzml E:\DIAData\Theraurus\20170430_HeLa_phosp_DIA_B_03_170507071858.mzML -fasta E:\fasta\Human-H.sapiens-SP-1808.fasta -lib e:\DIATools\encyclopedia\library\pDeep_phoslib_QE27.dlib -phosite -output E:\DIAData\Theraurus\pDeep_QE27_03.elib
+
+powershell ./run_enc.ps1 -mzml E:\DIAData\Theraurus\20170430_HeLa_phosp_DIA_B_01_170506220515.mzML -fasta E:\fasta\Human-H.sapiens-SP-1808.fasta -lib e:\DIATools\encyclopedia\library\VillenJ_Exactive_HumanPhosphoproteome.elib -phosite -output E:\DIAData\Theraurus\origin_lab_01.elib
+powershell ./run_enc.ps1 -mzml E:\DIAData\Theraurus\20170430_HeLa_phosp_DIA_B_02_170507024206.mzML -fasta E:\fasta\Human-H.sapiens-SP-1808.fasta -lib e:\DIATools\encyclopedia\library\VillenJ_Exactive_HumanPhosphoproteome.elib -phosite -output E:\DIAData\Theraurus\origin_lab_02.elib
+powershell ./run_enc.ps1 -mzml E:\DIAData\Theraurus\20170430_HeLa_phosp_DIA_B_03_170507071858.mzML -fasta E:\fasta\Human-H.sapiens-SP-1808.fasta -lib e:\DIATools\encyclopedia\library\VillenJ_Exactive_HumanPhosphoproteome.elib -phosite -output E:\DIAData\Theraurus\origin_lab_03.elib

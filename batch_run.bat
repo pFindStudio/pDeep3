@@ -1,1 +1,0 @@
-powershell run_osw.ps1 -raw_dir e:\DIAData\PECAN\20mz\ -output_dir e:\DIAData\PECAN\20mz\phl-QE27-by\ -lib e:\DIATools\openswath\library\pDeep\phl_QE27_by.pqp -irt e:\DIATools\openswath\library\pDeep\cell_RT_proteins_fasta_QE27.tsv

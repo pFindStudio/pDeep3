@@ -62,10 +62,11 @@ if __name__ == "__main__":
     
     param = pDeepParameter()
     
-    copyfile('tmp/data/library/empty'+os.path.splitext(out_lib)[-1], out_lib)
+    # copyfile('tmp/data/library/empty'+os.path.splitext(out_lib)[-1], out_lib)
     
     _lib = GetLibraryWriter(out_lib, param)
     _lib.Open(out_lib)
+    _lib.CreateTables()
     _lib.decoy = decoy
     
     seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
@@ -88,6 +89,23 @@ if __name__ == "__main__":
         tsv.Close()
         return peptide_list, pep_pro_dict
     
+    def _from_pqp(pqpfile):
+        pqp = OSW_PQP()
+        pqp.Open(pqpfile)
+        peptide_list = pqp.GetAllPeptides()
+        pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in pqp.peptide_dict.items()])
+        pqp.Close()
+        return peptide_list, pep_pro_dict
+        
+    def _from_dlib(dlibfile):
+        dlib = DLIB()
+        dlib.Open(dlibfile)
+        peptide_list = dlib.GetAllPeptides()
+        pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in dlib.peptide_dict.items()])
+        dlib.Close()
+        return peptide_list, pep_pro_dict
+        
+    
     varmod_set = set(args.varmod.strip(',').split(",")) if args.varmod else set()
     fixmod_set = set(args.fixmod.strip(',').split(",")) if args.fixmod else set()
     def _add_mod_from_library(peptide_list):
@@ -109,6 +127,12 @@ if __name__ == "__main__":
         peptide_list, pep_pro_dict = _from_fasta(seqlib, args.input, args.proteins)
     elif args.input.endswith('.tsv') or args.input.endswith('.csv'):
         peptide_list, pep_pro_dict = _from_tsv(args.input)
+        _add_mod_from_library(peptide_list)
+    elif args.input.endswith('.pqp') or args.input.endswith('.osw'):
+        peptide_list, pep_pro_dict = _from_pqp(args.input)
+        _add_mod_from_library(peptide_list)
+    elif args.input.endswith('.dlib') or args.input.endswith('.elib'):
+        peptide_list, pep_pro_dict = _from_dlib(args.input)
         _add_mod_from_library(peptide_list)
     else:
         peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
