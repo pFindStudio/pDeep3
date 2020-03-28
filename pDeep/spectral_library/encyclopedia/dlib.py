@@ -27,6 +27,7 @@ class DLIB(LibraryBase):
         self.sql_conn = None
         self.peptide_dict = {}
         self.peptide_list = []
+        self.lib_version = "0.1.14"
         
     def Open(self, dlib_file):
         self.sql_conn = sqlite3.connect(dlib_file)
@@ -36,10 +37,6 @@ class DLIB(LibraryBase):
     def Close(self):
         self.sql_conn.close()
         self.dlib_file = None
-        
-    def SetAALabel(self, aa_label_list):
-        for aa, label_mass in aa_label_list:
-            self._ion_calc.set_aa_label(aa, label_mass)
             
     def CreateTables(self):
         self.cursor.execute("CREATE TABLE peptidetoprotein( PeptideSeq string not null, IsDecoy int not null, ProteinAccession string not null, PRIMARY KEY (PeptideSeq) )")
@@ -48,7 +45,7 @@ class DLIB(LibraryBase):
         self.cursor.execute("CREATE TABLE fragmentquants ( PrecursorCharge int not null, PeptideModSeq string not null, SourceFile string not null, IonType string not null, FragmentMass double not null, Correlation double not null, DeltaMassPPM double not null, Intensity double not null, FOREIGN KEY (PrecursorCharge, PeptideModSeq, SourceFile) REFERENCES entries (PrecursorCharge, PeptideModSeq, SourceFile) )")
         self.cursor.execute("CREATE TABLE peptidequants ( PrecursorCharge int not null, PeptideModSeq string not null, SourceFile string not null, RTInSecondsStart double not null, RTInSecondsStop double not null, TotalIntensity double not null, NumberOfQuantIons int not null, BestFragmentCorrelation double not null, BestFragmentDeltaMassPPM double not null, MedianChromatogramEncodedLength int not null, MedianChromatogramArray blob not null,PRIMARY KEY (PrecursorCharge, PeptideModSeq, SourceFile), FOREIGN KEY (PrecursorCharge, PeptideModSeq, SourceFile) REFERENCES entries (PrecursorCharge, PeptideModSeq, SourceFile) )")
         
-        self.cursor.execute("INSERT INTO metadata(key,value) VALUES('version', '0.1.10')")
+        self.cursor.execute("INSERT INTO metadata(key,value) VALUES('version', '%s')"%self.lib_version)
         
     def GetAllPeptides(self):
         start = time.perf_counter()
@@ -70,37 +67,6 @@ class DLIB(LibraryBase):
             self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = (row[0], charge, RT, '', -1, row[3]) #items = [PeptideModSeq, PrecursorCharge, RT, raw, scan, protein]
         print("reading dlib time = %.3fs"%(time.perf_counter() - start))
         return peptide_list
-        
-    def UpdateMassIntensity(self, PeptideModSeq, PrecursorCharge, MassList, IntensityList, RT, commit_now = False):
-        sql = "UPDATE entries SET MassEncodedLength = ?, MassArray = ?, IntensityEncodedLength = ?, IntensityArray = ?, RTInSeconds = ? WHERE PeptideModSeq = '%s' AND PrecursorCharge = %d"%(PeptideModSeq, PrecursorCharge)
-        self.cursor.execute(sql, (len(MassList)*8, EncodeMassList(MassList), len(IntensityList)*4, EncodeIntensityList(IntensityList), RT))
-        if commit_now: sql_conn.commit()
-    
-    def InsertNewPeptide(self, PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, MassList, IntensityList, RT, ProteinACs = "", commit_now = False):
-        sql = "INSERT INTO entries(PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, MassEncodedLength, MassArray, IntensityEncodedLength, IntensityArray, RTInSeconds, SourceFile, Copies, Score) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pDeep', 1, 0.001)"
-        self.cursor.execute(sql, (
-                PeptideModSeq, 
-                PeptideSeq, 
-                PrecursorMz, 
-                PrecursorCharge, 
-                len(MassList)*8, 
-                EncodeMassList(MassList), 
-                len(IntensityList)*4, 
-                EncodeIntensityList(IntensityList), 
-                RT,
-            ))
-        if ProteinACs:
-            for ProteinAccession in ProteinACs.split("/"):
-                cursor = self.cursor.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
-                if not cursor.fetchone():
-                    self.cursor.execute("INSERT INTO peptidetoprotein(PeptideSeq, isDecoy, ProteinAccession) VALUES ('%s', '0', '%s')"%(PeptideSeq, ProteinAccession))
-        if commit_now: sql_conn.commit()
-    
-    def UpdateByPeptideDict(self, peptide_dict):
-        for pepinfo, (modseq, charge, mass, intensity) in peptide_dict.items():
-            if not mass: continue
-            self.UpdateMassIntensity(modseq, charge, mass, intensity)
-        self.sql_conn.commit()
         
     # peak_selection = "topK" or "intensity"
     def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}):
@@ -146,8 +112,8 @@ class DLIB(LibraryBase):
                 if seq not in insert_pep2pro_set: 
                     insert_pep2pro_set.add(seq)
                     insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
-                    modseq = pDeepFormat2PeptideModSeq(seq, mod)
-                    if modseq: insert_list.append((modseq, seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
+                modseq = pDeepFormat2PeptideModSeq(seq, mod)
+                if modseq: insert_list.append((modseq, seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
             if count%10000 == 0:
                 print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
                 if count%1000000 == 0:
@@ -163,11 +129,6 @@ class DLIB(LibraryBase):
         print("[SQL UPDATE] 100%: {}".format(self.dlib_file))
         self.sql_conn.commit()
         print("[pDeep Info] updating dlib time = %.3fs"%(time.perf_counter()-start))
-        
-def GetMassIntensity(cursor, PeptideSeq, PrecursorCharge):
-    cursor = cursor.execute("SELECT MassArray, IntensityArray FROM entries WHERE PeptideSeq = '%s' AND PrecursorCharge = %d"%(PeptideSeq, PrecursorCharge))
-    row = cursor.fetchone()
-    return DecodeMassList(row[0]), DecodeIntensityList(row[1])
 
 def pDeepFormat2PeptideModSeq(seq, modinfo):
     if not modinfo: return seq
@@ -226,17 +187,3 @@ def EncodeIntensityList(lst):
     
 def EncodeMassList(lst):
     return EncodeDoubleList(np.array(lst, dtype=np.float64))
-    
-if __name__ == "__main__":
-    dlib_obj = DLIB()
-    dlib_obj.Open(r'e:\DIATools\encyclopedia\pan_human_subset.dlib')
-    print ("Opened database successfully")
-    
-    peptide = 'AAAAAAAA'
-    
-    dlib_obj.InsertNewPeptide(peptide, peptide, 100, 2, [0]*10, [0]*10, 11)
-    dlib_obj.InsertNewPeptide(peptide, peptide, 100, 3, [0]*10, [0]*10, 11)
-    dlib_obj.sql_conn.commit()
-
-    print ("Operation done successfully")
-    dlib_obj.Close()

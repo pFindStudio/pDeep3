@@ -11,7 +11,8 @@ param (
 
 $thread = 6
 $enc = 'encyclopedia-0.9.0-executable.jar'
-$thr = 'thesaurus-0.5.7-executable.jar'
+$thr = 'thesaurus-0.9.4-executable.jar'
+$mod = 'Phosphorylation'
 
 $dlib = $lib
 $elib = $output
@@ -19,7 +20,7 @@ $elib = $output
 Set-Location -Path $enc_path
 
 
-# function run_one_overlap()
+# function run_enc_overlap()
 # {
     # $res = -join($mzml,'.encyclopedia.txt')
     # Remove-Item $res
@@ -31,13 +32,14 @@ Set-Location -Path $enc_path
     # }
 # }
 
-function run_one()
+function run_enc()
 {
-    $res = -join($mzml,'.encyclopedia.txt')
-    Remove-Item $res
+    # $res = -join($mzml,'.encyclopedia.txt')
+    Write-Host delete $(-join($mzml,'.encyclopedia.txt'))
+    Remove-Item -Path $(-join($mzml,'.encyclopedia.txt'))
     if ($overlap)
     {
-        java -Xmx14g -jar  -i $mzml -l $dlib -f $fasta -numberOfThreadsUsed $thread -acquisition overlapping
+        java -Xmx14g -jar $enc -i $mzml -l $dlib -f $fasta -numberOfThreadsUsed $thread -acquisition overlapping
     }
     else
     {
@@ -46,35 +48,39 @@ function run_one()
     if ($elib.Length -ne 0)
     {
         $saved_elib = -join($mzml,'.elib')
-        Rename-Item -Path $saved_elib -NewName $elib -Force
+        Move-Item -Path $saved_elib -Destination $elib -Force
     }
     # $newelib = -join('raw=', $raw_id, '.', (Split-Path $dlib -leaf).split('.')[0], '.elib')
 }
 
-function run_phosite()
+function run_thr()
 {
     # $res_files = Get-ChildItem -Path . -Recurse -Include *thesaurus*
-    $res = -join($mzml,'.thesaurus.txt')
-    Remove-Item $res
+    # $res = -join($mzml,'.thesaurus.txt')
+    # Write-Host delete $(-join($mzml,'.encyclopedia.txt'))
+    # Remove-Item -Path $(-join($mzml,'.encyclopedia.txt'))
+    Remove-Item $(-join($mzml, '*.thesaurus.txt.*.txt'))
     if ($overlap)
     {
-        java -Xmx14g -jar $thr -i $mzml -l $dlib -localizationModification Phosphorylation -acquisition overlapping -numberOfThreadsUsed $thread
+        java -Xmx14g -jar $thr -i $mzml -l $dlib -f $fasta -localizationModification Phosphorylation -acquisition overlapping -numberOfThreadsUsed $thread
     }
     else
     {
-        java -Xmx14g -jar $thr -i $mzml -l $dlib -localizationModification Phosphorylation -acquisition overlapping -numberOfThreadsUsed $thread
+        java -Xmx14g -jar $thr -i $mzml -l $dlib -f $fasta -localizationModification Phosphorylation -numberOfThreadsUsed $thread
     }
     if ($elib.Length -ne 0)
     {
-        $saved_elib = -join($mzml,'.thesaurus.elib')
-        Rename-Item -Path $saved_elib -NewName $elib -Force
+        $saved_elib = -join($mzml,'thesaurus.txt.Phosphorylation.thesaurus.elib')
+        Move-Item -Path $saved_elib -Destination $elib -Force
     }
 }
+
+Write-Host "============== Start =============="
 if ($phosite)
 {
-    run_phosite
+    run_thr
 }
 else
 {
-    run_one
+    run_enc
 }
