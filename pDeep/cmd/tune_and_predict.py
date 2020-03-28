@@ -12,6 +12,8 @@ from .. import similarity_calc as sim_calc
 from .. import model_tf as model
 from ..rt_model import pDeepRTModel
 from ..prediction import pDeepPrediction
+from .generate_predicted_speclib import _from_fasta,_from_tsv,_from_dlib,_from_pqp
+from ..data_generator import *
         
 def load_param(pDeep_cfg):
     return pDeepParameter(pDeep_cfg)
@@ -152,9 +154,49 @@ def run(pDeep_cfg, peptide_list = None):
         RT_buckets = None
     return pDeepPrediction(param.config, pep_buckets, predict_buckets, RT_buckets)
     
-if __name__ == "__main__":
-    pdeep_prediction = run(sys.argv[1])
-    for peptide, intensities in pdeep_prediction.peptide_intensity_dict.items():
-        print("b+ ions of %s ="%peptide, pdeep_prediction.GetIntensitiesByIonType(intensities, "b", 1)) # get b+ ions
-    for peptide, intensities in pdeep_prediction.peptide_intensity_dict.items():
-        print("y+ ions of %s ="%peptide, pdeep_prediction.GetIntensitiesByIonType(intensities, "y", 1)) # get y+ ions
+def get_prediction(input_file, tune_psm = None, raw = None, instrument = 'QE', ce = 27):
+    '''
+    @param input_file, a peptide list file containing title "peptide\tmodinfo\tcharge\tprotein".
+    @param tune_psm .osw (OpenSWATH), .elib (EncyclopDIA), evidence.txt (MaxQuant) or .spectra (pFind) file for tuning pDeep and pDeepRT. If it is None, the model will not be tuned (default None).
+    @param raw, raw file for tuning pDeep and pDeepRT (default None).
+    @param instrument, instrument type for prediction (default "QE").
+    @param ce, collision energy for prediction (default 27).
+    '''
+    
+    mod_set = set()
+    def _add_mod(peptide_list):
+        for seq,mod,charge in peptide_list:
+            if mod:
+                mods = mod.strip(";").split(";")
+                for mod in mods:
+                    modname = mod[mod.find(',')+1:]
+                    if modname not in mod_set: 
+                        mod_set.add(modname)
+    
+    peptide_list, pep_pro_dict = ReadModSeq(input_file)
+    _add_mod(peptide_list)
+    
+    if tune_psm and raw and RawFileReader:
+        psmRT = GeneratePSMFile(tune_psm, raw)
+        psmLabel = Run_psmLabel(psmRT, raw)
+    else:
+        psmLabel = None
+        psmRT = None
+    # if psmLabel:
+        # Sort_psmLabel(psmLabel)
+    
+    
+    param = pDeepParameter()
+        
+    param = Set_pDeepParam(param, instrument=instrument, ce=ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=",".join(mod_set), varmod=None)
+    
+    prediction = tune_and_predict.run(param, peptide_list) #return a pDeep.prediction.pDeepPrediction object
+    
+    # example: 
+    # ion_types = ['b','y','b-ModLoss','y-ModLoss']
+    # indices = prediction.GetIonTypeIndices(ion_types)
+    # GetIntensitiesByIndices('ACDMNLK', '2,Carbamidomethyl[C];4,Oxidation[M]', 3, indices)
+    
+    
+    
+    

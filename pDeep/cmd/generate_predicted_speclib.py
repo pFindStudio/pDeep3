@@ -9,6 +9,41 @@ from ..data_generator import *
 from ..parameter import pDeepParameter
 from . import tune_and_predict
 
+def _from_fasta(_seqlib, fasta, proteins = None):
+    if proteins:
+        protein_list = proteins.split(",")
+    else:
+        protein_list = None
+    peptide_list, protein_dict = _seqlib.PeptideListFromFasta(fasta, protein_list)
+    infer_pep_pro_dict = infer_protein([seq for seq, mod, charge in peptide_list], protein_dict)
+    pep_pro_dict = dict([(peptide,"/".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in infer_pep_pro_dict.items()])
+    return peptide_list, pep_pro_dict
+    
+def _from_tsv(tsvfile):
+    tsv = OSW_TSV()
+    tsv.Open(tsvfile)
+    peptide_list = tsv.GetAllPeptides()
+    pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in tsv.peptide_dict.items()])
+    tsv.Close()
+    return peptide_list, pep_pro_dict
+
+def _from_pqp(pqpfile):
+    pqp = OSW_PQP()
+    pqp.Open(pqpfile)
+    peptide_list = pqp.GetAllPeptides()
+    pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in pqp.peptide_dict.items()])
+    pqp.Close()
+    return peptide_list, pep_pro_dict
+    
+def _from_dlib(dlibfile):
+    dlib = DLIB()
+    dlib.Open(dlibfile)
+    peptide_list = dlib.GetAllPeptides()
+    pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in dlib.peptide_dict.items()])
+    dlib.Close()
+    return peptide_list, pep_pro_dict
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Generating spectral library for OpenSWATH and EncyclopDIA by pDeep.')
@@ -70,41 +105,6 @@ if __name__ == "__main__":
     _lib.decoy = decoy
     
     seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
-                
-    def _from_fasta(_seqlib, fasta, proteins = None):
-        if proteins:
-            protein_list = proteins.split(",")
-        else:
-            protein_list = None
-        peptide_list, protein_dict = _seqlib.PeptideListFromFasta(fasta, protein_list)
-        infer_pep_pro_dict = infer_protein([seq for seq, mod, charge in peptide_list], protein_dict)
-        pep_pro_dict = dict([(peptide,"/".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in infer_pep_pro_dict.items()])
-        return peptide_list, pep_pro_dict
-        
-    def _from_tsv(tsvfile):
-        tsv = OSW_TSV()
-        tsv.Open(tsvfile)
-        peptide_list = tsv.GetAllPeptides()
-        pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in tsv.peptide_dict.items()])
-        tsv.Close()
-        return peptide_list, pep_pro_dict
-    
-    def _from_pqp(pqpfile):
-        pqp = OSW_PQP()
-        pqp.Open(pqpfile)
-        peptide_list = pqp.GetAllPeptides()
-        pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in pqp.peptide_dict.items()])
-        pqp.Close()
-        return peptide_list, pep_pro_dict
-        
-    def _from_dlib(dlibfile):
-        dlib = DLIB()
-        dlib.Open(dlibfile)
-        peptide_list = dlib.GetAllPeptides()
-        pep_pro_dict = dict([(pepinfo.split("|")[0], item[-1]) for pepinfo, item in dlib.peptide_dict.items()])
-        dlib.Close()
-        return peptide_list, pep_pro_dict
-        
     
     varmod_set = set(args.varmod.strip(',').split(",")) if args.varmod else set()
     fixmod_set = set(args.fixmod.strip(',').split(",")) if args.fixmod else set()
