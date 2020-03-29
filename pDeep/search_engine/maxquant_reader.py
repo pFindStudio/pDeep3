@@ -39,7 +39,7 @@ class MaxQuantEvidenceReader(ReaderBase):
             modseq = items[headidx['Modified sequence']]
             seq, mod = PeptideModSeq2pDeepFormat(modseq)
             charge = int(items[headidx['Charge']])
-            RT = float(items[headidx['Retention time']])
+            RT = float(items[headidx['Retention time']])*60
             scan = int(items[headidx['MS/MS scan number']])
             raw = items[headidx['Raw file']]
             protein = "/".join([pro for pro in items[headidx['Proteins']].split(";")])

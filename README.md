@@ -7,6 +7,73 @@ tensorflow == 1.13.1 (tensorflow == 1.x, where x >= 13)
 
 .NET Framework == 4.5.2 (or higher? to execute psmLabel)
 
+## Tuning and predicting using get_prediction
+***Now psmLabel, tuning and predicting are integrated in pDeep.cmd.tune_and_predict.py***
+```
+pDeep.cmd.tune_and_predict.get_prediction(input_peptides, tune_psm = None, raw = None, instrument = 'QE', ce = 27)
+
+@param input_peptides, could be a peptide list [(sequence1, mod1, charge1), (seq2, mod2, charge2), ...] to be predicted, or a file containing tab seperated head "peptide, modinfo, charge, protein".
+@param tune_psm evidence.txt (MaxQuant), .spectra (pFind) or *.psm.txt/*.txt (with tab seperated heads "raw_name, scan, peptide, modinfo, charge, RTInSeconds") file for tuning pDeep and pDeepRT. If it is None, the model will not be tuned (default None).
+@param raw, raw file for tuning pDeep and pDeepRT (default None).
+@param instrument, instrument type for prediction (default "QE").
+@param ce, collision energy for prediction (default 27).
+@return prediction, pDeep.prediction.pDeepPrediction object, 
+# example: 
+# ion_types = ['b','y','b-ModLoss','y-ModLoss'] or ['b','y']
+# ion_indices, used_ion_types = prediction.GetIonTypeIndices(ion_types)
+# print(used_ion_types)
+# intensities = GetIntensitiesByIndices('ACDMNLK', '2,Carbamidomethyl[C];4,Oxidation[M]', 3, ion_indices)
+```
+
+Example of input file input_peptides file:
+```
+raw_name	scan	peptide	modinfo	charge	RTinSeconds
+raw_sample1	7932	TCEATHKTSTSPIVKSF	2,Carbamidomethyl[C]	2	666.4
+raw_sample1	13419	KIDGMERQDGVLNSW		3	1145.2
+raw_sample1	13440	KIDGMERCDGVLNSW	5,Oxidation[M];8,Carbamidomethyl[C]	2	1147.0
+raw_sample2	10709	TCEATHKTSTSPIVKSF	16,Phospho[S]	2	901.3
+```
+
+Run:
+```
+from pDeep.cmd.tune_and_predict import get_prediction
+
+input_peptides = [('ACDMNLK', '2,Carbamidomethyl[C];4,Oxidation[M]', 3)]
+ion_types = ['b','y']
+prediction = get_prediction(input_peptides) # no fine-tuning
+ion_indices, used_ion_types = prediction.GetIonTypeIndices(ion_types)
+print(used_ion_types) 
+# output: ['b+','b++','y+','y++']
+print(prediction.GetIntensitiesByIndices(*input_peptides[0], ion_indices))
+# output: 
+[
+[ 0.0000000e+00  0.0000000e+00  0.0000000e+00  0.0000000e+00]
+[ 3.5514534e-01  3.9369406e-12  5.2654832e-03  0.0000000e+00]
+[ 4.4627541e-01  1.0988828e-09  2.0606143e-02  0.0000000e+00]
+[ 1.2166708e-02 -0.0000000e+00  1.4021127e-01  0.0000000e+00]
+[ 2.1781624e-08 -0.0000000e+00  2.6448551e-01  8.2786764e-09]
+[ 0.0000000e+00 -0.0000000e+00  9.9956471e-01  1.1667855e-06]
+]
+```
+
+Fine-tuning using prepared psm file:
+```
+prediction = get_prediction(input_peptides, tune_psm=r"e:\DIAData\PECAN\tune.psm.txt", raw=r"e:\DIAData\PECAN\20141010_DIA_20x5mz_700to800.raw")
+```
+
+Or fine-tuning using pFind3's pFind.spectra or pFind-Filtered.spectra:
+```
+prediction = get_prediction(input_peptides, tune_psm=r"e:\DIAData\PECAN\pFind.spectra", raw=r"e:\DIAData\PECAN\20141010_DIA_20x5mz_700to800.raw")
+```
+
+Or fine-tuning using MaxQuant's evidence.txt:
+```
+prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
+```
+
+
+## Run them seperately:
+
 ## Preparing fine-tuning data using psmLabel
 ***psmLabel now can directly access raw files by using Thermo RawFileReader.***
 
@@ -42,9 +109,10 @@ num_new_aa = 0
 Example of input file psm_sample.txt:
 ```
 raw_name	scan	peptide	modinfo	charge
-raw_sample1	7932	TCEATHKTSTSPIVKSF	2,Carbamidomethyl[C];	2
+raw_sample1	7932	TCEATHKTSTSPIVKSF	2,Carbamidomethyl[C]	2
 raw_sample1	13419	KIDGMERQDGVLNSW		3
-raw_sample2	10709	TCEATHKTSTSPIVKSF	16,Phospho[S];	2
+raw_sample1	13440	KIDGMERCDGVLNSW	5,Oxidation[M];8,Carbamidomethyl[C]	2
+raw_sample2	10709	TCEATHKTSTSPIVKSF	16,Phospho[S]	2
 ```
 ***Check the names of modifications in pDeep/config/modification.py.***
 

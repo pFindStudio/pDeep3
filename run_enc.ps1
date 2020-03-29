@@ -70,7 +70,7 @@ function run_thr()
     }
     if ($elib.Length -ne 0)
     {
-        $saved_elib = -join($mzml,'thesaurus.txt.Phosphorylation.thesaurus.elib')
+        $saved_elib = -join($mzml,'.thesaurus.txt.Phosphorylation.thesaurus.elib')
         Move-Item -Path $saved_elib -Destination $elib -Force
     }
 }

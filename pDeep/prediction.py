@@ -15,32 +15,43 @@ class pDeepPrediction:
             self.peptide_RT_dict = {}
             
     def GetIonTypeIndices(self, ion_types):
-        indices = []
+        ion_indices = []
+        used_ion_types = []
         for ion_type in ion_types:
             for ion_charge in range(1,self.config.max_ion_charge+1):
                 idx = self.config.GetIonIndexByIonType(ion_type, ion_charge)
-                if idx: indices.append(idx)
-        return indices
+                if idx is not None: 
+                    ion_indices.append(idx)
+                    used_ion_types.append('%s%s'%(ion_type.format(''), '+'*ion_charge))
+        return ion_indices, used_ion_types
         
     def GetIntensitiesByIndices(self, pepinfo, indices):
-        return self.GetIntensities(pepinfo)[:indices]
+        intens = self.GetIntensities(pepinfo)
+        if intens is None: return None
+        else: return intens[:,indices]
         
     def GetIntensitiesByIndices(self, sequence, modification, charge, indices):
-        return self.GetIntensities(sequence, modification, charge)[:indices]
+        intens = self.GetIntensities(sequence, modification, charge)
+        if intens is None: return None
+        else: return intens[:,indices]
             
     def GetIntensitiesByIonTypes(self, pepinfo, ion_types):
         '''
         @param pepinfo. "sequence|modification|precursor_charge".
         @param ion_types. ion_types can be a list containing "b","y","b-ModLoss","y-ModLoss".
         '''
-        return self.IntensitiesByIonType(self.GetIntensities(pepinfo), ion_types)
+        intens = self.GetIntensities(pepinfo)
+        if intens is None: return None
+        else: return self.IntensitiesByIonType(intens, ion_types)
             
     def GetIntensitiesByIonTypes(self, sequence, modification, precursor_charge, ion_types):
         '''
         @param pepinfo. "sequence|modification|precursor_charge".
         @param ion_types. ion_types can be a list containing "b","y","b-ModLoss","y-ModLoss".
         '''
-        return self.IntensitiesByIonType(self.GetIntensities(sequence, modification, precursor_charge), ion_types)
+        intens = self.GetIntensities(sequence, modification, precursor_charge)
+        if intens is None: return None
+        else: return self.IntensitiesByIonType(intens, ion_types)
         
     def IntensitiesByIonType(self, intensities, ion_types):
         '''
@@ -49,7 +60,7 @@ class pDeepPrediction:
         
         @return a predicted n-D intensity np.ndarray for the given n ion_types. Note that the order of the intensities is from N-term to C-term. For example, for 2+ b ions, the intensities are [b1++, b2++, b3++, ..., y(n-1)++]; for 2+ y ions, the intensities are [y(n-1)++, y(n-2)++, ..., y2++, y1++]. If ion_type or ion_charge is not in the given list, return np.zeros.
         '''
-        self.GetIonTypeIndices(ion_types)
+        indices, _ = self.GetIonTypeIndices(ion_types)
         if indices: return intensities[:,indices]
         else: return None
     
