@@ -177,6 +177,7 @@ class Seq2Tensor:
             inst_feature = self.instrument_feature['unknown']
 
         buckets = {}
+        peptide_list = set(peptide_list)
 
         for peptide, modinfo, pre_charge in peptide_list:
             pre_charge = int(pre_charge)

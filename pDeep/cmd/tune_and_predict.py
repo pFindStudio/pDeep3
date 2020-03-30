@@ -207,8 +207,8 @@ def get_prediction(input_peptides, tune_psm = None, raw = None, n_psm_to_tune = 
 if __name__ == "__main__":
     input_peptides = [('ACDMNLK', '2,Carbamidomethyl[C];4,Oxidation[M]', 3)]
     ion_types = ['b','y']
-    prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt.psm.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
-    # prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
+    # prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt.psm.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
+    prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
     ion_indices, used_ion_types = prediction.GetIonTypeIndices(ion_types)
     print(used_ion_types)
     print(prediction.GetIntensitiesByIndices(*input_peptides[0], ion_indices))

@@ -59,16 +59,18 @@ def load_files_as_buckets(filenames, config, nce, instrument='QE', max_n_samples
     return load_plabel_as_buckets(filenames, config, nce, instrument, max_n_samples)
 
 
-# format 'peptide	modification	charge'
+# format 'peptide	modinfo	charge'
 def load_peptide_file_as_buckets(filename, config, nce, instrument='QE'):
     peptide_list = []
     with open(filename) as f:
-        head = f.readline()
+        head = f.readline().strip().split("\t")
+        headidx = dict(zip([name.lower() for name in head], range(len(head))))
         lines = f.readlines()
     for line in lines:
         line = line.strip()
-        if len(line) == 0: continue
-        peptide_list.append(line.split("\t"))
+        if not line: continue
+        items = line.split("\t")
+        peptide_list.append((items['peptide'], items['modinfo'], items['charge']))
     return load_peptides_as_buckets(peptide_list, config, nce, instrument)
 
 

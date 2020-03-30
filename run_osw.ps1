@@ -4,15 +4,16 @@ param (
     [switch]$use_window = $false,
     [switch]$tune = $false,
     [switch]$ipf = $false,
+    [switch]$no_cache = $false,
+    [switch]$subsample = $false,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
     [string]$lib = "e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.pqp",
     [string]$irt = "e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
 )
 
-If ($ENV:OS)
+If ($ENV:OS -and -not $no_cache)
 {
-    # Set-Location -Path "e:/DIATools/openswath/OpenMS-2.4.0-nightly-2019-08-09/bin/"
     $cache='cache'
     $temp="E:/temp" #if cache=cache
 }
@@ -90,7 +91,7 @@ function run_one_window($raw, $out)
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
 }
 
-function run_pyprophet($output_dir, $subsample=0)
+function run_pyprophet($output_dir, $sample_ratio=0)
 {   
     Write-Host "========== Run PyProphet =========="
     Set-Location -Path $output_dir
@@ -104,17 +105,17 @@ function run_pyprophet($output_dir, $subsample=0)
         Copy-Item -Path $run $bak
     }
     
-    if (($subsample -eq 0) -or ($subsample -eq 1))
+    if (($sample_ratio -eq 0) -or ($sample_ratio -eq 1))
     {
         pyprophet merge $tmpl --out=score.model $osw_files
     }
     else
     {
         Write-Host "========== Sub-sampling =========="
-        Write-Host "Sub-sample ratio =", $subsample
+        Write-Host "Sub-sample ratio =", $sample_ratio
         Foreach ($run in $osw_files)
         {
-            pyprophet subsample --in=$run --out=${run}.sub --subsample_ratio=$subsample
+            pyprophet subsample --in=$run --out=${run}.sub --subsample_ratio=$sample_ratio
             $sub_files += -join($run, '.sub')
         }
         pyprophet merge $tmpl --out=score.model $sub_files
@@ -255,13 +256,14 @@ else
             $i++
         }
         # $temp=Join-Path -Path $temp -ChildPath *
-        Remove-Item -Path ${temp}/* -Recurse
+        if (-not $no_cache) { Remove-Item -Path ${temp}/*.* }
     }
 
-    if ($use_window) { $subsample=1/(@($raw_files).Length)/2 }
-    else { $subsample=1/(@($raw_files).Length) }
+    if ($use_window -and $subsample) { $sample_ratio=1/(@($raw_files).Length)/2 }
+    elseif ($subsample) { $sample_ratio=1/(@($raw_files).Length) }
+    else { $sample_ratio = 1 }
     if ($ipf) {run_pyprophet_ipf $output_dir}
-    else {run_pyprophet $output_dir $subsample}
+    else {run_pyprophet $output_dir $sample_ratio}
 }
 
 

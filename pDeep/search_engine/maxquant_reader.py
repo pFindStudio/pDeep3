@@ -30,19 +30,20 @@ class MaxQuantEvidenceReader(ReaderBase):
     def GetAllPeptides(self):
         self.peptide_dict = {}
         head = self._file.readline().strip().split("\t")
-        headidx = dict(zip(head, range(len(head))))
+        headidx = dict(zip([name.lower() for name in head], range(len(head))))
         
         peptide_list = []
         lines = self._file.readlines()
         for line in lines:
             items = line.strip().split("\t")
-            modseq = items[headidx['Modified sequence']]
+            modseq = items[headidx['modified sequence']]
             seq, mod = PeptideModSeq2pDeepFormat(modseq)
-            charge = int(items[headidx['Charge']])
-            RT = float(items[headidx['Retention time']])*60
-            scan = int(items[headidx['MS/MS scan number']])
-            raw = items[headidx['Raw file']]
-            protein = "/".join([pro for pro in items[headidx['Proteins']].split(";")])
+            if seq is None: continue
+            charge = int(items[headidx['charge']])
+            RT = float(items[headidx['retention time']])*60
+            scan = int(items[headidx['ms/ms scan number']])
+            raw = items[headidx['raw file']]
+            protein = "/".join([pro for pro in items[headidx['proteins']].split(";")])
             self.peptide_dict['%s|%s|%d'%(seq,mod,charge)] = (modseq, charge, RT, raw, scan, protein)
             peptide_list.append((seq, mod, charge))
         return peptide_list

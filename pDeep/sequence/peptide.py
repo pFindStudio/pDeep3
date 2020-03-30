@@ -15,7 +15,7 @@ def read_protein_list(fasta, protein_list):
     '''
     def check_in_protein_list(ac):
         for pro in protein_list:
-            if pro in ac: return True
+            if pro and pro in ac: return True
         return False
         
     ret = {}
@@ -40,7 +40,11 @@ def read_protein_list(fasta, protein_list):
                 if seq is not None:
                     seq += line.strip()
     return ret
-
+    
+def write_protein_dict(fasta, protein_dict):
+    with open(fasta, "w") as f:
+        for pro in protein_dict.values():
+            f.write(">{} {}\n{}\n".format(pro.AC, pro.DE, pro.seq))
 
 def read_all_proteins(fasta):
     ret = {}

@@ -13,7 +13,7 @@ __mod_dict = {
     "Phospho[S]": "[+79.966331]",
     "Phospho[T]": "[+79.966331]",
     "Phospho[Y]": "[+79.966331]",
-    "Acetyl[ProteinN-term]": "[42.010565]",
+    "Acetyl[ProteinN-term]": "[+42.010565]",
     "Label_13C(6)15N(2)[K]": "[+8.014199]",
     "Label_13C(6)15N(4)[R]": "[+10.008269]",
 }
@@ -39,7 +39,7 @@ class DLIB(LibraryBase):
         self.dlib_file = None
             
     def CreateTables(self):
-        self.cursor.execute("CREATE TABLE peptidetoprotein( PeptideSeq string not null, IsDecoy int not null, ProteinAccession string not null, PRIMARY KEY (PeptideSeq) )")
+        self.cursor.execute("CREATE TABLE peptidetoprotein( PeptideSeq string not null, IsDecoy int not null, ProteinAccession string not null)") #, PRIMARY KEY (PeptideSeq) )")
         self.cursor.execute("CREATE TABLE entries ( PrecursorMz double not null, PrecursorCharge int not null, PeptideModSeq string not null, PeptideSeq string not null, Copies int not null, RTInSeconds double not null, Score double not null, MassEncodedLength int not null, MassArray blob not null, IntensityEncodedLength int not null, IntensityArray blob not null, CorrelationEncodedLength int, CorrelationArray blob, RTInSecondsStart double, RTInSecondsStop double, MedianChromatogramEncodedLength int, MedianChromatogramArray blob, SourceFile string not null )")
         self.cursor.execute("CREATE TABLE metadata ( Key string not null, Value string not null, PRIMARY KEY (Key) )")
         self.cursor.execute("CREATE TABLE fragmentquants ( PrecursorCharge int not null, PeptideModSeq string not null, SourceFile string not null, IonType string not null, FragmentMass double not null, Correlation double not null, DeltaMassPPM double not null, Intensity double not null, FOREIGN KEY (PrecursorCharge, PeptideModSeq, SourceFile) REFERENCES entries (PrecursorCharge, PeptideModSeq, SourceFile) )")
@@ -77,8 +77,7 @@ class DLIB(LibraryBase):
         
         update_list = []
         insert_list = []
-        insert_pep2pro_list = []
-        insert_pep2pro_set = set()
+        insert_pep2pro_list = set()
         update_sql = "UPDATE entries SET MassEncodedLength = ?, MassArray = ?, IntensityEncodedLength = ?, IntensityArray = ?, RTInSeconds = ? WHERE PeptideModSeq = ? AND PrecursorCharge = ?"
         
         insert_sql = "INSERT INTO entries(PeptideModSeq, PeptideSeq, PrecursorMz, PrecursorCharge, RTInSeconds, MassEncodedLength, MassArray, IntensityEncodedLength, IntensityArray, SourceFile, Copies, Score) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 'pDeep', 1, 0.001)"
@@ -93,11 +92,10 @@ class DLIB(LibraryBase):
             cursor = self.cursor.execute("SELECT isDecoy FROM peptidetoprotein WHERE PeptideSeq = '%s'"%PeptideSeq)
             if not cursor.fetchone():
                 for ProteinAccession in ProteinACs.split("/"):
-                    insert_pep2pro_list.append((PeptideSeq, ProteinAccession))
+                    insert_pep2pro_list.add((PeptideSeq, ProteinAccession))
             return insert_pep2pro_list
         
         for pepinfo, intensities in _prediction.peptide_intensity_dict.items():
-            count += 1
             seq, mod, charge = pepinfo.split("|")
             charge = int(charge)
             
@@ -108,12 +106,11 @@ class DLIB(LibraryBase):
             # if pepinfo in self.peptide_dict:
                 # item = self.peptide_dict[pepinfo]
                 # update_list.append((*_encode(masses, intens), item[2], item[0], item[1])) #item[2] = RT in dlib
-            if True:
-                if seq not in insert_pep2pro_set: 
-                    insert_pep2pro_set.add(seq)
-                    insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
-                modseq = pDeepFormat2PeptideModSeq(seq, mod)
-                if modseq: insert_list.append((modseq, seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
+            
+            insert_pep2pro_list = _check_protein(seq, peptide_to_protein_dict[seq] if seq in peptide_to_protein_dict else "", insert_pep2pro_list)
+            modseq = pDeepFormat2PeptideModSeq(seq, mod)
+            if modseq: insert_list.append((modseq, seq, pepmass, charge, RT if RT is not None else 0, *_encode(masses, intens)))
+            count += 1
             if count%10000 == 0:
                 print("[SQL UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
                 if count%1000000 == 0:
@@ -122,7 +119,7 @@ class DLIB(LibraryBase):
                     self.cursor.executemany(insert_pep2pro_sql, insert_pep2pro_list)
                     # update_list = []
                     insert_list = []
-                    insert_pep2pro_list = []
+                    insert_pep2pro_list = set()
         # self.cursor.executemany(update_sql, update_list)
         self.cursor.executemany(insert_sql, insert_list)
         self.cursor.executemany(insert_pep2pro_sql, insert_pep2pro_list)
