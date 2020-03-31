@@ -1,8 +1,8 @@
 param (
-    [string]$mzml = $(throw "-mzml is required."),
+    [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$fasta = $(throw "-fasta is required."),
+    [string]$output_dir = $(throw "-output_dir is required."),
     [switch]$tune = $false,
-    [string]$output = "",
     [string]$lib = "e:\DIATools\encyclopedia\library\phl_pdeep_QE27.dlib",
     [switch]$overlap = $false,
     [switch]$phosite = $false,
@@ -15,9 +15,9 @@ $thr = 'thesaurus-0.9.4-executable.jar'
 $mod = 'Phosphorylation'
 
 $dlib = $lib
-$elib = $output
 
 Set-Location -Path $enc_path
+New-Item -Path $output_dir -ItemType Directory
 
 
 # function run_enc_overlap()
@@ -32,7 +32,7 @@ Set-Location -Path $enc_path
     # }
 # }
 
-function run_enc()
+function run_enc($mzml, $elib)
 {
     # $res = -join($mzml,'.encyclopedia.txt')
     Write-Host delete $(-join($mzml,'.encyclopedia.txt'))
@@ -53,7 +53,7 @@ function run_enc()
     # $newelib = -join('raw=', $raw_id, '.', (Split-Path $dlib -leaf).split('.')[0], '.elib')
 }
 
-function run_thr()
+function run_thr($mzml, $elib)
 {
     # $res_files = Get-ChildItem -Path . -Recurse -Include *thesaurus*
     # $res = -join($mzml,'.thesaurus.txt')
@@ -78,9 +78,25 @@ function run_thr()
 Write-Host "============== Start =============="
 if ($phosite)
 {
-    run_thr
+    $raw_files = Get-ChildItem -Path $raw_dir -Recurse -Include *.mzML
+    Write-Host $raw_files
+    $i = 1
+    Foreach ($mzml in $raw_files)
+    {
+        $elib = Join-Path -Path $output_dir -ChildPath raw${i}.elib
+        run_thr $mzml $elib
+        $i++
+    }
 }
 else
 {
-    run_enc
+    $raw_files = Get-ChildItem -Path $raw_dir -Recurse -Include *.mzML
+    Write-Host $raw_files
+    $i = 1
+    Foreach ($mzml in $raw_files)
+    {
+        $elib = Join-Path -Path $output_dir -ChildPath raw${i}.elib
+        run_enc $mzml $elib
+        $i++
+    }
 }

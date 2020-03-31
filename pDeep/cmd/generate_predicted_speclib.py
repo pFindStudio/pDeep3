@@ -72,16 +72,16 @@ if __name__ == "__main__":
     parser.add_argument('--max_mz', type=float, default=2000, required=False, help='Max mz of fragments in the library')
     parser.add_argument('--ion_type', type=str, default="b,y,b-ModLoss,y-ModLoss", required=False, help='Ion types in the library')
     
-    parser.add_argument('--min_precursor_charge', type=int, default=2, required=False, help='Min precursor charge of fragments in the library')
-    parser.add_argument('--max_precursor_charge', type=int, default=4, required=False, help='Max precursor charge of fragments in the library')
-    parser.add_argument('--min_precursor_mz', type=float, default=400, required=False, help='Min precursor mz of fragments in the library')
-    parser.add_argument('--max_precursor_mz', type=float, default=1200, required=False, help='Max precursor mz of fragments in the library')
+    parser.add_argument('--min_precursor_charge', type=int, default=2, required=False, help='Min precursor charge of peptides in the library')
+    parser.add_argument('--max_precursor_charge', type=int, default=4, required=False, help='Max precursor charge of peptides in the library')
+    parser.add_argument('--min_precursor_mz', type=float, default=400, required=False, help='Min precursor mz of peptides in the library')
+    parser.add_argument('--max_precursor_mz', type=float, default=1200, required=False, help='Max precursor mz of peptides in the library')
     
     
     parser.add_argument('--instrument', type=str, default="QE", required=False, help='Instrument type for prediction.')
     parser.add_argument('--ce', type=float, default=27, required=False, help='Collision energy for prediction.')
     
-    parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse','no_decoy'], default='reverse', help='Decoy method when generating OSW PQP file.')
+    parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse','no_decoy'], default='reverse', help='Decoy method when generating OpenSWATH PQP file.')
     
     parser.add_argument('--tune_psm', type=str, required=False, help='.osw (OpenSWATH), .elib (EncyclopDIA), evidence.txt (MaxQuant), .spectra (pFind) or .txt (tab seperated file with title "raw_name, scan, peptide, modinfo, charge, RTInSeconds" file for tuning pDeep and pDeepRT.')
     parser.add_argument('--n_tune_psm', type=int, default=1000, required=False, help='number of PSMs for tuning.')

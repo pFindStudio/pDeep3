@@ -4,7 +4,8 @@ param (
     [switch]$use_window = $false,
     [switch]$tune = $false,
     [switch]$ipf = $false,
-    [switch]$no_cache = $false,
+    [switch]$cache_disk = $false,
+    [string]$temp = 'E:/temp'
     [switch]$subsample = $false,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
@@ -12,41 +13,18 @@ param (
     [string]$irt = "e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
 )
 
-If ($ENV:OS -and -not $no_cache)
+If ($cache_disk)
 {
     $cache='cache'
-    $temp="E:/temp" #if cache=cache
 }
 else
 {
     $cache='normal' #normal, cache, cacheWorkingInMemory, workingInMemory
 }
 
-# $raw_dir="e:\DIAData\PECAN\5mz"
-# $output_dir="e:\DIAData\PECAN\5mz\test_spikein"
-# $global:lib_TDA="e:/DIATools/openswath/library/pDeep/test.pqp"
-# $global:irt="e:/DIATools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
-# $temp="E:/temp" #if cache=cache
-
-$global:lib_TDA=$lib
-$global:irt=$irt
 $global:win="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow.txt"
 $global:win_left="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-left.txt"
 $global:win_right="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-right.txt"
-
-# $output_dir="e:\DIAData\PECAN\plasma\peptide-list-test-reverse"
-# $global:lib_TDA="e:/DIATools/openswath/library/pDeep/peptide_list_QE27_reverse.pqp"
-# $global:irt="e:/DIATools/openswath/library/pDeep/blood_RT_proteins_fasta_QE27.tsv"
-
-###################################### Linux ################################
-# $raw_dir="/home/pfind/DIA/Data/Specter/6.75ng"
-# $output_dir="/home/pfind/DIA/Data/Specter/6.75ng/phl-spikein"
-# $global:lib_TDA="/home/pfind/DIA/Data/Specter/phl_spikein.pqp"
-# $global:irt="/home/pfind/DIA/Tools/openswath/library/pDeep/cell_RT_proteins_fasta_QE27.tsv"
-# $global:win="/home/pfind/DIA/Data/Specter/DIAwindow.txt"
-# $global:win_left="/home/pfind/DIA/Data/Specter/DIAwindow-left.txt"
-# $global:win_right="/home/pfind/DIA/Data/Specter/DIAwindow-right.txt"
-
 
 
 
@@ -57,27 +35,21 @@ $ms2_tol=20
 $batch=5000
 $thread=6
 $overlapDIA='false'
-# $use_window=1 # or 0
 
-# function Compare-File-Date($f1, $f2)
-# {
-    # return ([datetime](Get-ItemProperty -Path $f1 -Name LastWriteTime).lastwritetime).ToOADate() -lt ([datetime](Get-ItemProperty -Path $f2 -Name LastWriteTime).lastwritetime).ToOADate()
-# }
-
-# if (!(Test-Path $global:lib_TDA -PathType leaf))
+# if (!(Test-Path $lib -PathType leaf))
 # {
     # Write-Host "========== Converting to PQP =========="
     # $pqp=-join($lib.substring(0, $lib.Length-3), 'pqp')
     # TargetedFileConverter -in $lib -out $pqp -threads 4
     # Write-Host "========== Generating decoy =========="
-    # OpenSWATHDecoyGenerator -in $pqp -out $global:lib_TDA -method reverse -threads 4
+    # OpenSWATHDecoyGenerator -in $pqp -out $lib -method reverse -threads 4
 # }
 
 function run_one($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force
-    # OpenSwathWorkflow '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces -enable_uis_scoring
+    OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force
+    # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces -enable_uis_scoring
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
 }
@@ -85,8 +57,8 @@ function run_one($raw, $out)
 function run_one_window($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $global:lib_TDA -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $global:irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces -enable_uis_scoring
-    # OpenSwathWorkflow '-in' $raw -tr $global:lib_TDA -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $global:irt -out_osw $out -threads 4 -use_ms1_traces
+    OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces -enable_uis_scoring
+    # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
 }
@@ -95,7 +67,7 @@ function run_pyprophet($output_dir, $sample_ratio=0)
 {   
     Write-Host "========== Run PyProphet =========="
     Set-Location -Path $output_dir
-    $tmpl=-join("--template=", $global:lib_TDA)
+    $tmpl=-join("--template=", $lib)
     $osw_files = Get-ChildItem -Path . -Recurse -Include raw*.osw
     $sub_files = @()
     
@@ -161,7 +133,7 @@ function run_pyprophet_ipf($output_dir)
     {
         Copy-Item -Path $run ${run}.bak
     }
-    pyprophet merge --template=$global:lib_TDA --out=score.model $osw_files
+    pyprophet merge --template=$lib --out=score.model $osw_files
     
     Write-Host "========== Scoring =========="
     pyprophet score --in=score.model --level=ms2 
@@ -256,7 +228,7 @@ else
             $i++
         }
         # $temp=Join-Path -Path $temp -ChildPath *
-        if (-not $no_cache) { Remove-Item -Path ${temp}/*.* }
+        if ($cache -eq 'cache') { Remove-Item -Path ${temp}/*.* }
     }
 
     if ($use_window -and $subsample) { $sample_ratio=1/(@($raw_files).Length)/2 }
