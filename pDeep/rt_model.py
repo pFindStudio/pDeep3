@@ -7,8 +7,7 @@ from .bucket import *
 from . import tf_ops
 
 np.random.seed(1337)  # for reproducibility
-# tf.compat.v1.set_random_seed(1337)
-tf.set_random_seed(1337)
+tf.compat.v1.set_random_seed(1337)
 
 # pdeep_lstm_cell = tf.keras.layers.LSTMCell
 pdeep_lstm_cell = tf.nn.rnn_cell.LSTMCell
@@ -39,12 +38,10 @@ class pDeepRTModel:
 
     def init_session(self):
         if self.sess is None:
-            # config = tf.compat.v1.ConfigProto()
-            config = tf.ConfigProto()
+            config = tf.compat.v1.ConfigProto()
             config.gpu_options.allow_growth = True
             config.intra_op_parallelism_threads = self.num_threads
-            # self.sess = tf.compat.v1.Session(config=config)
-            self.sess = tf.Session(config=config, graph=self.graph)
+            self.sess = tf.compat.v1.Session(config=config, graph=self.graph)
 
     def close(self):
         if self.sess is not None:
@@ -52,12 +49,10 @@ class pDeepRTModel:
             self.sess = None
 
     def GetVariableList(self):
-        # self.var_list = [v for v in tf.compat.v1.global_variables() if not self.optim_name in v.name and not "_power" in v.name]
-        self.var_list = [v for v in tf.global_variables() if not self.optim_name in v.name and not "_power" in v.name]
+        self.var_list = [v for v in tf.compat.v1.global_variables() if not self.optim_name in v.name and not "_power" in v.name]
         return self.var_list
 
     def GetTensorList(self):
-        # self.ten_list = [n for n in tf.compat.v1.get_default_graph().as_graph_def().node]
         self.ten_list = [n for n in self.graph.as_graph_def().node]
         return self.ten_list
 
@@ -70,23 +65,20 @@ class pDeepRTModel:
             for ten in self.ten_list: f.write(ten.name + "\n")
 
     def GetTensorByName(self, name):
-        # return tf.compat.v1.get_default_graph().get_tensor_by_name(name)
         return self.graph.get_tensor_by_name(name)
 
     def GetVariableByName(self, name):
-        # l = [v for v in tf.compat.v1.global_variables() if v.name == name]
-        l = [v for v in tf.global_variables() if v.name == name]
+        l = [v for v in tf.compat.v1.global_variables() if v.name == name]
         if len(l) == 0:
             return None
         else:
             return l[0]
 
     def GetVariablesBySubstr(self, substr):
-        # return [v for v in tf.compat.v1.global_variables() if substr in v.name]
-        return [v for v in tf.global_variables() if substr in v.name]
+        return [v for v in tf.compat.v1.global_variables() if substr in v.name]
 
     def GetVariableListByScope(self, scope):
-        return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope)
+        return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=scope)
 
     def BuildModel(self, aa_size, mod_size, output_size, nlayers=1):
         with self.graph.as_default():
@@ -96,18 +88,18 @@ class pDeepRTModel:
                 return tf_ops.get_pos_embedding(pos_code, self._time_step[0]+1, tf.shape(x)[0])
 
             def _input():
-                self._aa_x = tf.placeholder("float", [None, None, aa_size], name="input_aa_x")
-                self._mod_x = tf.placeholder("float", [None, None, mod_size], name="input_mod_x")
-                self._y = tf.placeholder("float", [None, ], name="input_y")
-                self._time_step = tf.placeholder(tf.int32, [None, ], name="input_time_step")
-                self._dropout = tf.placeholder_with_default(0.0, shape=(), name="dropout")
+                self._aa_x = tf.compat.v1.placeholder("float", [None, None, aa_size], name="input_aa_x")
+                self._mod_x = tf.compat.v1.placeholder("float", [None, None, mod_size], name="input_mod_x")
+                self._y = tf.compat.v1.placeholder("float", [None, ], name="input_y")
+                self._time_step = tf.compat.v1.placeholder(tf.int32, [None, ], name="input_time_step")
+                self._dropout = tf.compat.v1.placeholder_with_default(0.0, shape=(), name="dropout")
                 
             def _attention(x):
                 return tf_ops.multihead_self_attention(x, self.layer_size)
                 
             def _conv2d(x, filter_h, filter_w, in_channels, out_channels):
                 #x: batch, in_channels, time, input_shape
-                filter = tf.Variable(tf.random_uniform([filter_h, filter_w, in_channels, out_channels]), trainable=True, name="CNN2D_filter")
+                filter = tf.Variable(tf.compat.v1.random_uniform([filter_h, filter_w, in_channels, out_channels]), trainable=True, name="CNN2D_filter")
                 x = tf.nn.conv2d(x, filter, strides=[1,1,1,1], padding = "SAME")
                 return x #x: batch, out_channels, filter_h, filter_w
 
@@ -126,13 +118,13 @@ class pDeepRTModel:
                 return x
 
             def _output(x):
-                with tf.variable_scope("output_nn"):
+                with tf.compat.v1.variable_scope("output_nn"):
                     x = tf_ops.attention_through_time(x, self.layer_size*2)
                     def _reduce_time_step(x):
                         x1 = tf.reduce_max(x, axis=1)[..., tf.newaxis]
                         x2 = tf.reduce_min(x, axis=1)[..., tf.newaxis]
                         x3 = tf.reduce_mean(x, axis=1)[..., tf.newaxis]
-                        w = tf.Variable(tf.random_uniform([3]), trainable=True, name="reduce_weight")
+                        w = tf.Variable(tf.compat.v1.random_uniform([3]), trainable=True, name="reduce_weight")
                         w = tf.tile(w[tf.newaxis, ..., tf.newaxis], [tf.shape(x)[0], 1, 1])
                         x = tf.matmul(tf.concat((x1, x2, x3), axis=2), w)
                         return tf.layers.Flatten()(x) #batch, self.layer_size*2
@@ -154,7 +146,7 @@ class pDeepRTModel:
                     # x = tf.sqrt(tf.reduce_sum(tf.square(x), axis=-1))
                     x = tf.reduce_sum(x, axis=-1)
                     
-                with tf.name_scope("output_scope"):
+                with tf.compat.v1.name_scope("output_scope"):
                     self._prediction = tf.identity(x, name="output")
                     
             def _prepare_input(aa_x, mod_x):
@@ -192,7 +184,7 @@ class pDeepRTModel:
 
             self.restart_session()
             self.Optimizer()
-            init_op = tf.global_variables_initializer()
+            init_op = tf.compat.v1.global_variables_initializer()
             self.sess.run(init_op)
 
     def Optimizer(self):
@@ -200,7 +192,7 @@ class pDeepRTModel:
             self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._prediction - self._y)))
             # self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
 
-            self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name=self.optim_name)
+            self._optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate, name=self.optim_name)
 
             self._mininize = self._optimizer.minimize(self._loss)
 
@@ -210,23 +202,23 @@ class pDeepRTModel:
             self.LoadModel(model_file)
 
             transfer_vars = []
-            transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "output_nn")
-            transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_0")
-            # transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.instrument_ce_scope)
+            transfer_vars += tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, "output_nn")
+            transfer_vars += tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_0")
+            # transfer_vars += tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, self.instrument_ce_scope)
 
             # print(transfer_vars)
 
             self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
 
-            self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
+            self._optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
 
             self._mininize = self._optimizer.minimize(self._loss, var_list=transfer_vars)
 
             # self.merged_summary_op = tf.summary.merge_all()
 
             adam_vars = self.GetVariablesBySubstr("_power") + self.GetVariablesBySubstr(self.optim_name)
-            init_op = tf.variables_initializer(var_list=adam_vars, name="transfer_init")
-            # init_op = tf.global_variables_initializer()
+            init_op = tf.compat.v1.variables_initializer(var_list=adam_vars, name="transfer_init")
+            # init_op = tf.compat.v1.global_variables_initializer()
             self.sess.run(init_op)
 
     def TrainModel(self, buckets, save_as=None):
@@ -310,7 +302,7 @@ class pDeepRTModel:
         dir = os.path.dirname(model_file)
         if not os.path.exists(dir): os.makedirs(dir)
         # print("enter tf.train.Saver")
-        saver = tf.train.Saver(var_list=self.var_list)
+        saver = tf.compat.v1.train.Saver(var_list=self.var_list)
         # print("enter saver.save")
         save_path = saver.save(self.sess, model_file)
         print("Model save as %s" % save_path)
@@ -325,7 +317,7 @@ class pDeepRTModel:
         self.restart_session()
         with self.graph.as_default():
         # saver = tf.compat.v1.train.import_meta_graph(model_file+".meta")
-            saver = tf.train.import_meta_graph(model_file + ".meta")
+            saver = tf.compat.v1.train.import_meta_graph(model_file + ".meta")
             saver.restore(self.sess, model_file)
             # graph = tf.compat.v1.get_default_graph()
             # graph = tf.get_default_graph()

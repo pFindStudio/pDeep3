@@ -7,7 +7,7 @@ import pDeep.rt_model as model
 from pDeep.bucket import merge_buckets, print_buckets, count_buckets
 from pDeep.load_data import load_RT_file_as_buckets
 
-out_model = 'tmp/model/RT_model.ckpt'
+out_model = 'tmp/model/rt_test.ckpt'
 epochs = 2
 n = 100
 
@@ -22,8 +22,7 @@ pdeep_rt.learning_rate = 0.001
 pdeep_rt.layer_size = 256
 pdeep_rt.batch_size = 1024
 pdeep_rt.dropout = 0.0
-pdeep_rt.BuildModel(aa_size=82, mod_size=mod_config.GetModFeatureSize() * 2, output_size=mod_config.GetTFOutputSize(),
-                 nlayers=1)
+pdeep_rt.BuildModel(aa_size=82, mod_size=mod_config.GetModFeatureSize() * 2, output_size=mod_config.GetTFOutputSize(), nlayers=1)
 
 pdeep_rt.epochs = epochs
 

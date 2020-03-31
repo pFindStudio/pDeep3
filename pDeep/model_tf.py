@@ -7,8 +7,7 @@ from .bucket import *
 from . import tf_ops
 
 np.random.seed(1337)  # for reproducibility
-# tf.compat.v1.set_random_seed(1337)
-tf.set_random_seed(1337)
+tf.compat.v1.set_random_seed(1337)
 
 # pdeep_lstm_cell = tf.keras.layers.LSTMCell
 pdeep_lstm_cell = tf.nn.rnn_cell.LSTMCell
@@ -35,15 +34,15 @@ class pDeepModel:
         print("BuildModel ... ")
 
         def _input():
-            self._aa_x = tf.placeholder("float", [None, None, aa_size], name="input_aa_x")
-            self._mod_x = tf.placeholder("float", [None, None, mod_size], name="input_mod_x")
-            self._y = tf.placeholder("float", [None, None, output_size], name="input_y")
-            self._time_step = tf.placeholder(tf.int32, [None, ], name="input_time_step")
-            self._charge = tf.placeholder("float", [None, ], name="input_charge")
-            self._nce = tf.placeholder("float", [None, ], name="input_nce")
-            self._instrument = tf.placeholder("float", [None, self.config.max_instrument_num], name="input_instrument")
-            self.rnn_kp = tf.placeholder_with_default(1.0, shape=(), name="rnn_keep_prob")
-            self.output_kp = tf.placeholder_with_default(1.0, shape=(), name="output_keep_prob")
+            self._aa_x = tf.compat.v1.placeholder("float", [None, None, aa_size], name="input_aa_x")
+            self._mod_x = tf.compat.v1.placeholder("float", [None, None, mod_size], name="input_mod_x")
+            self._y = tf.compat.v1.placeholder("float", [None, None, output_size], name="input_y")
+            self._time_step = tf.compat.v1.placeholder(tf.int32, [None, ], name="input_time_step")
+            self._charge = tf.compat.v1.placeholder("float", [None, ], name="input_charge")
+            self._nce = tf.compat.v1.placeholder("float", [None, ], name="input_nce")
+            self._instrument = tf.compat.v1.placeholder("float", [None, self.config.max_instrument_num], name="input_instrument")
+            self.rnn_kp = tf.compat.v1.placeholder_with_default(1.0, shape=(), name="rnn_keep_prob")
+            self.output_kp = tf.compat.v1.placeholder_with_default(1.0, shape=(), name="output_keep_prob")
 
         def ExpandTimeStep1D(x):
             return tf.tile(x[..., tf.newaxis, tf.newaxis], [1, self._time_step[0], 1])
@@ -52,8 +51,8 @@ class pDeepModel:
             return tf.tile(tf.expand_dims(x, 1), [1, self._time_step[0], 1])
 
         def LinearEmbed2D(x, in_size, out_size, scope, name):
-            with tf.variable_scope(scope):
-                w = tf.Variable(tf.random_normal([in_size, out_size]), trainable=True, name=name)
+            with tf.compat.v1.variable_scope(scope):
+                w = tf.Variable(tf.compat.v1.random_normal([in_size, out_size]), trainable=True, name=name)
                 outputs = tf.matmul(x, w)
             return outputs
 
@@ -67,12 +66,12 @@ class pDeepModel:
             def BiLSTM(x, id):
                 lstm_fw_cell = pdeep_lstm_cell(self.layer_size)
                 lstm_bw_cell = pdeep_lstm_cell(self.layer_size)
-                lstm_fw_cell = tf.contrib.rnn.DropoutWrapper(lstm_fw_cell, input_keep_prob=1,
-                                                             output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp,
-                                                             variational_recurrent=False, dtype=tf.float32)
-                lstm_bw_cell = tf.contrib.rnn.DropoutWrapper(lstm_bw_cell, input_keep_prob=1,
-                                                             output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp,
-                                                             variational_recurrent=False, dtype=tf.float32)
+                # lstm_fw_cell = tf.contrib.rnn.DropoutWrapper(lstm_fw_cell, input_keep_prob=1,
+                                                             # output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp,
+                                                             # variational_recurrent=False, dtype=tf.float32)
+                # lstm_bw_cell = tf.contrib.rnn.DropoutWrapper(lstm_bw_cell, input_keep_prob=1,
+                                                             # output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp,
+                                                             # variational_recurrent=False, dtype=tf.float32)
                 x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step,
                                                        time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
                 x = tf.concat(x, axis=2)
@@ -126,13 +125,13 @@ class pDeepModel:
 
         self.restart_session()
         self.Optimizer()
-        init_op = tf.global_variables_initializer()
+        init_op = tf.compat.v1.global_variables_initializer()
         self.sess.run(init_op)
 
     def Optimizer(self):
         self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
 
-        self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name=self.optim_name)
+        self._optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate, name=self.optim_name)
 
         self._mininize = self._optimizer.minimize(self._loss)
 
@@ -141,24 +140,24 @@ class pDeepModel:
         self.LoadModel(model_file)
 
         transfer_vars = []
-        transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "output_nn")
-        transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_0")
-        transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_1")
-        # transfer_vars += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.instrument_ce_scope)
+        transfer_vars += tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, "output_nn")
+        transfer_vars += tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_0")
+        transfer_vars += tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, "BiLSTM_1")
+        # transfer_vars += tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, self.instrument_ce_scope)
 
         # print(transfer_vars)
 
         self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
 
-        self._optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
+        self._optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
 
         self._mininize = self._optimizer.minimize(self._loss, var_list=transfer_vars)
 
-        # self.merged_summary_op = tf.summary.merge_all()
+        # self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
         adam_vars = self.GetVariablesBySubstr("_power") + self.GetVariablesBySubstr(self.optim_name)
-        init_op = tf.variables_initializer(var_list=adam_vars, name="transfer_init")
-        # init_op = tf.global_variables_initializer()
+        init_op = tf.compat.v1.variables_initializer(var_list=adam_vars, name="transfer_init")
+        # init_op = tf.compat.v1.global_variables_initializer()
         self.sess.run(init_op)
 
     def restart_session(self):
@@ -167,12 +166,10 @@ class pDeepModel:
 
     def init_session(self):
         if self.sess is None:
-            # config = tf.compat.v1.ConfigProto()
-            config = tf.ConfigProto()
+            config = tf.compat.v1.ConfigProto()
             config.gpu_options.allow_growth = True
             config.intra_op_parallelism_threads = self.num_threads
-            # self.sess = tf.compat.v1.Session(config=config)
-            self.sess = tf.Session(config=config)
+            self.sess = tf.compat.v1.Session(config=config)
 
     def close(self):
         if self.sess is not None:
@@ -181,12 +178,12 @@ class pDeepModel:
 
     def GetVariableList(self):
         # self.var_list = [v for v in tf.compat.v1.global_variables() if not self.optim_name in v.name and not "_power" in v.name]
-        self.var_list = [v for v in tf.global_variables() if not self.optim_name in v.name and not "_power" in v.name]
+        self.var_list = [v for v in tf.compat.v1.global_variables() if not self.optim_name in v.name and not "_power" in v.name]
         return self.var_list
 
     def GetTensorList(self):
         # self.ten_list = [n for n in tf.compat.v1.get_default_graph().as_graph_def().node]
-        self.ten_list = [n for n in tf.get_default_graph().as_graph_def().node]
+        self.ten_list = [n for n in tf.compat.v1.get_default_graph().as_graph_def().node]
         return self.ten_list
 
     def SaveVariableName(self, save_as):
@@ -198,23 +195,20 @@ class pDeepModel:
             for ten in self.ten_list: f.write(ten.name + "\n")
 
     def GetTensorByName(self, name):
-        # return tf.compat.v1.get_default_graph().get_tensor_by_name(name)
-        return tf.get_default_graph().get_tensor_by_name(name)
+        return tf.compat.v1.get_default_graph().get_tensor_by_name(name)
 
     def GetVariableByName(self, name):
-        # l = [v for v in tf.compat.v1.global_variables() if v.name == name]
-        l = [v for v in tf.global_variables() if v.name == name]
+        l = [v for v in tf.compat.v1.global_variables() if v.name == name]
         if len(l) == 0:
             return None
         else:
             return l[0]
 
     def GetVariablesBySubstr(self, substr):
-        # return [v for v in tf.compat.v1.global_variables() if substr in v.name]
-        return [v for v in tf.global_variables() if substr in v.name]
+        return [v for v in tf.compat.v1.global_variables() if substr in v.name]
 
     def GetVariableListByScope(self, scope):
-        return tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=scope)
+        return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=scope)
 
     def TrainModel(self, buckets, save_as=None):
         if self.sess is None:
@@ -308,7 +302,7 @@ class pDeepModel:
         dir = os.path.dirname(model_file)
         if not os.path.exists(dir): os.makedirs(dir)
         # print("enter tf.train.Saver")
-        saver = tf.train.Saver(var_list=self.var_list)
+        saver = tf.compat.v1.train.Saver(var_list=self.var_list)
         # print("enter saver.save")
         save_path = saver.save(self.sess, model_file)
         print("Model save as %s" % save_path)
@@ -321,11 +315,9 @@ class pDeepModel:
         # g = tf.Graph()
         # with g.as_default():
         self.restart_session()
-        # saver = tf.compat.v1.train.import_meta_graph(model_file+".meta")
-        saver = tf.train.import_meta_graph(model_file + ".meta")
+        saver = tf.compat.v1.train.import_meta_graph(model_file + ".meta")
         saver.restore(self.sess, model_file)
-        # graph = tf.compat.v1.get_default_graph()
-        graph = tf.get_default_graph()
+        graph = tf.compat.v1.get_default_graph()
         self.GetVariableList()
         self.GetTensorList()
         self._aa_x = graph.get_tensor_by_name("input_aa_x:0")
