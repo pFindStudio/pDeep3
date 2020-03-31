@@ -9,11 +9,6 @@ from . import tf_ops
 np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
 
-# pdeep_lstm_cell = tf.keras.layers.LSTMCell
-pdeep_lstm_cell = tf.nn.rnn_cell.LSTMCell
-
-
-# pdeep_lstm_cell = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell
 
 class pDeepModel:
     def __init__(self, conf):
@@ -64,20 +59,22 @@ class pDeepModel:
 
         def MultiLayerRNN(x, ch, ins_nce):
             def BiLSTM(x, id):
-                lstm_fw_cell = pdeep_lstm_cell(self.layer_size)
-                lstm_bw_cell = pdeep_lstm_cell(self.layer_size)
-                # lstm_fw_cell = tf.contrib.rnn.DropoutWrapper(lstm_fw_cell, input_keep_prob=1,
-                                                             # output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp,
-                                                             # variational_recurrent=False, dtype=tf.float32)
-                # lstm_bw_cell = tf.contrib.rnn.DropoutWrapper(lstm_bw_cell, input_keep_prob=1,
-                                                             # output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp,
-                                                             # variational_recurrent=False, dtype=tf.float32)
-                x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step,
-                                                       time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
-                x = tf.concat(x, axis=2)
-                # x = tf.nn.relu(x)
-                x = tf.nn.dropout(x, rate=1 - self.output_kp)
-                return x
+                def tf_v1(x, id):
+                    lstm_fw_cell = tf.nn.rnn_cell.LSTMCell(self.layer_size)
+                    lstm_bw_cell = tf.nn.rnn_cell.LSTMCell(self.layer_size)
+                    # lstm_fw_cell = tf.contrib.rnn.DropoutWrapper(lstm_fw_cell, input_keep_prob=1, output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp, variational_recurrent=False, dtype=tf.float32)
+                    # lstm_bw_cell = tf.contrib.rnn.DropoutWrapper(lstm_bw_cell, input_keep_prob=1, output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp, variational_recurrent=False, dtype=tf.float32)
+                    x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step, time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
+                    x = tf.concat(x, axis=2)
+                    x = tf.nn.dropout(x, rate=1 - self.output_kp)
+                    return x
+                def tf_v2(x, id):
+                    with tf.compat.v1.variable_scope("BiLSTM_%d"%id):
+                        rnn = tf.keras.layers.LSTM(self.layer_size, return_sequences=True)
+                        x = tf.keras.layers.Bidirectional(rnn)(x)
+                        x = tf.nn.dropout(x, rate=1 - self.output_kp)
+                        return x
+                return tf_v1(x, id)
 
             for id in range(nlayers):
                 x = BiLSTM(x, id)
@@ -88,18 +85,27 @@ class pDeepModel:
 
         def _output(x):
             def OutputRNN(x):
-                cell_fw = pdeep_lstm_cell(output_size)
-                outputs, _ = tf.nn.dynamic_rnn(cell_fw, x, sequence_length=self._time_step, time_major=False,
-                                               dtype=tf.float32, scope="output_nn")
-                return outputs
+                def tf_v1(x):
+                    cell_fw = tf.nn.rnn_cell.LSTMCell(output_size)
+                    outputs, _ = tf.nn.dynamic_rnn(cell_fw, x, sequence_length=self._time_step, time_major=False, dtype=tf.float32, scope="output_nn")
+                    return outputs
+                def tf_v2(x):
+                    with tf.compat.v1.variable_scope("output_nn"):
+                        outputs = tf.keras.layers.LSTM(output_size, return_sequences=True)(x)
+                        return outputs
+                return tf_v1(x)
 
-            def OutputBiRNN(x):
-                cell_fw = pdeep_lstm_cell(output_size)
-                cell_bw = pdeep_lstm_cell(output_size)
-                outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw, x, sequence_length=self._time_step,
-                                                             time_major=False, dtype=tf.float32,
-                                                             scope="output_nn")  # this scope may have to be tuned in transfer learning
-                outputs = tf.add(outputs[0], outputs[1])
+            # def OutputBiRNN(x):
+                # cell_fw = tf.nn.rnn_cell.LSTMCell(output_size)
+                # cell_bw = tf.nn.rnn_cell.LSTMCell(output_size)
+                # outputs, _ = tf.nn.bidirectional_dynamic_rnn(cell_fw, cell_bw, x, sequence_length=self._time_step,
+                                                             # time_major=False, dtype=tf.float32,
+                                                             # scope="output_nn")  # this scope may have to be tuned in transfer learning
+                
+                # with tf.compat.v1.variable_scope("output_nn"):
+                    # rnn = tf.keras.layers.LSTM(output_size, return_sequences=True)
+                    # outputs = tf.keras.layers.Bidirectional(rnn)(x)
+                # outputs = tf.add(outputs[0], outputs[1])
 
             outputs = OutputRNN(x)
             with tf.name_scope("output_scope"):
