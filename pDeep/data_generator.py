@@ -11,6 +11,7 @@ except:
 from .spectral_library.encyclopedia.dlib import DLIB
 from .spectral_library.openswath.tsv import OSW_TSV
 from .spectral_library.openswath.pqp import PQP,OSW
+from .spectral_library.msp import MSP
 from .search_engine.maxquant_reader import MaxQuantEvidenceReader as MQE
 from .search_engine.pfind_reader import pFindSpectraReader as pFind
     
@@ -28,6 +29,7 @@ def GetLibraryWriter(filename, pDeepParam):
 _register_library_writer('.dlib', DLIB)
 _register_library_writer('.pqp', PQP)
 _register_library_writer('.tsv', OSW_TSV)
+_register_library_writer('.msp', MSP)
     
 def GetRTInSecondsFromScanNum(rawFile, scan):
     return rawFile.RTInSecondsFromScanNum(scan)

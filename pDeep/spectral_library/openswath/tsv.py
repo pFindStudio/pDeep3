@@ -158,7 +158,6 @@ class OSW_TSV(LibraryBase):
         self._set(items, "transition_group_id", pep_id)
         self._set(items, "PeptideGroupLabel", pep_id)
         self._set(items, "RetentionTime", RT/60)
-        count = 0
         for mz, inten, charge, ion_type, site in zip(masses, intens, charges, types, sites):
             transition_count += 1
             self._set(items, "FragmentType", ion_type)

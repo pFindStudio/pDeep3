@@ -22,6 +22,6 @@ class pFindSpectraReader(ReaderBase):
             raw = items[headidx['File_Name']]
             raw = raw[:raw.find('.%d.%d.'%(scan, scan))]
             protein = items[headidx['Proteins']]
-            self.peptide_dict['%s|%s|%d'%(seq,mod,charge)] = (modseq, charge, RT, raw, scan, protein)
+            self.peptide_dict['%s|%s|%d'%(seq,mod,charge)] = (seq, charge, RT, raw, scan, protein)
             peptide_list.append((seq, mod, charge))
         return peptide_list
