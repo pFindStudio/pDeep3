@@ -23,7 +23,7 @@ class OSW(LibraryBase):
         start = time.perf_counter()
         self.peptide_dict = {}
         peptide_list = []
-        cursor = self.cursor.execute("SELECT pep.MODIFIED_SEQUENCE, pre.CHARGE, fea.EXP_RT FROM score_ms2 ms2 INNER JOIN feature fea ON ms2.FEATURE_ID=fea.ID INNER JOIN precursor pre ON pre.ID=fea.precursor_id INNER JOIN precursor_peptide_mapping prepep ON prepep.precursor_id=fea.precursor_id INNER JOIN peptide pep ON pep.ID=prepep.peptide_id where ms2.rank=1 and ms2.qvalue<0.01")
+        cursor = self.cursor.execute("SELECT pep.MODIFIED_SEQUENCE, pre.CHARGE, fea.EXP_RT FROM score_ms2 ms2 INNER JOIN feature fea ON ms2.FEATURE_ID=fea.ID INNER JOIN precursor pre ON pre.ID=fea.precursor_id INNER JOIN precursor_peptide_mapping prepep ON prepep.precursor_id=fea.precursor_id INNER JOIN peptide pep ON pep.ID=prepep.peptide_id where ms2.rank=1 and ms2.qvalue<0.01 and pre.DECOY=0")
         for row in cursor:
             seq, mod = PeptideModSeq2pDeepFormat(row[0])
             charge = int(row[1])

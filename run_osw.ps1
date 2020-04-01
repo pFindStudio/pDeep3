@@ -5,7 +5,7 @@ param (
     [switch]$tune = $false,
     [switch]$ipf = $false,
     [switch]$cache_disk = $false,
-    [string]$temp = 'E:/temp'
+    [string]$temp = 'E:/temp',
     [switch]$subsample = $false,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
@@ -48,7 +48,7 @@ $overlapDIA='false'
 function run_one($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force
+    OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force -use_ms1_traces -enable_uis_scoring
     # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces -enable_uis_scoring
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -67,7 +67,6 @@ function run_pyprophet($output_dir, $sample_ratio=0)
 {   
     Write-Host "========== Run PyProphet =========="
     Set-Location -Path $output_dir
-    $tmpl=-join("--template=", $lib)
     $osw_files = Get-ChildItem -Path . -Recurse -Include raw*.osw
     $sub_files = @()
     
@@ -79,7 +78,7 @@ function run_pyprophet($output_dir, $sample_ratio=0)
     
     if (($sample_ratio -eq 0) -or ($sample_ratio -eq 1))
     {
-        pyprophet merge $tmpl --out=score.model $osw_files
+        pyprophet merge --template=$lib --out=score.model $osw_files
     }
     else
     {
@@ -88,18 +87,17 @@ function run_pyprophet($output_dir, $sample_ratio=0)
         Foreach ($run in $osw_files)
         {
             pyprophet subsample --in=$run --out=${run}.sub --subsample_ratio=$sample_ratio
-            $sub_files += -join($run, '.sub')
+            $sub_files += ${run}.sub
         }
-        pyprophet merge $tmpl --out=score.model $sub_files
+        pyprophet merge --template=$lib --out=score.model $sub_files
         Write-Host $sub_files
     }
     
     Write-Host "========== Scoring =========="
-    pyprophet score --in=score.model --level=ms1 score --in=score.model --level=ms2
+    pyprophet score --in=score.model --level=ms2
     Foreach ($run in $osw_files)
     {
         pyprophet score --in=$run --apply_weights=score.model --level=ms2
-        pyprophet ipf --in=$run
     }
     
     Write-Host "========== Reducing =========="
@@ -131,39 +129,40 @@ function run_pyprophet_ipf($output_dir)
     
     Foreach ($run in $osw_files)
     {
-        Copy-Item -Path $run ${run}.bak
+        $bak=-join($run,'.bak')
+        Copy-Item -Path $run $bak
     }
     pyprophet merge --template=$lib --out=score.model $osw_files
     
     Write-Host "========== Scoring =========="
     pyprophet score --in=score.model --level=ms2 
-    # pyprophet score --in=score.model --level=ms1 
+    pyprophet score --in=score.model --level=ms1 
     pyprophet score --in=score.model --level=transition
     pyprophet ipf --in=score.model
-    # Foreach ($run in $osw_files)
-    # {
-        # pyprophet score --in=$run --apply_weights=score.model --level=ms2 
-        # pyprophet score --in=$run --apply_weights=score.model --level=ms1 
-        # pyprophet score --in=$run --apply_weights=score.model --level=transition
-    # }
+    Foreach ($run in $osw_files)
+    {
+        pyprophet score --in=$run --apply_weights=score.model --level=ms2 
+        pyprophet score --in=$run --apply_weights=score.model --level=ms1 
+        pyprophet score --in=$run --apply_weights=score.model --level=transition
+    }
     
-    # Write-Host "========== Reducing =========="
-    # $reduced_files = @()
-    # Foreach ($run in $osw_files)
-    # {
-        # $run_reduced = -join(${run},".reduce") # generates .oswr files
-        # pyprophet reduce --in=$run --out=$run_reduced
-        # $reduced_files += $run_reduced
-    # }
+    Write-Host "========== Reducing =========="
+    $reduced_files = @()
+    Foreach ($run in $osw_files)
+    {
+        $run_reduced = -join(${run},".reduce") # generates .oswr files
+        pyprophet reduce --in=$run --out=$run_reduced
+        $reduced_files += $run_reduced
+    }
         
     Write-Host "========== Estimating FDR =========="
-    # pyprophet merge --template=score.model --out=global_fdr.model $reduced_files
-    pyprophet peptide --context=global --in=score.model
-    pyprophet protein --context=global --in=score.model
+    pyprophet merge --template=score.model --out=global_fdr.model $reduced_files
+    pyprophet peptide --context=global --in=global_fdr.model
+    pyprophet protein --context=global --in=global_fdr.model
     
     Foreach ($run in $osw_files)
     {
-        pyprophet backpropagate --in=$run --apply_scores=score.model
+        pyprophet backpropagate --in=$run --apply_scores=global_fdr.model
     }
 }
 

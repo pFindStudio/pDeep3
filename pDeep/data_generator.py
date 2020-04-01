@@ -7,6 +7,7 @@ try:
     from .pyRawFileReader.RawFileReader import RawFileReader
 except:
     RawFileReader = None
+from .pyRawFileReader.MGFFileReader import pFindMGFReader
 
 from .spectral_library.encyclopedia.dlib import DLIB
 from .spectral_library.openswath.tsv import OSW_TSV
@@ -30,6 +31,10 @@ _register_library_writer('.dlib', DLIB)
 _register_library_writer('.pqp', PQP)
 _register_library_writer('.tsv', OSW_TSV)
 _register_library_writer('.msp', MSP)
+
+def __get_raw_reader(raw_path):
+    if raw_path.lower().endswith(".raw"): return RawFileReader(raw_path)
+    elif raw_path.lower().endswith(".mgf"): return pFindMGFReader(raw_path)
     
 def GetRTInSecondsFromScanNum(rawFile, scan):
     return rawFile.RTInSecondsFromScanNum(scan)
@@ -53,11 +58,16 @@ def FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT):
     return None
     
 def Generate_psmLabelCFG(cfg_file, input_PSM, raw_path):
+    if raw_path.lower().endswith(".mgf"):
+        raw_path = raw_path[:-4]+".pf2"
     cfg_str =  "psm_type = none\n"
     cfg_str += "mode = pDeep\n"
     cfg_str += "num_psm_file = 1\n"
     cfg_str += "psm_file1 = %s\n"%input_PSM
-    cfg_str += "ms2_type = raw\n"
+    if raw_path.endswith(".pf2"):
+        cfg_str += "ms2_type = pf2\n"
+    else:
+        cfg_str += "ms2_type = raw\n"
     cfg_str += "num_ms2_file = 1\n"
     cfg_str += "ms2_file1 = %s\n"%raw_path
     cfg_str += "output_folder = %s\n"%(os.path.split(raw_path)[0])
@@ -102,8 +112,9 @@ def Set_pDeepParam(param, instrument = "QE", ce = 27, psmLabel = "", psmRT = "",
 def GeneratePSMFile(result_file, raw_path):
     PSMfile = result_file+".psm.txt"
     rawName = os.path.splitext(os.path.basename(raw_path))[0]
+    if rawName.endswith("_HCDFT"): rawName = rawName[:rawName.rfind("_")]
     out_dir = os.path.split(raw_path)[0]
-    rawFile = RawFileReader(raw_path)
+    rawFile = __get_raw_reader(raw_path)
     
     if result_file.lower().endswith(".elib"): 
         result = DLIB()
@@ -130,7 +141,7 @@ def GeneratePSMFile(result_file, raw_path):
             peptide, modinfo, _ = pepinfo.split("|")
             if scan != -1 and RT == -1:
                 RT = GetRTInSecondsFromScanNum(rawFile, scan)
-            elif scan == -1:
+            elif scan == -1 and RT != -1:
                 precursorMz = ion_calc.calc_pepmass(peptide, modinfo)
                 precursorMz = precursorMz/charge + ion_calc.base_mass.mass_proton
                 scan = FindMS2ScanNumFromPrecursorMzWithRTInSeconds(rawFile, precursorMz, RT)
@@ -153,7 +164,10 @@ def Run_psmLabel(PSMfile, raw_path):
     os.chdir("psmLabel")
     os.system('psmLabel.exe "%s"'%cfg_file)
     os.chdir("..")
-    return os.path.splitext(raw_path)[0]+".psmlabel"
+    if raw_path.lower().endswith("_hcdft.mgf"):
+        return os.path.splitext(raw_path)[0][:-len('_hcdft')]+".psmlabel"
+    else: 
+        return os.path.splitext(raw_path)[0]+".psmlabel"
     
 def Sort_psmLabel(psmLabel):
     with open(psmLabel) as f:
