@@ -92,7 +92,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--RT_input', type=str, required=False, help='Input for RT normalization for OpenSWATH.')
     parser.add_argument('--RT_proteins', type=str, required=False, help='Protein ACs for RT normalization for OpenSWATH (if RT_input is fasta).')
-    parser.add_argument('--RT_tsv_lib', type=str, required=False, help='Output tsv for RT normalization for OpenSWATH.')
+    parser.add_argument('--RT_tsv', type=str, required=False, help='Output tsv for RT normalization for OpenSWATH.')
     
     args = parser.parse_args()
     
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     _lib.Close()
     
     if args.RT_input:
-        RT_lib = GetLibraryWriter(args.RT_tsv_lib, param)
-        RT_lib.Open(args.RT_tsv_lib)
+        RT_lib = GetLibraryWriter(args.RT_tsv, param)
+        RT_lib.Open(args.RT_tsv)
         RT_lib.decoy = None
         RT_prediction = tune_and_predict.run_predict(param, RT_peptide_list)
         RT_lib.min_mz = args.min_mz
