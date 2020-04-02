@@ -6,7 +6,7 @@ param (
     [switch]$ipf = $false,
     [switch]$cache_disk = $false,
     [string]$temp = 'E:/temp',
-    [switch]$subsample = $false,
+    [int]$subsample = 1,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
     [string]$lib = "e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.pqp",
@@ -34,7 +34,6 @@ $ms2_tol_type='ppm' # or 'Th'
 $ms2_tol=20
 $batch=5000
 $thread=6
-$overlapDIA='false'
 
 # if (!(Test-Path $lib -PathType leaf))
 # {
@@ -48,7 +47,14 @@ $overlapDIA='false'
 function run_one($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -force -use_ms1_traces -enable_uis_scoring
+    if ($ipf)
+    {
+        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -force -use_ms1_traces -enable_uis_scoring
+    }
+    else
+    {
+        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -force -use_ms1_traces
+    }
     # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces -enable_uis_scoring
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -57,7 +63,14 @@ function run_one($raw, $out)
 function run_one_window($raw, $out)
 {
     Write-Host $raw
-    OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -matching_window_only $overlapDIA -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces -enable_uis_scoring
+    if ($ipf)
+    {
+        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces -enable_uis_scoring
+    }
+    else
+    {
+        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces
+    }
     # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -86,8 +99,9 @@ function run_pyprophet($output_dir, $sample_ratio=0)
         Write-Host "Sub-sample ratio =", $sample_ratio
         Foreach ($run in $osw_files)
         {
-            pyprophet subsample --in=$run --out=${run}.sub --subsample_ratio=$sample_ratio
-            $sub_files += ${run}.sub
+            $sub = -join($run, '.sub')
+            pyprophet subsample --in=$run --out=$sub --subsample_ratio=$sample_ratio
+            $sub_files += $sub
         }
         pyprophet merge --template=$lib --out=score.model $sub_files
         Write-Host $sub_files
@@ -207,6 +221,9 @@ else
     {
         Foreach ($raw in $raw_files)
         {
+            # $temp=Join-Path -Path $temp -ChildPath *
+            if ($cache -eq 'cache') { Remove-Item -Path ${temp}/*.* }
+            
             If ($use_window)
             {
                 # run_one_window $raw $out_path
@@ -225,14 +242,15 @@ else
             }
             if ($tune) { break }
             $i++
+            
+            # $temp=Join-Path -Path $temp -ChildPath *
+            if ($cache -eq 'cache') { Remove-Item -Path ${temp}/*.* }
         }
-        # $temp=Join-Path -Path $temp -ChildPath *
-        if ($cache -eq 'cache') { Remove-Item -Path ${temp}/*.* }
     }
 
-    if ($use_window -and $subsample) { $sample_ratio=1/(@($raw_files).Length)/2 }
-    elseif ($subsample) { $sample_ratio=1/(@($raw_files).Length) }
-    else { $sample_ratio = 1 }
+    if ($use_window -and ($subsample -eq 0)) { $sample_ratio=1/(@($raw_files).Length)/2 }
+    elseif ($subsample -eq 0) { $sample_ratio=1/(@($raw_files).Length) }
+    else { $sample_ratio = $subsample }
     if ($ipf) {run_pyprophet_ipf $output_dir}
     else {run_pyprophet $output_dir $sample_ratio}
 }

@@ -107,6 +107,7 @@ def Set_pDeepParam(param, instrument = "QE", ce = 27, psmLabel = "", psmRT = "",
     if psmLabel_test: param.test_psmlabels.append(psmLabel_test)
     param.n_tune_per_psmlabel = n_tune
     param.threads = threads
+    param.epochs = 2
     return param
         
 def GeneratePSMFile(result_file, raw_path):
