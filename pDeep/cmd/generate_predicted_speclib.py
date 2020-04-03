@@ -81,7 +81,7 @@ if __name__ == "__main__":
     parser.add_argument('--instrument', type=str, default="QE", required=False, help='Instrument type for prediction.')
     parser.add_argument('--ce', type=float, default=27, required=False, help='Collision energy for prediction.')
     
-    parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse','no_decoy'], default='reverse', help='Decoy method when generating OpenSWATH PQP file.')
+    parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse','no_decoy'], default='no_decoy', help='Decoy method when generating OpenSWATH PQP file.')
     
     parser.add_argument('--tune_psm', type=str, required=False, help='.osw (OpenSWATH), .elib (EncyclopDIA), evidence.txt (MaxQuant), .spectra (pFind) or .txt (tab seperated file with title "raw_name, scan, peptide, modinfo, charge, RTInSeconds" file for tuning pDeep and pDeepRT.')
     parser.add_argument('--n_tune_psm', type=int, default=1000, required=False, help='number of PSMs for tuning.')

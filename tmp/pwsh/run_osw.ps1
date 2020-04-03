@@ -6,7 +6,7 @@ param (
     [switch]$ipf = $false,
     [switch]$cache_disk = $false,
     [string]$temp = 'E:/temp',
-    [int]$subsample = 1,
+    [float]$subsample = 0,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
     [string]$lib = "e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.pqp",
@@ -39,9 +39,10 @@ $thread=6
 # {
     # Write-Host "========== Converting to PQP =========="
     # $pqp=-join($lib.substring(0, $lib.Length-3), 'pqp')
-    # TargetedFileConverter -in $lib -out $pqp -threads 4
+    # TargetedFileConverter -in $lib -out $pqp
+    # OpenSwathAssayGenerator -in $pqp -out $pqp
     # Write-Host "========== Generating decoy =========="
-    # OpenSWATHDecoyGenerator -in $pqp -out $lib -method reverse -threads 4
+    # OpenSwathDecoyGenerator -in $pqp -out $lib -method reverse
 # }
 
 function run_one($raw, $out)
@@ -55,6 +56,8 @@ function run_one($raw, $out)
     {
         OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -force -use_ms1_traces
     }
+    $bak = -join($out,'.bak')
+    Copy-Item -Path $out $bak 
     # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces -enable_uis_scoring
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -71,6 +74,8 @@ function run_one_window($raw, $out)
     {
         OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces
     }
+    $bak = -join($out,'.bak')
+    Copy-Item -Path $out $bak
     # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces
     
     # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
@@ -83,11 +88,11 @@ function run_pyprophet($output_dir, $sample_ratio=0)
     $osw_files = Get-ChildItem -Path . -Recurse -Include raw*.osw
     $sub_files = @()
     
-    Foreach ($run in $osw_files)
-    {
-        $bak=-join($run,'.bak')
-        Copy-Item -Path $run $bak
-    }
+    # Foreach ($run in $osw_files)
+    # {
+        # $bak=-join($run,'.bak')
+        # Copy-Item -Path $run $bak
+    # }
     
     if (($sample_ratio -eq 0) -or ($sample_ratio -eq 1))
     {
@@ -141,11 +146,11 @@ function run_pyprophet_ipf($output_dir)
     Set-Location -Path $output_dir
     $osw_files = Get-ChildItem -Path . -Recurse -Include raw*.osw
     
-    Foreach ($run in $osw_files)
-    {
-        $bak=-join($run,'.bak')
-        Copy-Item -Path $run $bak
-    }
+    # Foreach ($run in $osw_files)
+    # {
+        # $bak=-join($run,'.bak')
+        # Copy-Item -Path $run $bak
+    # }
     pyprophet merge --template=$lib --out=score.model $osw_files
     
     Write-Host "========== Scoring =========="
