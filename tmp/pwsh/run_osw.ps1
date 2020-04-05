@@ -211,13 +211,13 @@ else
         {
             If ($use_window)
             {
-                Move-Item -Path ${output_dir}/raw${i}.left.osw.bak -Destination ${output_dir}/raw${i}.left.osw -Force
+                Copy-Item -Path ${output_dir}/raw${i}.left.osw.bak ${output_dir}/raw${i}.left.osw -Force
                 
-                Move-Item -Path ${output_dir}/raw${i}.right.osw.bak -Destination ${output_dir}/raw${i}.right.osw -Force
+                Copy-Item -Path ${output_dir}/raw${i}.right.osw.bak ${output_dir}/raw${i}.right.osw -Force
             }
             else
             {
-                Move-Item -Path ${output_dir}/raw${i}.osw.bak -Destination ${output_dir}/raw${i}.osw -Force
+                Copy-Item -Path ${output_dir}/raw${i}.osw.bak ${output_dir}/raw${i}.osw -Force
             }
             $i++
         }
