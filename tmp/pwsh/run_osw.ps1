@@ -7,6 +7,12 @@ param (
     [switch]$cache_disk = $false,
     [string]$temp = 'E:/temp',
     [float]$subsample = 0,
+    [string]$ms1_tol_type='ppm', # or 'Th'
+    [float]$ms1_tol=10,
+    [string]$ms2_tol_type='ppm', # or 'Th'
+    [float]$ms2_tol=20,
+    [int]$batch=5000,
+    [int]$thread=6,
     [string]$raw_dir = $(throw "-raw_dir is required."),
     [string]$output_dir = $(throw "-output_dir is required."),
     [string]$lib = "e:/DIATools/openswath/library/pDeep/phl_pDeep_QE27.pqp",
@@ -26,14 +32,6 @@ $global:win="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow.txt"
 $global:win_left="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-left.txt"
 $global:win_right="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-right.txt"
 
-
-
-$ms1_tol_type='ppm' # or 'Th'
-$ms1_tol=10
-$ms2_tol_type='ppm' # or 'Th'
-$ms2_tol=20
-$batch=5000
-$thread=6
 
 # if (!(Test-Path $lib -PathType leaf))
 # {

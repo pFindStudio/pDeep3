@@ -17,7 +17,7 @@ def DoCentroid(mz_array, inten_array, merge_tol = 0.01):
     end_idx = 0
     while start_idx < mz_array.shape[0]:
         end_idx = __find_sister_peaks(mz_array, start_idx, merge_tol)
-        if end_idx == start_idx:
+        if end_idx == start_idx and inten_array[start_idx] <= 3:
             start_idx += 1
             continue
         center_mz = __merge_sister_peaks(mz_array, inten_array, start_idx, end_idx)
