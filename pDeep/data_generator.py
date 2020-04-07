@@ -102,6 +102,7 @@ def Set_pDeepParam(param, instrument = "QE", ce = 27, psmLabel = "", psmRT = "",
     param.predict_nce = ce
     if psmLabel: param.tune_psmlabels.append(psmLabel)
     param.tune_RT_psmlabel = psmRT
+    param.test_RT_psmlabel = psmRT
     if fixmod: param.fixmod.extend(fixmod.strip(",").split(","))
     if varmod: param.varmod.extend(varmod.strip(",").split(","))
     if psmLabel_test: param.test_psmlabels.append(psmLabel_test)

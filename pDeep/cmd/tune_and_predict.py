@@ -2,6 +2,7 @@ import sys
 import time
 import numpy as np
 import tensorflow as tf
+from scipy.stats import pearsonr
 
 from ..parameter import pDeepParameter
 from ..bucket import peptide_as_key
@@ -69,6 +70,25 @@ def tune(param):
         eval_model(pdeep, test_buckets)
         print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
+    
+    if param.test_RT_psmlabel:
+        print("\n############################\ntest of pre-trained RT model")
+        start_time = time.perf_counter()
+        def eval_model(pdeep_RT, buckets):
+            output_buckets = pdeep_RT.Predict(buckets)
+            pred_list = np.array([])
+            real_list = np.array([])
+            for key, val in output_buckets.items():
+                pred_list = np.append(pred_list, val)
+                real_list = np.append(real_list, buckets[key][-2])
+            pcc = pearsonr(pred_list ,real_list)[0]
+            print("[pDeep Info] PCC of test RT = %.3f"%pcc)
+            return pcc
+        test_RT_buckets = load_data.load_RT_file_as_buckets(param.tune_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
+        eval_model(pdeep_RT, test_RT_buckets)
+        print("[pDeep Info] testing RT time = %.3fs"%(time.perf_counter() - start_time))
+        print("\n")
+        
 
     if param.tune_psmlabels:
         pdeep.batch_size = param.tune_batch
@@ -91,7 +111,7 @@ def tune(param):
     pdeep.batch_size = param.predict_batch
     if pdeep_RT: pdeep_RT.batch_size = param.predict_batch
     
-    if param.test_psmlabels:
+    if param.tune_psmlabels and param.test_psmlabels:
         print("\n############################\ntest of fine-tuned model")
         start_time = time.perf_counter()
         def eval_model(pdeep, buckets):
@@ -103,6 +123,23 @@ def tune(param):
         print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
         test_buckets = None # release the memory
+        
+    if param.tune_RT_psmlabel and pdeep_RT and param.test_RT_psmlabel:
+        print("\n############################\ntest of fine-tuned RT model")
+        start_time = time.perf_counter()
+        def eval_model(pdeep_RT, buckets):
+            output_buckets = pdeep_RT.Predict(buckets)
+            pred_list = np.array([])
+            real_list = np.array([])
+            for key, val in output_buckets.items():
+                pred_list = np.append(pred_list, val)
+                real_list = np.append(real_list, buckets[key][-2])
+            pcc = pearsonr(pred_list ,real_list)[0]
+            print("[pDeep Info] PCC of test RT = %.3f"%pcc)
+            return pcc
+        eval_model(pdeep_RT, test_RT_buckets)
+        print("[pDeep Info] testing RT time = %.3fs"%(time.perf_counter() - start_time))
+        print("\n")
     
     param._pDeepModel = pdeep
     param._pDeepRT = pdeep_RT

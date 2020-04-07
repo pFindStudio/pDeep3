@@ -41,6 +41,7 @@ class pDeepParameter:
         self.tune_batch = 1024
         
         self.test_psmlabels = []
+        self.test_RT_psmlabel = ""
         self.n_test_per_psmlabel = 100000000
 
         self.fasta = None
@@ -112,5 +113,7 @@ class pDeepParameter:
                 elif line.startswith("test_psmlabels"):
                     line = get_str(line)
                     if line: self.test_psmlabels = [s.strip() for s in line.split("|")]
+                elif line.startswith("test_RT_psmlabel"):
+                    self.test_RT_psmlabel = get_str(line)
                 elif line.startswith("n_test_per_psmlabel"):
                     self.n_test_per_psmlabel = get_int(line)

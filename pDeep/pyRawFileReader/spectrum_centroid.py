@@ -6,19 +6,15 @@ import math
 # @numba.jit((float64[:], float64[:], float64))
 @numba.jit
 def DoCentroid(mz_array, inten_array, merge_tol = 0.01):
-    nzero_idx = inten_array != 0
-    mz_array = mz_array[nzero_idx]
-    inten_array = inten_array[nzero_idx]
-    
     ret_mzs = []
     ret_intens = []
     
     start_idx = 0
     end_idx = 0
     while start_idx < mz_array.shape[0]:
-        end_idx = __find_sister_peaks(mz_array, start_idx, merge_tol)
-        if end_idx == start_idx and inten_array[start_idx] <= 3:
-            start_idx += 1
+        end_idx = __find_sister_peaks(mz_array, inten_array, start_idx, merge_tol)
+        if np.sum(inten_array[start_idx:end_idx+1]) <= 3:
+            start_idx = end_idx + 1
             continue
         center_mz = __merge_sister_peaks(mz_array, inten_array, start_idx, end_idx)
         center_inten = np.max(inten_array[start_idx:end_idx+1])
@@ -27,10 +23,13 @@ def DoCentroid(mz_array, inten_array, merge_tol = 0.01):
         start_idx = end_idx + 1
     return np.array(ret_mzs), np.array(ret_intens)
     
-@numba.jit(int32(float64[:], int32, float64), nopython=True)
-def __find_sister_peaks(mz_array, start_idx, merge_tol):
+@numba.jit(int32(float64[:], float64[:], int32, float64), nopython=True)
+def __find_sister_peaks(mz_array, inten_array, start_idx, merge_tol):
     end_idx = start_idx
     for i in range(start_idx + 1, mz_array.shape[0]):
+        if inten_array[i] == 0:
+            end_idx += 1
+            break
         if mz_array[i] - mz_array[end_idx] <= merge_tol:
             end_idx += 1
         else:
@@ -43,9 +42,10 @@ def __merge_sister_peaks(mz_array, inten_array, start_idx, end_idx):
     center_mass = 0
     weight = 0
     for i in range(start_idx, end_idx+1):
-        _w = math.log(inten_array[i])
-        center_mass += mz_array[i] * _w
-        weight += _w
+        if inten_array[i] != 0:
+            _w = math.log(inten_array[i])
+            center_mass += mz_array[i] * _w
+            weight += _w
     return center_mass / weight
     
     
