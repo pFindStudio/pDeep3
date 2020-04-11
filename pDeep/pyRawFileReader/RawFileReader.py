@@ -6,7 +6,7 @@ import numpy as np
 import clr
 from System import String
 
-if "-dllpath" in sys.argv:
+if "--dllpath" in sys.argv:
     idx = sys.index("-dllpath")
     sys.path.append(sys.argv[idx+1])
 else:
@@ -139,7 +139,7 @@ class RawFileReader(object):
             raise IOError(
                 "RAWfile {0} could not be opened, is the file accessible ?".format(
                     self.filename))
-        self.source.SelectInstrument(ThermoFisher.CommonCore.Data.Business.Device.MS, 1);
+        self.source.SelectInstrument(ThermoFisher.CommonCore.Data.Business.Device.MS, 1)
                     
         self.StartTime = self.GetStartTime()
         self.EndTime = self.GetEndTime()
@@ -438,6 +438,11 @@ class RawFileReader(object):
         """
         trailerData = self.source.GetTrailerExtraInformation(scanNumber)
         return dict(zip(trailerData.Labels, trailerData.Values))
+
+    def GetProfileMassListFromScanNum(self, scanNumber):
+        scanStatistics = self.source.GetScanStatsForScanNumber(scanNumber)
+        segmentedScan = self.source.GetSegmentedScanFromScanNumber(scanNumber, scanStatistics)
+        return np.array([DotNetArrayToNPArray(segmentedScan.Positions, float), DotNetArrayToNPArray(segmentedScan.Intensities, float)])
 
     def GetCentroidMassListFromScanNum(self, scanNumber):
         scan = ThermoFisher.CommonCore.Data.Business.Scan.FromFile(self.source, scanNumber)

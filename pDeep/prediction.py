@@ -22,7 +22,7 @@ class pDeepPrediction:
                 idx = self.config.GetIonIndexByIonType(ion_type, ion_charge)
                 if idx is not None: 
                     ion_indices.append(idx)
-                    used_ion_types.append('%s%s'%(ion_type.format(''), '+'*ion_charge))
+                    used_ion_types.append('%s%s'%(ion_type, '+'*ion_charge))
         return ion_indices, used_ion_types
         
     def GetIntensitiesByIndices(self, pepinfo, indices):

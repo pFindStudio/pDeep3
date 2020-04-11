@@ -1,7 +1,7 @@
 param (
     [switch]$rescore = $false,
     [switch]$export = $false,
-    [switch]$use_window = $false,
+    [string]$window = "",
     [switch]$tune = $false,
     [switch]$ipf = $false,
     [switch]$cache_disk = $false,
@@ -28,10 +28,6 @@ else
     $cache='normal' #normal, cache, cacheWorkingInMemory, workingInMemory
 }
 
-$global:win="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow.txt"
-$global:win_left="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-left.txt"
-$global:win_right="e:\DIAData\Specter\HEK_SpikeP100\DIAwindow-right.txt"
-
 
 # if (!(Test-Path $lib -PathType leaf))
 # {
@@ -55,10 +51,7 @@ function run_one($raw, $out)
         OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -force -use_ms1_traces
     }
     $bak = -join($out,'.bak')
-    Copy-Item -Path $out $bak 
-    # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces -enable_uis_scoring
-    
-    # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
+    Copy-Item -Path $out $bak
 }
 
 function run_one_window($raw, $out)
@@ -66,17 +59,14 @@ function run_one_window($raw, $out)
     Write-Host $raw
     if ($ipf)
     {
-        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces -enable_uis_scoring
+        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $window -force -use_ms1_traces -enable_uis_scoring
     }
     else
     {
-        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $global:win -force -use_ms1_traces
+        OpenSwathWorkflow -in $raw -tr $lib -sort_swath_maps -readOptions $cache -tempDirectory $temp -batchSize $batch -out_osw $out -threads $thread -tr_irt $irt -rt_extraction_window 600 -mz_extraction_window_unit $ms2_tol_type -mz_extraction_window $ms2_tol -mz_extraction_window_ms1_unit $ms1_tol_type -mz_extraction_window_ms1 $ms1_tol -min_coverage 0.01 -min_rsq 0.95 -swath_windows_file $window -force -use_ms1_traces
     }
     $bak = -join($out,'.bak')
     Copy-Item -Path $out $bak
-    # OpenSwathWorkflow '-in' $raw -tr $lib -sort_swath_maps -readOptions cache -tempDirectory E:/Temp -batchSize 10000 -swath_windows_file $global:win -tr_irt $irt -out_osw $out -threads 4 -use_ms1_traces
-    
-    # no matter -use_ms1_traces or not, precursor ion will be matched in ms1? But if -use_ms1_traces, ms1 features will be used in scoring
 }
 
 function run_pyprophet($output_dir, $sample_ratio=0)
@@ -85,12 +75,6 @@ function run_pyprophet($output_dir, $sample_ratio=0)
     Set-Location -Path $output_dir
     $osw_files = Get-ChildItem -Path . -Recurse -Include raw*.osw
     $sub_files = @()
-    
-    # Foreach ($run in $osw_files)
-    # {
-        # $bak=-join($run,'.bak')
-        # Copy-Item -Path $run $bak
-    # }
     
     if (($sample_ratio -eq 0) -or ($sample_ratio -eq 1))
     {
@@ -227,21 +211,14 @@ else
             # $temp=Join-Path -Path $temp -ChildPath *
             if ($cache -eq 'cache') { Remove-Item -Path ${temp}/*.* }
             
-            If ($use_window)
+            $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.osw
+            If ($window -eq "")
             {
-                # run_one_window $raw $out_path
-                $global:win=$global:win_left
-                $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.left.osw
-                run_one_window $raw $out_path
-                
-                $global:win=$global:win_right
-                $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.right.osw
-                run_one_window $raw $out_path
+                run_one $raw $out_path
             }
             else
             {
-                $out_path=Join-Path -Path $output_dir -ChildPath raw${i}.osw
-                run_one $raw $out_path
+                run_one_window $raw $out_path
             }
             if ($tune) { break }
             $i++

@@ -71,6 +71,8 @@ def Generate_psmLabelCFG(cfg_file, input_PSM, raw_path):
     cfg_str += "num_ms2_file = 1\n"
     cfg_str += "ms2_file1 = %s\n"%raw_path
     cfg_str += "output_folder = %s\n"%(os.path.split(raw_path)[0])
+    cfg_str += "mass_tol = 20\n"
+    cfg_str += "tol_type = ppm\n"
     cfg_str += "NH3_loss = true\n"
     cfg_str += "H2O_loss = true\n"
     cfg_str += "Mod_loss = true\n"
@@ -92,7 +94,8 @@ def ReadModSeq(spikein_file):
             seq = items[headidx['peptide']]
             mod = items[headidx['modinfo']]
             charge = items[headidx['charge']]
-            protein = items[headidx['protein']]
+            if 'protein' in headidx: protein = items[headidx['protein']]
+            else: protein = 'pDeep'
             peptide_list.append((seq, mod, charge))
             pep_pro_dict[seq] = protein
     return peptide_list, pep_pro_dict
