@@ -10,10 +10,9 @@ np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
 
 if tf.__version__ < '2.0.0':
-    use_tf1 = True
+    use_tf2 = False
 else:
-    use_tf1 = False
-    tf.compat.v1.disable_eager_execution()
+    use_tf2 = True
     
 
 class pDeepRTModel:
@@ -82,6 +81,7 @@ class pDeepRTModel:
         return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES, scope=scope)
 
     def BuildModel(self, aa_size, mod_size, output_size, nlayers=1):
+        if use_tf2: tf.compat.v1.disable_eager_execution()
         with self.graph.as_default():
             print("BuildModel ... ")
             
@@ -321,6 +321,7 @@ class pDeepRTModel:
 
     # model
     def LoadModel(self, model_file):
+        if use_tf2: tf.compat.v1.disable_eager_execution()
         # run multiple instances:
         # g = tf.Graph()
         # with g.as_default():

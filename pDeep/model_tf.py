@@ -10,10 +10,9 @@ np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
 
 if tf.__version__ < '2.0.0':
-    use_tf1 = True
+    use_tf2 = False
 else:
-    use_tf1 = False
-    tf.compat.v1.disable_eager_execution()
+    use_tf2 = True
 
 
 class pDeepModel:
@@ -32,6 +31,7 @@ class pDeepModel:
         pass
 
     def BuildModel(self, aa_size, mod_size, output_size, nlayers=2):
+        if use_tf2: tf.compat.v1.disable_eager_execution()
         print("BuildModel ... ")
 
         def _input():
@@ -80,8 +80,8 @@ class pDeepModel:
                         x = tf.keras.layers.Bidirectional(rnn)(x)
                         x = tf.nn.dropout(x, rate=1 - self.output_kp)
                         return x
-                if use_tf1: return tf_v1(x, id)
-                else: return tf_v2(x, id)
+                if use_tf2: return tf_v2(x, id)
+                else: return tf_v1(x, id)
 
             for id in range(nlayers):
                 x = BiLSTM(x, id)
@@ -100,8 +100,8 @@ class pDeepModel:
                     with tf.compat.v1.variable_scope("output_nn"):
                         outputs = tf.keras.layers.LSTM(output_size, return_sequences=True)(x)
                         return outputs
-                if use_tf1: return tf_v1(x, id)
-                else: return tf_v2(x, id)
+                if use_tf2: return tf_v2(x, id)
+                else: return tf_v1(x, id)
 
             # def OutputBiRNN(x):
                 # cell_fw = tf.nn.rnn_cell.LSTMCell(output_size)
@@ -325,6 +325,7 @@ class pDeepModel:
 
     # model
     def LoadModel(self, model_file):
+        if use_tf2: tf.compat.v1.disable_eager_execution()
         # run multiple instances:
         # g = tf.Graph()
         # with g.as_default():
