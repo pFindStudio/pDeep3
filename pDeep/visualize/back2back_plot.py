@@ -8,7 +8,6 @@ Created on 2013.12.13
 import numpy as np
 from scipy.stats.stats import pearsonr
 
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure as Figure
 import os
@@ -53,17 +52,17 @@ class b2bplot(object):
         self.raw_reader = None
         
     
-    def calc_tol(self, mz):
+    def CalcTol(self, mz):
         if self.tol_type.upper() == "DA":
             return self.tol
         else:
             return self.tol * mz / 1000000.0
         
-    def open_raw(self, raw_path):
+    def OpenRawFile(self, raw_path):
         if self.raw_reader: self.raw_reader.Close()
         self.raw_reader = RawFileReader(raw_path)
         
-    def close_raw(self):
+    def CloseRawFile(self):
         if self.raw_reader: self.raw_reader.Close()
         self.raw_reader = None
         
@@ -82,7 +81,7 @@ class b2bplot(object):
         for i in range(len(ions)):
             mass = ions[i] / charge + self.mass_proton
             if (mass / self.mz_bin_size) > len(self.hash_table) - 5: continue 
-            min_tol = self.calc_tol(mass)
+            min_tol = self.CalcTol(mass)
             hashed_peak_idlist = self.hash_table[int(mass / self.mz_bin_size)]
             for idx in hashed_peak_idlist:
                 if abs(peaks[idx][0] - mass) <= min_tol:
@@ -178,7 +177,7 @@ class b2bplot(object):
         if self.show_plot: plotax.text(20,1.2,'x {:.2e}'.format(max_inten))
         return matched_inten
     
-    def plot(self, raw_name, scan, peptide, modinfo, charge):
+    def PrePlot(self, raw_name, scan, peptide, modinfo, charge):
         self.raw_scan = "{}.{}".format(raw_name, scan)
         if self.raw_reader.LastSpectrumNumber < scan:
             print('no spec {} in spectrum file'.format(self.raw_scan)) 
@@ -199,7 +198,7 @@ class b2bplot(object):
         if 'y{}-ModLoss' in self.config.ion_types: ions['y{}-ModLoss'] = ioncalc.calc_Cterm_modloss(ions['y{}'], modloss_list, modname_list)
         
         if self.show_plot: 
-            fig = Figure(figsize=(12,8), dpi=80)
+            fig = Figure(figsize=(13,8), dpi=90)
             ax = get_ax(fig)
         else:
             fig = None
@@ -253,11 +252,11 @@ class b2bplot(object):
             print('R = {:.2f}'.format(PCC))
         return (fig, PCC)
         
-    def batch_save(self, spec_file, pep_list, save_dir):
-        self.open_raw(spec_file)
+    def BatchSave(self, spec_file, pep_list, save_dir):
+        self.OpenRawFile(spec_file)
         for pepinfo in pep_list:
             raw, scan, peptide, mod, charge = pepinfo[:5]
-            fig, pcc = self.plot(raw, int(scan), peptide, mod, int(charge))
+            fig, pcc = self.PrePlot(raw, int(scan), peptide, mod, int(charge))
             if fig is None: plt.close()
             else:
                 plt.tight_layout()
@@ -268,30 +267,33 @@ class b2bplot(object):
                 
                 plt.savefig(os.path.join(save_dir, "%s.%s-R=%.3f-%s.png"%(raw, scan, pcc, peptide)),format="png", dpi=120)
                 plt.close()
-        self.close_raw()
+        self.CloseRawFile()
     
-    def show(self, save_as = None):
+    def ShowPlot(self, save_as = None):
         if self.show_plot and save_as is None: plt.show()
         elif save_as is not None: plt.savefig(save_as, dpi=120)
         
 if __name__ == "__main__":
     from ..cmd.tune_and_predict import get_prediction
-    matplotlib.use('TkAgg')
+    
+    import matplotlib
+    matplotlib.use('TkAgg') # this is necessary because tf will change the default matplotlib backend
+    
     raw_path = r"e:\DIAData\Specter\HEK_SpikeP100\DDA_data\CS20170922_SV_HEK_SpikeP100_108ng_DDA.raw"
     psm_path = r"e:\DIAData\Specter\HEK_SpikeP100\DDA_data\pFind3\result\pFind-Filtered.spectra.psm.txt"
     pdeep_prediction = get_prediction(psm_path)
     
     bbplot = b2bplot(pdeep_prediction, ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss'])
-    bbplot.open_raw(raw_path)
+    bbplot.OpenRawFile(raw_path)
     
     raw, scan, peptide, modinfo, charge = 'CS20170922_SV_HEK_SpikeP100_108ng_DDA	39575	GHVFEESQVAGTPMFVVK	14,Oxidation[M]	3'.split('\t')[:5]
-    bbplot.plot(raw, int(scan), peptide, modinfo, int(charge))
-    bbplot.show()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot1.png')
+    bbplot.PrePlot(raw, int(scan), peptide, modinfo, int(charge))
+    bbplot.ShowPlot()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot1.png')
     
     raw, scan, peptide, modinfo, charge = 'CS20170922_SV_HEK_SpikeP100_108ng_DDA	39018	VLVEPDAGAGVAVMK		2	2302.39572'.split('\t')[:5]
-    bbplot.plot(raw, int(scan), peptide, modinfo, int(charge))
-    bbplot.show()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot2.png')
+    bbplot.PrePlot(raw, int(scan), peptide, modinfo, int(charge))
+    bbplot.ShowPlot()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot2.png')
     
-    bbplot.close_raw()
+    bbplot.CloseRawFile()
     
     

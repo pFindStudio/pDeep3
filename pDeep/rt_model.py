@@ -9,6 +9,13 @@ from . import tf_ops
 np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
 
+if tf.__version__ < '2.0.0':
+    use_tf1 = True
+else:
+    use_tf1 = False
+    tf.compat.v1.disable_eager_execution()
+    
+
 class pDeepRTModel:
     def __init__(self, conf):
         self.batch_size = 128
@@ -112,7 +119,8 @@ class pDeepRTModel:
                             x = tf.keras.layers.Bidirectional(rnn)(x)
                             x = tf.nn.dropout(x, rate=self._dropout)
                             return x
-                    return tf_v1(x, id)
+                    if use_tf1: return tf_v1(x, id)
+                    else: return tf_v2(x, id)
 
                 for id in range(nlayers):
                     x = BiLSTM(x, id)

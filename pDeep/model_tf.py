@@ -9,6 +9,12 @@ from . import tf_ops
 np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
 
+if tf.__version__ < '2.0.0':
+    use_tf1 = True
+else:
+    use_tf1 = False
+    tf.compat.v1.disable_eager_execution()
+
 
 class pDeepModel:
     def __init__(self, conf):
@@ -74,7 +80,8 @@ class pDeepModel:
                         x = tf.keras.layers.Bidirectional(rnn)(x)
                         x = tf.nn.dropout(x, rate=1 - self.output_kp)
                         return x
-                return tf_v1(x, id)
+                if use_tf1: return tf_v1(x, id)
+                else: return tf_v2(x, id)
 
             for id in range(nlayers):
                 x = BiLSTM(x, id)
@@ -93,7 +100,8 @@ class pDeepModel:
                     with tf.compat.v1.variable_scope("output_nn"):
                         outputs = tf.keras.layers.LSTM(output_size, return_sequences=True)(x)
                         return outputs
-                return tf_v1(x)
+                if use_tf1: return tf_v1(x, id)
+                else: return tf_v2(x, id)
 
             # def OutputBiRNN(x):
                 # cell_fw = tf.nn.rnn_cell.LSTMCell(output_size)
