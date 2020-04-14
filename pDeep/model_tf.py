@@ -42,8 +42,10 @@ class pDeepModel:
             self._charge = tf.compat.v1.placeholder("float", [None, ], name="input_charge")
             self._nce = tf.compat.v1.placeholder("float", [None, ], name="input_nce")
             self._instrument = tf.compat.v1.placeholder("float", [None, self.config.max_instrument_num], name="input_instrument")
-            self.rnn_kp = tf.compat.v1.placeholder_with_default(1.0, shape=(), name="rnn_keep_prob")
-            self.output_kp = tf.compat.v1.placeholder_with_default(1.0, shape=(), name="output_keep_prob")
+            self._rnn_dropout = tf.compat.v1.placeholder_with_default(0.0, shape=(), name="rnn_dropout")
+            self._dropout = tf.compat.v1.placeholder_with_default(0.0, shape=(), name="dropout")
+            self.rnn_kp = None
+            self.output_kp = None
 
         def ExpandTimeStep1D(x):
             return tf.tile(x[..., tf.newaxis, tf.newaxis], [1, self._time_step[0], 1])
@@ -72,13 +74,13 @@ class pDeepModel:
                     # lstm_bw_cell = tf.contrib.rnn.DropoutWrapper(lstm_bw_cell, input_keep_prob=1, output_keep_prob=self.rnn_kp, state_keep_prob=self.rnn_kp, variational_recurrent=False, dtype=tf.float32)
                     x, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, x, sequence_length=self._time_step, time_major=False, dtype=tf.float32, scope="BiLSTM_%d" % id)
                     x = tf.concat(x, axis=2)
-                    x = tf.nn.dropout(x, rate=1 - self.output_kp)
+                    x = tf.nn.dropout(x, rate=self._dropout)
                     return x
                 def tf_v2(x, id):
                     with tf.compat.v1.variable_scope("BiLSTM_%d"%id):
                         rnn = tf.keras.layers.LSTM(self.layer_size, return_sequences=True)
                         x = tf.keras.layers.Bidirectional(rnn)(x)
-                        x = tf.nn.dropout(x, rate=1 - self.output_kp)
+                        x = tf.nn.dropout(x, rate=self._dropout)
                         return x
                 if use_tf2: return tf_v2(x, id)
                 else: return tf_v1(x, id)
@@ -98,7 +100,7 @@ class pDeepModel:
                     return outputs
                 def tf_v2(x):
                     with tf.compat.v1.variable_scope("output_nn"):
-                        outputs = tf.keras.layers.LSTM(output_size, return_sequences=True)(x)
+                        outputs = tf.keras.layers.LSTM(output_size, return_sequences=True, recurrent_dropout=self._rnn_dropout)(x)
                         return outputs
                 if use_tf2: return tf_v2(x, id)
                 else: return tf_v1(x, id)
@@ -256,8 +258,8 @@ class pDeepModel:
                     self._nce: nce,
                     self._instrument: instrument,
                     self._y: y,
-                    self.rnn_kp: 1 - self.dropout,
-                    self.output_kp: 1 - self.dropout
+                    self.rnn_kp: 1 - self.dropout if self.rnn_kp else self._rnn_dropout: self.dropout,
+                    self.output_kp: 1 - self.dropout if self.output_kp else self._dropout: self.dropout
                 }
 
                 cost, _ = self.sess.run([self._loss, self._mininize], feed_dict=feed_dict)
@@ -343,5 +345,11 @@ class pDeepModel:
         self._instrument = graph.get_tensor_by_name("input_instrument:0")
         self._nce = graph.get_tensor_by_name("input_nce:0")
         self._prediction = graph.get_tensor_by_name("output_scope/output:0")
-        self.rnn_kp = graph.get_tensor_by_name("rnn_keep_prob:0")
-        self.output_kp = graph.get_tensor_by_name("output_keep_prob:0")
+        try:
+            self._rnn_dropout = graph.get_tensor_by_name("rnn_dropout:0")
+            self._dropout = graph.get_tensor_by_name("dropout:0")
+            self.rnn_kp = None
+            self.output_kp = None
+        except:
+            self.rnn_kp = graph.get_tensor_by_name("rnn_keep_prob:0")
+            self.output_kp = graph.get_tensor_by_name("output_keep_prob:0")
