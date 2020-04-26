@@ -64,8 +64,8 @@ def tune(param):
         def eval_model(pdeep, buckets):
             output_buckets = pdeep.Predict(buckets)
             pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, buckets)
-            sim_names = ['PCC']
-            return evaluate.cum_plot([pcc], sim_names, evaluate.thres_list)
+            sim_names = ['PCC', 'SPC']
+            return evaluate.cum_plot([pcc, spc], sim_names, evaluate.thres_list)
         test_buckets = load_data.load_plabel_as_buckets(param.test_psmlabels, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
         eval_model(pdeep, test_buckets)
         print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
@@ -117,8 +117,8 @@ def tune(param):
         def eval_model(pdeep, buckets):
             output_buckets = pdeep.Predict(buckets)
             pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, buckets)
-            sim_names = ['PCC']
-            return evaluate.cum_plot([pcc], sim_names, evaluate.thres_list)
+            sim_names = ['PCC', 'SPC']
+            return evaluate.cum_plot([pcc, spc], sim_names, evaluate.thres_list)
         eval_model(pdeep, test_buckets)
         print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")

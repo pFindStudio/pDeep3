@@ -57,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument('--varmod', type=str, default="Oxidation[M]", required=False, help='Variable modifications, seperated by ",".')
     parser.add_argument('--fixmod', type=str, default="Carbamidomethyl[C]", required=False, help='Fixed modifications, seperated by ",".')
     
-    parser.add_argument('--proteins', type=str, required=False, help='Only considering these proteins when input is fasta, seperated by "," (default: use all proteins).')
+    parser.add_argument('--target_proteins', type=str, required=False, help='Only considering these proteins (ACs or uniprot IDs) when input is fasta, seperated by "," (default: use all proteins).')
     
     
     parser.add_argument('--spikein', type=str, required=False, help='Spike-in file could be: .peplib file for peptide library; or .fasta for generating peptides from fasta; or .tsv file for transition or assays file (for example pan-human library), or .txt spike-in file with title "peptide", "modinfo", "charge", and "protein" in pDeep format, pDeep will not add modifications to peptides from this .txt file.')

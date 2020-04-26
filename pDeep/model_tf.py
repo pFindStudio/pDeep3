@@ -258,9 +258,11 @@ class pDeepModel:
                     self._nce: nce,
                     self._instrument: instrument,
                     self._y: y,
-                    self.rnn_kp: 1 - self.dropout if self.rnn_kp else self._rnn_dropout: self.dropout,
-                    self.output_kp: 1 - self.dropout if self.output_kp else self._dropout: self.dropout
                 }
+                if self.rnn_kp is not None: feed_dict[self.rnn_kp] = 1 - self.dropout
+                else: feed_dict[self._rnn_dropout] = self.dropout
+                if self.output_kp is not None: feed_dict[self.output_kp] = 1 - self.dropout
+                else: feed_dict[self._dropout] = self.dropout
 
                 cost, _ = self.sess.run([self._loss, self._mininize], feed_dict=feed_dict)
                 end_time = time.perf_counter()
