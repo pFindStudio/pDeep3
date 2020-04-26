@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generating spectral library for OpenSWATH and EncyclopDIA by pDeep.')
     
     parser.add_argument('--input', type=str, required=True, help='.peplib (text) file for peptide library; or .fasta for generating peptides from fasta; or .tsv file for transitions/assays file (for example pan-human library).')
-    parser.add_argument('--output', type=str, required=True, help='The genereted library file.')
+    parser.add_argument('--output', type=str, required=True, help='The genereted library file. File type is determined by the file extention: .dlib for EncyclopeDIA (SQLite file), .pqp for OpenSWATH (SQLite file), .tsv for OpenSWATH (text file), .msp for generic text spectrum file.')
     
     parser.add_argument('--varmod', type=str, default="Oxidation[M]", required=False, help='Variable modifications, seperated by ",".')
     parser.add_argument('--fixmod', type=str, default="Carbamidomethyl[C]", required=False, help='Fixed modifications, seperated by ",".')
