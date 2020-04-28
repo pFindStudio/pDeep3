@@ -9,6 +9,7 @@ from . import tf_ops
 np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
 
+print("tensorflow version = %s"%tf.__version__)
 if tf.__version__ < '2.0.0':
     use_tf2 = False
 else:

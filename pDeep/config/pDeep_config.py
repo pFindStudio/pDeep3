@@ -115,6 +115,7 @@ class EThcD_Config(Common_Config):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.SetIonTypes(['b{}', 'y{}', 'c{}', 'z{}'])
+        self.varmod.extend(['Oxidation[M]', 'Phospho[S]', 'Phospho[T]', 'Phospho[Y]'])
         self.fragmentation = 'EThcD'
 
 
@@ -144,12 +145,3 @@ class HCD_AllMod_Config(Common_Config):
         self.min_var_mod_num = 0
         self.max_var_mod_num = 2
 
-
-class ETD_pho_Config(Common_Config):
-    def __init__(self):
-        super(self.__class__, self).__init__()
-        self.SetIonTypes(['c{}', 'z{}'])
-        self.varmod = ['Oxidation[M]', 'Phospho[S]', 'Phospho[T]', 'Phospho[Y]']
-        self.min_var_mod_num = 1
-        self.max_var_mod_num = 1
-        self.fragmentation = 'ETD'
