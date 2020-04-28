@@ -71,6 +71,7 @@ if __name__ == "__main__":
     parser.add_argument('--min_mz', type=float, default=300, required=False, help='Min mz of fragments in the library')
     parser.add_argument('--max_mz', type=float, default=2000, required=False, help='Max mz of fragments in the library')
     parser.add_argument('--ion_type', type=str, default="b,y,b-ModLoss,y-ModLoss", required=False, help='Ion types in the library')
+    parser.add_argument('--model', type=str, default="HCD", required=False, help='The model file or "HCD", "ETchD" ...')
     
     parser.add_argument('--min_precursor_charge', type=int, default=2, required=False, help='Min precursor charge of peptides in the library')
     parser.add_argument('--max_precursor_charge', type=int, default=4, required=False, help='Max precursor charge of peptides in the library')
@@ -198,7 +199,7 @@ if __name__ == "__main__":
     if psmLabel:
         Sort_psmLabel(psmLabel)
         
-    param = Set_pDeepParam(param, instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod, psmLabel_test=psmLabel, n_tune=args.n_tune_psm)
+    param = Set_pDeepParam(param, model=args.model, instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod, psmLabel_test=psmLabel, n_tune=args.n_tune_psm)
         
     
     prediction = tune_and_predict.run(param, peptide_list)

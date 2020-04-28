@@ -5,6 +5,8 @@ class Common_Config(object):
     def __init__(self):
         self.ion_terms = {'a{}': 'n', 'x{}': 'c', 'b{}': 'n', 'y{}': 'c', 'c{}': 'n', 'z{}': 'c', 'b{}-ModLoss': 'n', 'y{}-ModLoss': 'c', 'b{}-H2O': 'n', 'y{}-H2O': 'c', 'b{}-NH3': 'n', 'y{}-NH3': 'c'}
         for iontype, term in list(self.ion_terms.items()):
+            self.ion_terms[iontype.lower()] = term
+        for iontype, term in list(self.ion_terms.items()):
             self.ion_terms[iontype.format("")] = term
             
         self.all_mod_dict = get_modification()
@@ -60,11 +62,17 @@ class Common_Config(object):
 
     def CheckFixMod_fixpass(self, peptide, modlist):
         return True
+        
+    @property
+    def ion_types(self):
+        return self._ion_types
+    @ion_types.setter
+    def ion_types(self, ion_types):
+        self._ion_types = ion_types
+        self.SetPredictIonIndex() # predicted intensity index of different ions in ndarray
 
     def SetIonTypes(self, ion_types):
         self.ion_types = ion_types
-
-        self.SetPredictIonIndex()  # predicted intensity index of different ions in ndarray
 
     def GetIonTypeNames(self):
         return [ion_type.format("") for ion_type in self.ion_types]

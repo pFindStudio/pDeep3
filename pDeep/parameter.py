@@ -1,20 +1,17 @@
 class pDeepParameter:
     def __init__(self, cfg = None):
-        self._ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss'] # ion order for pDeep model, do not change this
         self._max_ion_charge = 2 # ion charge = 1 or 2 for pDeep model
         self._ion_terms = {'a{}': 'n', 'x{}': 'c', 'b{}': 'n', 'y{}': 'c', 'c{}': 'n', 'z{}': 'c', 'b{}-ModLoss': 'n', 'y{}-ModLoss': 'c', 'b{}-H2O': 'n', 'y{}-H2O': 'c', 'b{}-NH3': 'n', 'y{}-NH3': 'c'}
         for iontype, term in list(self._ion_terms.items()):
             self._ion_terms[iontype.format("")] = term
-        self._ion_type_idx = {}
-        for i in range(len(self._ion_types)):
-            self._ion_type_idx[self._ion_types[i]] = i
-            self._ion_type_idx[self._ion_types[i].format('')] = i
+        for iontype, term in list(self._ion_terms.items()):
+            self._ion_terms[iontype.lower()] = term
             
         ######################################################################
+        self.model = "HCD"
         
-        self.library_ion_types = self._ion_types
+        self.library_ion_types = self.ion_types
     
-        self.model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
         self.RT_model = "tmp/model/RT_model.ckpt"
         
         self._pDeepModel = None
@@ -47,6 +44,35 @@ class pDeepParameter:
         self.fasta = None
 
         if cfg: self._read_cfg(cfg)
+        
+    @property
+    def model(self):
+        return self._model
+    @model.setter
+    def model(self, _model):
+        if _model.upper() == "ETHCD":
+            self._model = "tmp/model/EThcD_bycz_Lumos_CE28.ckpt"
+            self.ion_types = ['b{}', 'y{}', 'c{}', 'z{}']
+        elif _model.upper() == "HCD":
+            self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
+            self.ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
+        elif _model.upper() == "PHOSPHO":
+            self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
+            self.ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
+        else:
+            self._model = _model
+            self.ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
+            
+    @property
+    def ion_types(self):
+        return self._ion_types
+    @ion_types.setter
+    def ion_types(self, _ion_types):
+        self._ion_types = _ion_types
+        self._ion_type_idx = {}
+        for i in range(len(self._ion_types)):
+            self._ion_type_idx[self._ion_types[i]] = i
+            self._ion_type_idx[self._ion_types[i].format('')] = i
 
     def GetPredictedIonTypeIndices(self, ion_types):
         return [self._ion_type_idx[iontype]*self._max_ion_charge+ch for iontype in ion_types for ch in range(self._max_ion_charge)]

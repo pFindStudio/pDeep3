@@ -21,18 +21,12 @@ if len(sys.argv) > 2:
     epochs = int(argd['-epoch'])
     n = int(argd['-n'])
 
-ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
-mod_config = fconfig.HCD_CommonMod_Config()
+ion_types = ['b{}', 'y{}', 'c{}', 'z{}']
+mod_config = fconfig.EThcD_Config()
 mod_config.SetIonTypes(ion_types)
 mod_config.time_step = 100
 mod_config.min_var_mod_num = 0
 mod_config.max_var_mod_num = 2
-
-phos_config = fconfig.HCD_pho_Config()
-phos_config.SetIonTypes(ion_types)
-phos_config.time_step = 100
-phos_config.min_var_mod_num = 0
-phos_config.max_var_mod_num = 1
 
 if model_name.endswith(".ckpt"):
     import pDeep.model_tf as model
@@ -45,11 +39,11 @@ pdeep = model.pDeepModel(mod_config)
 pdeep.learning_rate = 0.001
 pdeep.layer_size = 256
 pdeep.batch_size = 1024
-pdeep.dropout = 0.4
+pdeep.dropout = 0.3
 pdeep.BuildModel(aa_size=82, mod_size=mod_config.GetModFeatureSize() * 2, output_size=mod_config.GetTFOutputSize(), nlayers=2)
 
 pdeep.epochs = epochs
-max_n_test = 100 if n > 100 else n
+max_n_test = 10000000 if n > 100 else n
 
 instrument_list = ["QE", "Velos", "Elite", "Lumos", "Fusion"]
 
@@ -73,12 +67,13 @@ strFusion = "Fusion"
 # except:
     # pass
 
-tr_test = r"e:\DIAData\Specter\HEK_SpikeP100\108ng"
+train_path = "/home/pfind/pDeepDev/pDeepData/ethcd/train"
+test_path = "/home/pfind/pDeepDev/pDeepData/ethcd/test"
 
 start_time = time.perf_counter()
 
 buckets = {}
-if "QE" in instrument_list: buckets = merge_buckets(buckets, load_folder(tr_test, mod_config, nce=27, instrument=strQE, max_n_samples=n))
+if "Lumos" in instrument_list: buckets = merge_buckets(buckets, load_folder(train_path, mod_config, nce=28, instrument=strLumos, max_n_samples=n))
 
 print('[I] train data:')
 print_buckets(buckets, print_peplen=False)
@@ -93,17 +88,18 @@ pdeep.TrainModel(buckets, save_as=os.path.join(out_folder, model_name))
 train_time = time.perf_counter()
 
 print('[I] test data:')
-test_buckets = load_folder(tr_test, mod_config, nce=25, instrument='Lumos', max_n_samples=max_n_test)
+test_buckets = load_folder(test_path, mod_config, nce=28, instrument=strLumos, max_n_samples=max_n_test)
 
 _start_test_time = time.perf_counter()
 
-def test(pcc, cos, spc, kdt, SA, saveplot):
+def test(pdeep, test_buckets, saveplot):
+    output_buckets = pdeep.Predict(test_buckets)
+    pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, test_buckets)
     sim_names = ['PCC', 'COS', 'SPC', 'KDT', 'SA']
     print(evaluate.cum_plot([pcc, cos, spc, kdt, SA], sim_names, evaluate.thres_list, saveplot=saveplot))
 
-output_buckets = pdeep.Predict(test_buckets)
-pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, test_buckets)
-test(pcc, cos, spc, kdt, SA, saveplot=None)
+test(pdeep, buckets, saveplot=None)
+test(pdeep, test_buckets, saveplot=None)
 
 test_time = time.perf_counter()
 

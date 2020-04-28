@@ -100,7 +100,8 @@ def ReadModSeq(spikein_file):
             pep_pro_dict[seq] = protein
     return peptide_list, pep_pro_dict
     
-def Set_pDeepParam(param, instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4):
+def Set_pDeepParam(param, model, instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4):
+    param.model = model
     param.predict_instrument = instrument
     param.predict_nce = ce
     if psmLabel: param.tune_psmlabels.append(psmLabel)

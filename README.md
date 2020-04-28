@@ -173,3 +173,11 @@ Run
 python -m pDeep.cmd.generate_predicted_speclib --help
 ```
 to see detailed usage information.
+
+## Using EThcD model
+Example:
+```
+python -m pDeep.cmd.generate_predicted_speclib --input tmp/predict/peptide.txt --output xxxx.msp --model EThcD --ion_type b,y,c,z --instrument Lumos --ce 28 --min_intensity 0.0001
+```
+Here, for .msp file, all non-zero ions should be generated, hence "--min_intensity 0.0001".
+***Note that EThcD model was only trained by ProteomeTools, so the instrument and ce parameters must be: "--instrument Lumos --ce 28", 28 is the NCE of HCD***

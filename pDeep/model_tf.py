@@ -103,8 +103,8 @@ class pDeepModel:
                     with tf.compat.v1.variable_scope("output_nn"):
                         outputs = tf.keras.layers.LSTM(output_size, return_sequences=True, recurrent_dropout=self._rnn_dropout)(x)
                         return outputs
-                if use_tf2: return tf_v2(x, id)
-                else: return tf_v1(x, id)
+                if use_tf2: return tf_v2(x)
+                else: return tf_v1(x)
 
             # def OutputBiRNN(x):
                 # cell_fw = tf.nn.rnn_cell.LSTMCell(output_size)

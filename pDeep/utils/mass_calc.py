@@ -134,10 +134,14 @@ class PeptideIonCalculator:
                 ions.extend([bions/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
             elif _type == 'y':
                 ions.extend([yions/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
-            elif _type == 'b-ModLoss':
+            elif _type == 'c':
+                ions.extend([self.calc_c_from_b(bions)/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
+            elif _type == 'z':
+                ions.extend([self.calc_z_from_b(bions, pepmass)/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
+            elif _type.lower() == 'b-modloss':
                 bloss = self.calc_Nterm_modloss(bions, modloss_list, modname_list)
                 ions.extend([bloss/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
-            elif _type == 'y-ModLoss':
+            elif _type.lower() == 'y-modloss':
                 yloss = self.calc_Cterm_modloss(yions, modloss_list, modname_list)
                 ions.extend([yloss/charge+self.base_mass.mass_proton for charge in range(1, max_charge+1)])
         return pepmass, np.array(ions).T # shape should be (seq_len, ion_type)

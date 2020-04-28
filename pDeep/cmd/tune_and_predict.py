@@ -22,7 +22,7 @@ def init_config(param):
     mod_config = pDconfig.HCD_CommonMod_Config()
     mod_config.SetFixMod(param.fixmod)
     mod_config.SetVarMod(param.varmod)
-    mod_config.SetIonTypes(param._ion_types)
+    mod_config.SetIonTypes(param.ion_types)
     mod_config.min_var_mod_num = param.min_varmod
     mod_config.max_var_mod_num = param.max_varmod
     param.config = mod_config
@@ -190,7 +190,7 @@ def run(pDeep_cfg, peptide_list = None):
         RT_buckets = None
     return pDeepPrediction(param.config, pep_buckets, predict_buckets, RT_buckets)
     
-def get_prediction(input_peptides, tune_psm = None, raw = None, n_psm_to_tune = 1000, instrument = 'QE', ce = 27):
+def get_prediction(input_peptides, tune_psm = None, raw = None, n_psm_to_tune = 1000, instrument = 'QE', ce = 27, model = "HCD"):
     '''
     @param input_peptides, could be a peptide list [(sequence1, mod1, charge1), (seq2, mod2, charge2), ...] to be predicted, or a file containing tab seperated head "peptide, modinfo, charge, protein".
     @param tune_psm evidence.txt (MaxQuant), .spectra (pFind) or *.psm.txt/*.txt (with tab seperated head "raw_name, scan, peptide, modinfo, charge, RTInSeconds") file for tuning pDeep and pDeepRT. If it is None, the model will not be tuned (default None).
@@ -237,15 +237,15 @@ def get_prediction(input_peptides, tune_psm = None, raw = None, n_psm_to_tune = 
     
     param = pDeepParameter()
         
-    param = Set_pDeepParam(param, instrument=instrument, ce=ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=",".join(mod_set), varmod=None, n_tune=n_psm_to_tune)
+    param = Set_pDeepParam(param, model, instrument=instrument, ce=ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=",".join(mod_set), varmod=None, n_tune=n_psm_to_tune)
     
     return run(param, peptide_list) #return a pDeep.prediction.pDeepPrediction object
     
 if __name__ == "__main__":
     input_peptides = [('ACDMNLK', '2,Carbamidomethyl[C];4,Oxidation[M]', 3)]
-    ion_types = ['b','y']
-    # prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt.psm.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
-    prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
+    ion_types = ['b','y', 'c', 'z']
+    # prediction = get_prediction(input_peptides, tune_psm=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\combined\txt\evidence.txt", raw=r"e:\DDATools\MaxQuant_1.6.12.0\test_data\20141010_DIA_20x5mz_700to800.raw")
+    prediction = get_prediction(input_peptides, model="EThcD")
     ion_indices, used_ion_types = prediction.GetIonTypeIndices(ion_types)
     print(used_ion_types)
     print(prediction.GetIntensitiesByIndices(*input_peptides[0], ion_indices))
