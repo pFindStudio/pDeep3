@@ -180,4 +180,7 @@ Example:
 python -m pDeep.cmd.generate_predicted_speclib --input tmp/predict/peptide.txt --output xxxx.msp --model EThcD --ion_type b,y,c,z --instrument Lumos --ce 28 --min_intensity 0.0001
 ```
 Here, for .msp file, all non-zero ions should be generated, hence "--min_intensity 0.0001".
-***Note that EThcD model was only trained by ProteomeTools, so the instrument and ce parameters must be: "--instrument Lumos --ce 28", 28 is the NCE of HCD***
+***Note that EThcD model was only trained by ProteomeTools, so the instrument and ce parameters must be: "--instrument Lumos --ce 28" even you use Fusion or other instruments (28 is the NCE of HCD).***
+
+## Supporting TensorFlow2
+tf2 models have been trained for HCD and EThcD, and pDeep will automatically load the tf2 model by checking tf.__version__. However, there is a bug in fine-tuning when using tf2 (v2.1.0), it seems that it has been fixed in the nightly built version (see https://github.com/tensorflow/tensorflow/issues/34211).

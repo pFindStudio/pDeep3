@@ -1,3 +1,5 @@
+from .model_tf import use_tf2
+
 class pDeepParameter:
     def __init__(self, cfg = None):
         self._max_ion_charge = 2 # ion charge = 1 or 2 for pDeep model
@@ -12,7 +14,7 @@ class pDeepParameter:
         
         self.library_ion_types = self.ion_types
     
-        self.RT_model = "tmp/model/RT_model.ckpt"
+        self.RT_model = "tmp/model/RT-model.ckpt"
         
         self._pDeepModel = None
         self._pDeepRT = None
@@ -51,13 +53,16 @@ class pDeepParameter:
     @model.setter
     def model(self, _model):
         if _model.upper() == "ETHCD":
-            self._model = "tmp/model/EThcD_bycz_Lumos_CE28.ckpt"
+            if use_tf2: self._model = "tmp/model/EThcD-tf2-bycz-Lumos-CE28.ckpt"
+            else: self._model = "tmp/model/EThcD-bycz-Lumos-CE28.ckpt"
             self.ion_types = ['b{}', 'y{}', 'c{}', 'z{}']
         elif _model.upper() == "HCD":
-            self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
+            if use_tf2: self._model = "tmp/model/pretrain-tf2-200412.ckpt"
+            else: self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
             self.ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
-        elif _model.upper() == "PHOSPHO":
-            self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
+        elif _model.upper() == "PHOSPHO" or _model.upper() == "PHOS":
+            if use_tf2: self._model = "tmp/model/pretrain-tf2-200412.ckpt"
+            else: self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
             self.ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
         else:
             self._model = _model
