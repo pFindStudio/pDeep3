@@ -52,8 +52,11 @@ class pDeepParameter:
 
         if cfg: self._read_cfg(cfg)
         
-    def InitConfig(self):
-        self.config = HCD_CommonMod_Config()
+    def InitConfig(self, config = None):
+        if config is None:
+            self.config = HCD_CommonMod_Config()
+        else:
+            self.config = config
         self.config.SetFixMod(self.fixmod)
         self.config.SetVarMod(self.varmod)
         self.config.SetIonTypes(self.ion_types)
@@ -109,6 +112,7 @@ class pDeepParameter:
     @ion_types.setter
     def ion_types(self, _ion_types):
         self._ion_types = _ion_types
+        if self.config is not None: self.config.SetIonTypes(_ion_types)
         self._ion_type_idx = {}
         for i in range(len(self._ion_types)):
             self._ion_type_idx[self._ion_types[i]] = i
