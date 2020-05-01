@@ -120,7 +120,7 @@ class b2bplot(object):
             for i in range(len(target_ions)):
                 x = target_ions[i] / charge + self.mass_proton
                 y = predictions[i, type_idx]
-                if x > self.max_plot_mz or y > -self.min_plot_inten or x < 10: #x < 2Da for modloss outside the modsite
+                if x > self.real_max_mz or y > -self.min_plot_inten or x < 10: #x < 2Da for modloss outside the modsite
                     matched_inten.append(0)
                 else:
                     if self.config.ion_terms[ion_type] == 'c': ion_idx = len(target_ions)-i
@@ -281,9 +281,9 @@ if __name__ == "__main__":
     
     raw_path = r"e:\DIAData\Specter\HEK_SpikeP100\DDA_data\CS20170922_SV_HEK_SpikeP100_108ng_DDA.raw"
     psm_path = r"e:\DIAData\Specter\HEK_SpikeP100\DDA_data\pFind3\result\pFind-Filtered.spectra.psm.txt"
-    pdeep_prediction = get_prediction(psm_path)
+    pdeep_prediction = get_prediction(psm_path, model="EThcD")
     
-    bbplot = b2bplot(pdeep_prediction, ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss'])
+    bbplot = b2bplot(pdeep_prediction, ['b{}', 'y{}', 'c{}', 'z{}'])
     bbplot.OpenRawFile(raw_path)
     
     raw, scan, peptide, modinfo, charge = 'CS20170922_SV_HEK_SpikeP100_108ng_DDA	39575	GHVFEESQVAGTPMFVVK	14,Oxidation[M]	3'.split('\t')[:5]

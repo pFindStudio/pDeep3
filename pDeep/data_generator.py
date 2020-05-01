@@ -104,7 +104,11 @@ def Set_pDeepParam(param, model, instrument = "QE", ce = 27, psmLabel = "", psmR
     param.model = model
     param.predict_instrument = instrument
     param.predict_nce = ce
-    if psmLabel: param.tune_psmlabels.append(psmLabel)
+    if psmLabel: 
+        param.tune_psmlabels.append(psmLabel)
+        param.tune_save_as = os.path.join(os.path.split(psmLabel)[0], "pDeep_tune.ckpt")
+    if psmRT:
+        param.tune_RT_save_as = os.path.join(os.path.split(psmRT)[0], "pDeep_RT_tune.ckpt")
     param.tune_RT_psmlabel = psmRT
     param.test_RT_psmlabel = psmRT
     if fixmod: param.fixmod.extend(fixmod.strip(",").split(","))

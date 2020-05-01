@@ -1,7 +1,7 @@
 import sys
 import os
-from shutil import copyfile
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+from shutil import copyfile
 
 from ..spectral_library.library_base import SequenceLibrary 
 from ..sequence.protein_infer import infer_protein

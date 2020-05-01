@@ -1,4 +1,5 @@
 from .model_tf import use_tf2
+from .config.pDeep_config import HCD_CommonMod_Config
 
 class pDeepParameter:
     def __init__(self, cfg = None):
@@ -38,14 +39,48 @@ class pDeepParameter:
         self.epochs = 2
         self.n_tune_per_psmlabel = 1000
         self.tune_batch = 1024
+        self.tune_save_as = None
+        self.tune_RT_save_as = None
         
         self.test_psmlabels = []
         self.test_RT_psmlabel = ""
         self.n_test_per_psmlabel = 100000000
 
         self.fasta = None
+        
+        self.config = None
 
         if cfg: self._read_cfg(cfg)
+        
+    def InitConfig(self):
+        self.config = HCD_CommonMod_Config()
+        self.config.SetFixMod(self.fixmod)
+        self.config.SetVarMod(self.varmod)
+        self.config.SetIonTypes(self.ion_types)
+        self.config.min_var_mod_num = self.min_varmod
+        self.config.max_var_mod_num = self.max_varmod
+        
+    @property
+    def tune_save_as(self):
+        return self._tune_save
+    @tune_save_as.setter
+    def tune_save_as(self, save_as):
+        if save_as is None: self._tune_save = None
+        elif save_as.endswith(".ckpt"):
+            self._tune_save = save_as
+        else:
+            self._tune_save = save_as + ".ckpt"
+        
+    @property
+    def tune_RT_save_as(self):
+        return self._tune_RT_save
+    @tune_RT_save_as.setter
+    def tune_RT_save_as(self, save_as):
+        if save_as is None: self._tune_RT_save = None
+        elif save_as.endswith(".ckpt"):
+            self._tune_RT_save = save_as
+        else:
+            self._tune_RT_save = save_as + ".ckpt"
         
     @property
     def model(self):
@@ -140,6 +175,10 @@ class pDeepParameter:
                     self.n_tune_per_psmlabel = get_int(line)
                 elif line.startswith("tune_RT_psmlabel"):
                     self.tune_RT_psmlabel = get_str(line)
+                elif line.startswith("tune_save_as"):
+                    self.tune_save_as = get_str(line)
+                elif line.startswith("tune_RT_save_as"):
+                    self.tune_RT_save_as = get_str(line)
                     
                 elif line.startswith("test_psmlabels"):
                     line = get_str(line)

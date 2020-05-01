@@ -96,7 +96,7 @@ def tune(param):
         pdeep.batch_size = param.tune_batch
         start_time = time.perf_counter()
         train_buckets = load_data.load_plabel_as_buckets(param.tune_psmlabels, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
-        pdeep.TrainModel(train_buckets, save_as=None)
+        pdeep.TrainModel(train_buckets, save_as=param.tune_save_as)
         print("[pDeep Info] tuning time = %.3fs"%(time.perf_counter() - start_time))
         print("\n\n")
         
@@ -104,7 +104,7 @@ def tune(param):
         try:
             start_time = time.perf_counter()
             train_buckets = load_data.load_RT_file_as_buckets(param.tune_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
-            pdeep_RT.TrainModel(train_buckets, save_as=None)
+            pdeep_RT.TrainModel(train_buckets, save_as=param.tune_RT_save_as)
             print("[pDeep Info] RT tuning time = %.3fs"%(time.perf_counter() - start_time))
         except:
             print("[Error] exception in tuning RT: '{}'".format(param.tune_RT_psmlabel))
