@@ -11,6 +11,9 @@ class pDeepParameter:
             self._ion_terms[iontype.lower()] = term
             
         ######################################################################
+        
+        self.config = None
+        
         self.model = "HCD"
         
         self.library_ion_types = self.ion_types
@@ -47,8 +50,6 @@ class pDeepParameter:
         self.n_test_per_psmlabel = 100000000
 
         self.fasta = None
-        
-        self.config = None
 
         if cfg: self._read_cfg(cfg)
         

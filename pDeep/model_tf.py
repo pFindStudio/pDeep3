@@ -165,8 +165,19 @@ class pDeepModel:
         # print(transfer_vars)
 
         self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
+        
+        ten_names = [n for n in tf.compat.v1.get_default_graph().as_graph_def().node]
+        def name_exist(name):
+            for n in ten_names:
+                if name in n.name: return True
+            return False
+        
+        for i in range(1000):
+            if not name_exist("transfer_%d_%s"%(i, self.optim_name)): 
+                transfer_scope = "transfer_%d_%s"%(i, self.optim_name)
+                break
 
-        self._optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate, name="transfer_" + self.optim_name)
+        self._optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate, name=transfer_scope)
 
         self._mininize = self._optimizer.minimize(self._loss, var_list=transfer_vars)
 

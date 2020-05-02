@@ -109,7 +109,7 @@ class b2bplot(object):
     def Plot_Predict(self, plotax, ions, predictions):
         valign = 'top'
         vmargin = -0.05
-        
+        # print(predictions)
         predictions = -predictions*self.max_real_inten
         matched_inten = []
         for charged_ion_type, type_idx in zip(self.used_ion_types, self.ion_indices):
@@ -279,18 +279,19 @@ if __name__ == "__main__":
     import matplotlib
     matplotlib.use('TkAgg') # this is necessary because tf will change the default matplotlib backend
     
-    raw_path = r"e:\DIAData\Specter\HEK_SpikeP100\DDA_data\CS20170922_SV_HEK_SpikeP100_108ng_DDA.raw"
-    psm_path = r"e:\DIAData\Specter\HEK_SpikeP100\DDA_data\pFind3\result\pFind-Filtered.spectra.psm.txt"
-    pdeep_prediction = get_prediction(psm_path, model="EThcD")
+    raw_path = r"d:\DataSets\pDeepSite\PhosSyn\raw\1.raw"
+    psm_path = r"d:\DataSets\pDeepSite\PhosSyn\raw\1.psm.txt"
+    pdeep_prediction = get_prediction(psm_path, model=r"d:\DataSets\pDeepSite\PhosSyn\pDeep-phos\pretrain_phosyn_vls40.ckpt", instrument = 'Velos', ce = 40)
+    # pdeep_prediction = get_prediction(psm_path, model="HCD")
     
-    bbplot = b2bplot(pdeep_prediction, ['b{}', 'y{}', 'c{}', 'z{}'])
+    bbplot = b2bplot(pdeep_prediction, ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss'])
     bbplot.OpenRawFile(raw_path)
     
-    raw, scan, peptide, modinfo, charge = 'CS20170922_SV_HEK_SpikeP100_108ng_DDA	39575	GHVFEESQVAGTPMFVVK	14,Oxidation[M]	3'.split('\t')[:5]
+    raw, scan, peptide, modinfo, charge = '1	4179	ALLSLGSSK	7,Phospho[S]	2'.split('\t')[:5]
     bbplot.PrePlot(raw, int(scan), peptide, modinfo, int(charge))
     bbplot.ShowPlot()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot1.png')
     
-    raw, scan, peptide, modinfo, charge = 'CS20170922_SV_HEK_SpikeP100_108ng_DDA	39018	VLVEPDAGAGVAVMK		2	2302.39572'.split('\t')[:5]
+    raw, scan, peptide, modinfo, charge = '1	4179	ALLSLGSSK	8,Phospho[S]	2'.split('\t')[:5]
     bbplot.PrePlot(raw, int(scan), peptide, modinfo, int(charge))
     bbplot.ShowPlot()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot2.png')
     
