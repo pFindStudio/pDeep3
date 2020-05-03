@@ -279,19 +279,19 @@ if __name__ == "__main__":
     import matplotlib
     matplotlib.use('TkAgg') # this is necessary because tf will change the default matplotlib backend
     
-    raw_path = r"d:\DataSets\pDeepSite\PhosSyn\raw\1.raw"
+    raw_path = r"d:\DataSets\pDeepSite\PhosSyn\raw\87.raw"
     psm_path = r"d:\DataSets\pDeepSite\PhosSyn\raw\1.psm.txt"
-    pdeep_prediction = get_prediction(psm_path, model=r"d:\DataSets\pDeepSite\PhosSyn\pDeep-phos\pretrain_phosyn_vls40.ckpt", instrument = 'Velos', ce = 40)
+    pdeep_prediction = get_prediction(psm_path, model=r"e:\DIAData\WenBoPhos\JHU_PDX\pDeepModel\pretrain-phos-RMSE.ckpt", instrument = 'Velos', ce = 40)
     # pdeep_prediction = get_prediction(psm_path, model="HCD")
     
     bbplot = b2bplot(pdeep_prediction, ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss'])
     bbplot.OpenRawFile(raw_path)
     
-    raw, scan, peptide, modinfo, charge = '1	4179	ALLSLGSSK	7,Phospho[S]	2'.split('\t')[:5]
+    raw, scan, peptide, modinfo, charge = '87	4773	LLKEGEEPTVISSEEEPKDESAR	12,Phospho[S]	2'.split('\t')[:5]
     bbplot.PrePlot(raw, int(scan), peptide, modinfo, int(charge))
-    bbplot.ShowPlot()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot1.png')
+    # bbplot.ShowPlot()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot1.png')
     
-    raw, scan, peptide, modinfo, charge = '1	4179	ALLSLGSSK	8,Phospho[S]	2'.split('\t')[:5]
+    raw, scan, peptide, modinfo, charge = '87	4773	LLKEGEEPTVISSEEEPKDESAR	13,Phospho[S]	2'.split('\t')[:5]
     bbplot.PrePlot(raw, int(scan), peptide, modinfo, int(charge))
     bbplot.ShowPlot()#save_as = r'e:\DIAData\Specter\HEK_SpikeP100\DDA_data\bbplot2.png')
     

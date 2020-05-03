@@ -7,7 +7,7 @@ import tensorflow as tf
 from scipy.stats import pearsonr
 
 from ..parameter import pDeepParameter
-from ..bucket import peptide_as_key
+from ..bucket import peptide_as_key, merge_buckets
 from ..config import pDeep_config as pDconfig
 from .. import load_data as load_data
 from .. import evaluate as evaluate
@@ -33,7 +33,7 @@ def init_pdeep(param):
     pdeep = model.pDeepModel(param.config)
     pdeep.epochs = param.epochs
     pdeep.num_threads = param.threads
-    pdeep.dropout = 0
+    pdeep.dropout = param.dropout
     if param.RT_model:
         pdeep_RT = pDeepRTModel(param.config)
         pdeep_RT.epochs = param.epochs*2
@@ -68,7 +68,13 @@ def tune(param):
             pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, buckets)
             sim_names = ['PCC', 'SPC']
             return evaluate.cum_plot([pcc, spc], sim_names, evaluate.thres_list)
-        test_buckets = load_data.load_plabel_as_buckets(param.test_psmlabels, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
+        if not param.test_instruments or not param.test_nces:
+            test_buckets = load_data.load_plabel_as_buckets(param.test_psmlabels, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
+        else:
+            test_buckets = {}
+            for psmlabel, instrument, nce in zip(param.test_psmlabels, param.test_instruments, param.test_nces):
+                print(psmlabel, instrument, nce)
+                test_buckets = merge_buckets(test_buckets, load_data.load_plabel_as_buckets([psmlabel], param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel))
         eval_model(pdeep, test_buckets)
         print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
@@ -95,7 +101,14 @@ def tune(param):
     if param.tune_psmlabels:
         pdeep.batch_size = param.tune_batch
         start_time = time.perf_counter()
-        train_buckets = load_data.load_plabel_as_buckets(param.tune_psmlabels, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
+        if not param.tune_instruments or not param.tune_nces:
+            train_buckets = load_data.load_plabel_as_buckets(param.tune_psmlabels, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
+        else:
+            train_buckets = {}
+            for psmlabel, instrument, nce in zip(param.tune_psmlabels, param.tune_instruments, param.tune_nces):
+                print(psmlabel, instrument, nce)
+                train_buckets = merge_buckets(train_buckets, load_data.load_plabel_as_buckets([psmlabel], param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel))
+        # train_buckets = load_data.load_plabel_as_buckets(param.tune_psmlabels, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
         pdeep.TrainModel(train_buckets, save_as=param.tune_save_as)
         print("[pDeep Info] tuning time = %.3fs"%(time.perf_counter() - start_time))
         print("\n\n")

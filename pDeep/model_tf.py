@@ -165,6 +165,7 @@ class pDeepModel:
         # print(transfer_vars)
 
         self._loss = tf.reduce_mean(tf.abs(self._prediction - self._y))
+        # self._loss = tf.sqrt(tf.reduce_mean(tf.square(self._prediction - self._y)))
         
         ten_names = [n for n in tf.compat.v1.get_default_graph().as_graph_def().node]
         def name_exist(name):

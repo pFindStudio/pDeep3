@@ -38,14 +38,19 @@ class pDeepParameter:
 
         # tune parameters:
         self.tune_psmlabels = []
+        self.tune_instruments = []
+        self.tune_nces = []
         self.tune_RT_psmlabel = ""
         self.epochs = 2
         self.n_tune_per_psmlabel = 1000
         self.tune_batch = 1024
+        self.dropout = 0
         self.tune_save_as = None
         self.tune_RT_save_as = None
         
         self.test_psmlabels = []
+        self.test_instruments = []
+        self.test_nces = []
         self.test_RT_psmlabel = ""
         self.n_test_per_psmlabel = 100000000
 
@@ -126,13 +131,13 @@ class pDeepParameter:
         with open(cfg) as f:
             lines = f.readlines()
 
-            def parse_folder(line):
-                items = line.split("=")[1].split("|")
-                items[0] = items[0].strip()  # folder
-                items[1] = items[1].strip()  # instrument
-                items[2] = int(items[2].strip())  # NCE
-                if len(items) >= 4: items[3] = items[3].strip()
-                return items
+            # def parse_folder(line):
+                # items = line.split("=")[1].split("|")
+                # items[0] = items[0].strip()  # folder
+                # items[1] = items[1].strip()  # instrument
+                # items[2] = int(items[2].strip())  # NCE
+                # if len(items) >= 4: items[3] = items[3].strip()
+                # return items
 
             def get_int(line):
                 return int(get_str(line))
@@ -160,9 +165,15 @@ class pDeepParameter:
                 elif line.startswith("max_mod_check"):
                     self.max_varmod = get_int(line)
 
+                # elif line.startswith("predict_input"):
+                    # self.predict_input, self.predict_instrument, self.predict_nce = parse_folder(line)[:3]
+                    # self.predict_nce = int(self.predict_nce)
+                elif line.startswith("predict_instrument"):
+                    self.predict_instrument = get_str(line)
+                elif line.startswith("predict_instrument"):
+                    self.predict_nce = float(get_str(line))
                 elif line.startswith("predict_input"):
-                    self.predict_input, self.predict_instrument, self.predict_nce = parse_folder(line)[:3]
-                    self.predict_nce = int(self.predict_nce)
+                    self.predict_input = get_str(line)
                 elif line.startswith("predict_output"):
                     self.predict_output = get_str(line)
                 elif line.startswith("fasta"):
@@ -172,6 +183,12 @@ class pDeepParameter:
                 elif line.startswith("tune_psmlabels"):
                     line = get_str(line)
                     if line: self.tune_psmlabels = [s.strip() for s in line.split("|")]
+                elif line.startswith("tune_instruments"):
+                    line = get_str(line)
+                    if line: self.tune_instruments = [s.strip() for s in line.split("|")]
+                elif line.startswith("tune_nces"):
+                    line = get_str(line)
+                    if line: self.tune_nces = [float(s.strip()) for s in line.split("|")]
                 elif line.startswith("tune_epochs"):
                     self.epochs = get_int(line)
                 elif line.startswith("tune_batch"):
@@ -188,6 +205,12 @@ class pDeepParameter:
                 elif line.startswith("test_psmlabels"):
                     line = get_str(line)
                     if line: self.test_psmlabels = [s.strip() for s in line.split("|")]
+                elif line.startswith("test_instruments"):
+                    line = get_str(line)
+                    if line: self.test_instruments = [s.strip() for s in line.split("|")]
+                elif line.startswith("test_nces"):
+                    line = get_str(line)
+                    if line: self.test_nces = [float(s.strip()) for s in line.split("|")]
                 elif line.startswith("test_RT_psmlabel"):
                     self.test_RT_psmlabel = get_str(line)
                 elif line.startswith("n_test_per_psmlabel"):
