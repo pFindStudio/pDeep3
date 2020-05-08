@@ -55,18 +55,18 @@ def add_to_test(param, psmlabels, nces, instruments):
     param.test_nces.extend(nces)
     param.test_instruments.extend(instruments)
     
-# add_to_train(param, *get_psmlabels(*train_Vls))
-# add_to_train(param, *get_psmlabels(*train_QE))
-# add_to_train(param, *get_psmlabels(*train_Lumos))
-# add_to_test(param, *get_psmlabels(*test_Vls))
-# add_to_test(param, *get_psmlabels(*test_QE))
-add_to_train(param, *get_psmlabels(*train_WB))
-add_to_test(param, *get_psmlabels(*test_WB))
+add_to_train(param, *get_psmlabels(*train_Vls))
+add_to_train(param, *get_psmlabels(*train_QE))
+add_to_train(param, *get_psmlabels(*train_Lumos))
+add_to_test(param, *get_psmlabels(*test_Vls))
+add_to_test(param, *get_psmlabels(*test_QE))
+# add_to_train(param, *get_psmlabels(*train_WB))
+# add_to_test(param, *get_psmlabels(*test_WB))
 
 tune_and_predict.init_config(param)
 
 pdeep, _ = tune_and_predict.tune(param)
 
-pdeep.SaveModel("tmp/model/pretrain-phos-RMSE.ckpt")
+pdeep.SaveModel("tmp/model/pretrain-phos.ckpt")
 
 

@@ -31,7 +31,7 @@ def _from_tsv(tsvfile):
     return _read_lib(tsv, tsvfile)
 
 def _from_pqp(pqpfile):
-    pqp = OSW_PQP()
+    pqp = PQP()
     return _read_lib(pqp, pqpfile)
     
 def _from_dlib(dlibfile):
