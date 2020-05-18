@@ -72,6 +72,7 @@ class OSW_TSV(LibraryBase):
         
         self.set_precision(10, 1)
         self.decoy = "pseudo_reverse" #or reverse
+        self.col_sep = "\t"
         
     def set_precision(self, mass_precision, inten_precision):
         self._mass_precision = mass_precision
@@ -109,7 +110,7 @@ class OSW_TSV(LibraryBase):
         start = time.perf_counter()
         
         f = open(self.tsv_file)
-        _head = f.readline().strip().split("\t")
+        _head = f.readline().strip().split(self.col_sep)
         _headidx = dict(zip(_head, range(len(_head))))
         
         def _get(items, col):
@@ -120,7 +121,7 @@ class OSW_TSV(LibraryBase):
         while True:
             line = f.readline()
             if not line: break
-            items = line.strip().split("\t")
+            items = line.strip().split(self.col_sep)
             if _get(items, 'decoy') == "1": continue
             mod_seq = _get(items, "FullUniModPeptideName")
             seq, mod = PeptideModSeq2pDeepFormat(mod_seq)
@@ -168,12 +169,12 @@ class OSW_TSV(LibraryBase):
             self._set(items, 'Annotation', '%s%d^%d/0'%(ion_type, site, charge) if charge > 1 else '%s%d/0'%(ion_type, site))
             self._set(items, "transition_name", "%d_%s_%d"%(transition_count, labeled_seq, pre_charge))
             
-            _file.write("\t".join(items)+"\n")
+            _file.write(self.col_sep.join(items)+"\n")
         return pep_count, transition_count
         
     def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}):
         f = open(self.tsv_file, "w")
-        f.write("\t".join(self.head)+"\n")
+        f.write(self.col_sep.join(self.head)+"\n")
         print("[pDeep Info] updating tsv ...")
         transition_count = 0
         count = 0

@@ -26,6 +26,7 @@ class LibraryBase(object):
         self.max_mz = 2000
         self.min_intensity = 0.1
         self.least_n_peaks = 6
+        self.inten_base = 10000
         
     @property
     def ion_types(self):
@@ -139,7 +140,7 @@ class LibraryBase(object):
             types = types[intens > self.min_intensity]
             charges = charges[intens > self.min_intensity]
             if self.decoy: decoy_masses = decoy_masses[intens > self.min_intensity]
-            intens = intens[intens > self.min_intensity] * 10000
+            intens = intens[intens > self.min_intensity] * self.inten_base
         else:
             indices = np.argsort(intens)[::-1]
             masses = masses[indices[:self.least_n_peaks]]
@@ -147,7 +148,7 @@ class LibraryBase(object):
             types = types[indices[:self.least_n_peaks]]
             charges = charges[indices[:self.least_n_peaks]]
             if self.decoy: decoy_masses = decoy_masses[indices[:self.least_n_peaks]]
-            intens = intens[indices[:self.least_n_peaks]] * 10000
+            intens = intens[indices[:self.least_n_peaks]] * self.inten_base
         if self.decoy:
             u_masses = decoy_masses[decoy_masses < 10]
             decoy_masses[decoy_masses < 10] = np.random.random_sample(u_masses.shape)*(self.max_mz - self.min_mz) + self.min_mz

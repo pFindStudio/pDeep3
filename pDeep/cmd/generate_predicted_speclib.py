@@ -146,7 +146,8 @@ if __name__ == "__main__":
         peptide_list, pep_pro_dict = _from_pFind(args.input)
         _add_mod_from_library(peptide_list)
     else:
-        peptide_list, pep_pro_dict = seqlib.PeptideListFromPeptideFile(args.input)
+        peptide_list, pep_pro_dict = ReadModSeq(args.input)
+        _add_mod_from_library(peptide_list)
     
     if args.RT_input:
         RT_seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
@@ -161,7 +162,7 @@ if __name__ == "__main__":
             RT_peptide_list, RT_pep_pro_dict = _from_tsv(args.RT_input)
             _add_mod_from_library(RT_peptide_list)
         else:
-            RT_peptide_list, RT_pep_pro_dict = RT_seqlib.PeptideListFromPeptideFile(args.RT_input)
+            RT_peptide_list, RT_pep_pro_dict = ReadModSeq(args.RT_input)
     
     if args.spikein:
         spkin_seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.spikein_varmod, fixmod=args.spikein_fixmod)

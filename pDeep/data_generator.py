@@ -11,6 +11,7 @@ from .pyRawFileReader.MGFFileReader import pFindMGFReader
 
 from .spectral_library.encyclopedia.dlib import DLIB
 from .spectral_library.openswath.tsv import OSW_TSV
+from .spectral_library.spectronaut.csv import SPN_CSV
 from .spectral_library.openswath.pqp import PQP,OSW
 from .spectral_library.msp import MSP
 from .search_engine.maxquant_reader import MaxQuantEvidenceReader as MQE
@@ -30,6 +31,7 @@ def GetLibraryWriter(filename, pDeepParam):
 _register_library_writer('.dlib', DLIB)
 _register_library_writer('.pqp', PQP)
 _register_library_writer('.tsv', OSW_TSV)
+_register_library_writer('.csv', SPN_CSV)
 _register_library_writer('.msp', MSP)
 
 def __get_raw_reader(raw_path):

@@ -31,7 +31,9 @@ def read_protein_list(fasta, protein_list):
                 if seq is not None:
                     ret[ac] = Protein(ac, de, seq)
                 line = line.strip()[1:].replace("\t", " ")
-                ac, de = line.split(" ", 1)
+                items = line.split(" ", 1)
+                if len(items) == 1: ac, de = items[0], ""
+                else: ac, de = items
                 if check_in_protein_list(ac):
                     seq = ""
                 else:
@@ -60,7 +62,9 @@ def read_all_proteins(fasta):
                 if len(seq) > 0:
                     ret[ac] = Protein(ac, de, seq)
                 line = line.strip()[1:].replace("\t", " ")
-                ac, de = line.split(" ", 1)
+                items = line.split(" ", 1)
+                if len(items) == 1: ac, de = items[0], ""
+                else: ac, de = items
                 seq = ""
             else:
                 seq += line.strip()

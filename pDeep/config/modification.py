@@ -1568,3 +1568,5 @@ def get_modification():
 
 
 mod_dict = get_modification()
+for key, val in list(mod_dict.items()):
+    mod_dict[key[:-2]+key[-2].lower()+key[-1]] = val
