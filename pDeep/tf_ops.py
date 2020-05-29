@@ -1,6 +1,22 @@
 import numpy as np
 import tensorflow as tf
 
+def count_parameters():
+    total_parameters = 0
+    for variable in tf.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        print(variable.name)
+        print(shape)
+        # print(len(shape))
+        variable_parameters = 1
+        for dim in shape:
+            # print(dim)
+            variable_parameters *= dim.value
+        print(variable_parameters)
+        total_parameters += variable_parameters
+    return total_parameters
+
 def attention_through_time(x, num_units):
     # shape of x: batch, time, num_units)
     s = tf.reduce_max(x, axis=1)

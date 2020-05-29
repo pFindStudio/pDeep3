@@ -164,9 +164,10 @@ for peptide, intensities in pdeep_prediction.peptide_prediction_dict.items():
 ## Generating spectral libraries
 Example:
 ```
-python -m pDeep.cmd.generate_predicted_speclib --input xxx.fasta --target_proteins Q1234,Q6789 --output xxx.dlib --varmod Oxidation[M],Phospho[S] --instrument QE --ce 28 --min_intensity 0.1 --least_n_peaks 6
+python -m pDeep.cmd.generate_predicted_speclib --input xxx.fasta --target_proteins Q1234,Q6789 --output library.pqp --varmod Oxidation[M],Phospho[S] --instrument QE --ce 28 --min_intensity 0.1 --least_n_peaks 6
 ```
 "--min_intensity 0.1 --least_n_peaks 6" means that if there are less than 6 peaks larger than 0.1, top-6 peaks will be kept, otherwise all peaks larger than 0.1 will be kept.
+"--output library.pqp" for OpenSWATH, "--output library.dlib" for EncyclopeDIA, "--output library.csv" for Spectronaut.
 
 Run
 ```

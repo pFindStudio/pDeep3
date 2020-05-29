@@ -136,6 +136,8 @@ class pDeepModel:
         x = MultiLayerRNN(x, ch, ins_nce)
         # x = tf_ops.attention_through_time(x, self.layer_size*2+4)
         _output(x)
+        
+        print("[pDeep Info] # trainable parameters = %s"%tf_ops.count_parameters())
 
         self.GetVariableList()
         self.GetTensorList()
@@ -289,7 +291,7 @@ class pDeepModel:
                     "Epoch = {:3d}, peplen = {:3d}, Batch={:5d}, size = {:4d}, cost = {:.5f}, time = {:.2f}s\r".format(
                         epoch + 1, peplen[0], ith_batch, len(x), cost, end_time - start_time), end="")
             mean_costs.append("Epoch = {:3d}, mean_cost = {:.5f}, time = {:.2f}s".format(epoch + 1, np.mean(batch_cost),
-                                                                                         np.sum(batch_time_cost)))
+                               np.sum(batch_time_cost)))
             print("\n" + mean_costs[-1])
 
         print("")
@@ -353,6 +355,9 @@ class pDeepModel:
         saver = tf.compat.v1.train.import_meta_graph(model_file + ".meta")
         saver.restore(self.sess, model_file)
         graph = tf.compat.v1.get_default_graph()
+        
+        # print("[pDeep Info] # trainable parameters = %s"%tf_ops.count_parameters())
+        
         self.GetVariableList()
         self.GetTensorList()
         self._aa_x = graph.get_tensor_by_name("input_aa_x:0")
