@@ -16,6 +16,35 @@ _mod_dict = {
     "Phospho[Y]": "[Phospho (STY)]",
 }
 
+def NCtermLoss(peptide, modinfo):
+    if not modinfo: return []
+    moditems = modinfo.strip(";").split(";")
+    modlist = []
+    for moditem in moditems:
+        site, mod = moditem.split(",")
+        modlist.append((int(site), mod))
+    modlist.sort()
+    def XTermLoss(peptide, modlst, Nterm = True):
+        XtermLoss = [""]*len(peptide)
+        for site, mod in modlist:
+            if site == 0:
+                XtermLoss[0] = mod
+            elif site == len(peptide)+1:
+                XtermLoss[len(peptide)-1] = mod
+            else:
+                XtermLoss[site-1] = mod
+        if not Nterm: XtermLoss = XtermLoss[::-1]
+        for i in range(1, len(XtermLoss)):
+            if XtermLoss[i].startswith("Phospho") or XtermLoss[i-1].startswith("Phospho"):
+                XtermLoss[i] = "H3PO4"
+            else if XtermLoss[i].startswith("Oxidation") or XtermLoss[i-1].startswith("Oxidation"):
+                XtermLoss[i] = "H4COS"
+        if not Nterm: XtermLoss = XtermLoss[::-1]
+        return XtermLoss
+    NtermLoss = XTermLoss(peptide, modlist, True)
+    CtermLoss = XTermLoss(peptide, modlist, False)
+    return NtermLoss, CtermLoss
+
 def pDeepFormat2PeptideModSeq(seq, modinfo):
     if not modinfo: return "_" + seq + "_"
     moditems = modinfo.strip(";").split(";")
@@ -48,7 +77,7 @@ class SPN_CSV(OSW_TSV):
         super(OSW_TSV, self).__init__(pDeepParam)
         
         self.peptide_dict = {}
-        self.head = "PrecursorMz	FragmentMz	iRT	RelativeFragmentIntensity	StrippedSequence	ModifiedSequence	PrecursorCharge	ProteinName	ProteinId	FragmentType	FragmentCharge	FragmentNumber	FragmentLossType".split("\t")
+        self.head = "PrecursorMz	FragmentMz	iRT	RelativeFragmentIntensity	StrippedPeptide	ModifiedPeptide	LabeledPeptide	PrecursorCharge	ProteinName	ProteinId	FragmentType	FragmentCharge	FragmentNumber	FragmentLossType".split("\t")
         self.headidx = dict(zip(self.head, range(len(self.head))))
         
         self.set_precision(10, 4)
@@ -77,7 +106,7 @@ class SPN_CSV(OSW_TSV):
             line = f.readline()
             if not line: break
             items = line.strip().split(self.col_sep)
-            mod_seq = _get(items, "ModifiedSequence")
+            mod_seq = _get(items, "ModifiedPeptide")
             seq, mod = PeptideModSeq2pDeepFormat(mod_seq)
             if seq is None: continue
             charge = int(_get(items, "PrecursorCharge"))
@@ -101,20 +130,28 @@ class SPN_CSV(OSW_TSV):
         
     def _write_one_peptide(self, _file, seq, mod, pre_charge, pepmass, masses, intens, charges, types, sites, RT, protein, pep_count, transition_count):
         labeled_seq = pDeepFormat2PeptideModSeq(seq, mod)
-        #"PrecursorMz	FragmentMz	iRT	RelativeFragmentIntensity	StrippedSequence	ProteinName	ModifiedSequence	PrecursorCharge	ProteinId	FragmentType	FragmentCharge	FragmentNumber	FragmentLossType"
+        
+        NtermLoss,CtermLoss = NCtermLoss(seq, mod)
+        
+        #"PrecursorMz	FragmentMz	iRT	RelativeFragmentIntensity	StrippedPeptide	ProteinName	ModifiedPeptide	PrecursorCharge	ProteinId	FragmentType	FragmentCharge	FragmentNumber	FragmentLossType"
         items = self._init_row()
         pep_count += 1
         self._set(items, "PrecursorMz", self._str_mass(pepmass))
         self._set(items, "PrecursorCharge", pre_charge)
-        self._set(items, "ModifiedSequence", labeled_seq)
+        self._set(items, "ModifiedPeptide", labeled_seq)
+        self._set(items, "LabeledPeptide", labeled_seq)
         self._set(items, "ProteinName", protein)
         self._set(items, "ProteinId", protein)
-        self._set(items, "StrippedSequence", seq)
+        self._set(items, "StrippedPeptide", seq)
         self._set(items, "iRT", RT/60)
         for mz, inten, charge, ion_type, site in zip(masses, intens, charges, types, sites):
             transition_count += 1
             if '-' in ion_type:
-                loss_type = ion_type[ion_type.find('-')+1:].lower()
+                # loss_type = ion_type[ion_type.find('-')+1:].lower()
+                # loss_type = "H3PO4"
+                if ion_type[0] == 'b': loss_type = NtermLoss[site-1]
+                elif ion_type[0] == 'y': loss_type = CtermLoss[site]
+                else: loss_type = ion_type[ion_type.find('-')+1:].lower()
             else:
                 loss_type = "noloss"
                 
