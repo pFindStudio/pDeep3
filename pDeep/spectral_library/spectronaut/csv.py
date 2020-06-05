@@ -9,11 +9,11 @@ from ..library_base import LibraryBase, mod_mass_dict
 from ..openswath.tsv import OSW_TSV
 
 _mod_dict = {
-    "Carbamidomethyl[C]": "(cam)",
-    "Oxidation[M]": "(ox)",
-    "Phospho[S]": "(pho)",
-    "Phospho[T]": "(pho)",
-    "Phospho[Y]": "(pho)",
+    "Carbamidomethyl[C]": "[Carbamidomethyl (C)]",
+    "Oxidation[M]": "[Oxidation (M)]",
+    "Phospho[S]": "[Phospho (STY)]",
+    "Phospho[T]": "[Phospho (STY)]",
+    "Phospho[Y]": "[Phospho (STY)]",
 }
 
 def pDeepFormat2PeptideModSeq(seq, modinfo):
