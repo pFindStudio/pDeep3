@@ -17,13 +17,14 @@ _mod_dict = {
 }
 
 def NCtermLoss(peptide, modinfo):
-    if not modinfo: return []
+    if not modinfo: return [""]*len(peptide), [""]*len(peptide)
     moditems = modinfo.strip(";").split(";")
     modlist = []
     for moditem in moditems:
         site, mod = moditem.split(",")
         modlist.append((int(site), mod))
     modlist.sort()
+    
     def XTermLoss(peptide, modlst, Nterm = True):
         XtermLoss = [""]*len(peptide)
         for site, mod in modlist:
@@ -36,11 +37,14 @@ def NCtermLoss(peptide, modinfo):
         if not Nterm: XtermLoss = XtermLoss[::-1]
         for i in range(1, len(XtermLoss)):
             if XtermLoss[i].startswith("Phospho") or XtermLoss[i-1].startswith("Phospho"):
-                XtermLoss[i] = "H3PO4"
-            else if XtermLoss[i].startswith("Oxidation") or XtermLoss[i-1].startswith("Oxidation"):
-                XtermLoss[i] = "H4COS"
-        if not Nterm: XtermLoss = XtermLoss[::-1]
+                XtermLoss[i] = "Phospho"
+            elif XtermLoss[i].startswith("Oxidation") or XtermLoss[i-1].startswith("Oxidation"):
+                XtermLoss[i] = "Oxidation"
+        for i in range(len(XtermLoss)):
+            if XtermLoss[i] == "Phospho": XtermLoss[i] = "H3PO4"
+            elif XtermLoss[i] == "Oxidation": XtermLoss[i] = "H4COS"
         return XtermLoss
+        
     NtermLoss = XTermLoss(peptide, modlist, True)
     CtermLoss = XTermLoss(peptide, modlist, False)
     return NtermLoss, CtermLoss
@@ -130,6 +134,7 @@ class SPN_CSV(OSW_TSV):
         
     def _write_one_peptide(self, _file, seq, mod, pre_charge, pepmass, masses, intens, charges, types, sites, RT, protein, pep_count, transition_count):
         labeled_seq = pDeepFormat2PeptideModSeq(seq, mod)
+        if not labeled_seq: return pep_count, transition_count
         
         NtermLoss,CtermLoss = NCtermLoss(seq, mod)
         
@@ -150,8 +155,8 @@ class SPN_CSV(OSW_TSV):
                 # loss_type = ion_type[ion_type.find('-')+1:].lower()
                 # loss_type = "H3PO4"
                 if ion_type[0] == 'b': loss_type = NtermLoss[site-1]
-                elif ion_type[0] == 'y': loss_type = CtermLoss[site]
-                else: loss_type = ion_type[ion_type.find('-')+1:].lower()
+                elif ion_type[0] == 'y': loss_type = CtermLoss[site-1]
+                if not loss_type: loss_type = ion_type[ion_type.find('-')+1:].lower()
             else:
                 loss_type = "noloss"
                 
