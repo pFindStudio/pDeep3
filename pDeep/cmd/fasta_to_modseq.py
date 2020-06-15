@@ -20,14 +20,14 @@ if __name__ == "__main__":
     parser.add_argument('--max_precursor_charge', type=int, default=4, required=False, help='Max precursor charge of peptides in the library')
     parser.add_argument('--min_precursor_mz', type=float, default=400, required=False, help='Min precursor mz of peptides in the library')
     parser.add_argument('--max_precursor_mz', type=float, default=1200, required=False, help='Max precursor mz of peptides in the library')
-    parser.add_argument('--min_varmod', type=int, default=0, required=False, help='Max variable modifications of peptides in the library')
+    parser.add_argument('--min_varmod', type=int, default=0, required=False, help='Min variable modifications of peptides in the library')
     parser.add_argument('--max_varmod', type=int, default=1, required=False, help='Max variable modifications of peptides in the library')
     
     args = parser.parse_args()
     seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod, min_varmod=args.min_varmod, max_varmod=args.max_varmod)
     
     with open(args.output,"w") as f:
-        f.write("peptide\tmodinfo\tcharge\tprotein")
+        f.write("peptide\tmodinfo\tcharge\tprotein\n")
         peptide_list, pep_pro_dict = _from_fasta(seqlib, args.input)
         for seq, mod, charge in peptide_list:
             pro = pep_pro_dict[seq]
