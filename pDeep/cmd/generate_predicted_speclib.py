@@ -77,6 +77,8 @@ if __name__ == "__main__":
     parser.add_argument('--max_precursor_charge', type=int, default=4, required=False, help='Max precursor charge of peptides in the library')
     parser.add_argument('--min_precursor_mz', type=float, default=400, required=False, help='Min precursor mz of peptides in the library')
     parser.add_argument('--max_precursor_mz', type=float, default=1200, required=False, help='Max precursor mz of peptides in the library')
+    parser.add_argument('--min_peptide_length', type=int, default=6, required=False, help='Min peptide length of peptides in the library')
+    parser.add_argument('--max_peptide_length', type=int, default=60, required=False, help='Max peptide length of peptides in the library')
     
     
     parser.add_argument('--instrument', type=str, default="QE", required=False, help='Instrument type for prediction.')
@@ -109,7 +111,7 @@ if __name__ == "__main__":
     _lib.CreateTables()
     _lib.decoy = decoy
     
-    seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
+    seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_peptide_len=args.min_peptide_length, max_peptide_len=args.max_peptide_length, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
     
     varmod_set = set(args.varmod.strip(',').split(",")) if args.varmod else set()
     fixmod_set = set(args.fixmod.strip(',').split(",")) if args.fixmod else set()
@@ -150,7 +152,7 @@ if __name__ == "__main__":
         _add_mod_from_library(peptide_list)
     
     if args.RT_input:
-        RT_seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
+        RT_seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_peptide_len=args.min_peptide_length, max_peptide_len=args.max_peptide_length, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
         if args.RT_input.endswith('.peplib') or args.RT_input.endswith('.peplib.txt') :
             RT_peptide_list, RT_pep_pro_dict = RT_seqlib.PeptideListFromPeptideFile(args.RT_input)
         elif args.RT_input.endswith('.modseq') or args.RT_input.endswith('.modseq.txt'):
@@ -165,7 +167,7 @@ if __name__ == "__main__":
             RT_peptide_list, RT_pep_pro_dict = ReadModSeq(args.RT_input)
     
     if args.spikein:
-        spkin_seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.spikein_varmod, fixmod=args.spikein_fixmod)
+        spkin_seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_peptide_len=args.min_peptide_length, max_peptide_len=args.max_peptide_length, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.spikein_varmod, fixmod=args.spikein_fixmod)
         if args.spikein.endswith('.modseq') or args.spikein.endswith('.modseq.txt'):
             spkin_list, spkin_dict = ReadModSeq(args.spikein)
         elif args.spikein.endswith('.peplib') or args.spikein.endswith('.peplib.txt'):
