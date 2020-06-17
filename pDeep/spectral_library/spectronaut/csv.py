@@ -170,7 +170,35 @@ class SPN_CSV(OSW_TSV):
             _file.write(self.col_sep.join(items)+"\n")
         return pep_count, transition_count
         
+        
     def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}):
-        self.decoy = None
-        super(self.__class__, self).UpdateByPrediction(_prediction, peptide_to_protein_dict)
+        self.decoy = False
+        f = open(self.tsv_file, "w")
+        f.write(self.col_sep.join(self.head)+"\n")
+        print("[pDeep Info] updating csv ...")
+        transition_count = 0
+        count = 0
+        start = time.perf_counter()
+        
+        for pepinfo, intensities in _prediction.peptide_intensity_dict.items():
+            seq, mod, charge = pepinfo.split("|")
+            charge = int(charge)
+            
+            pepmass, masses, intens, sites, types, charges, decoy_seq, decoy_mod, decoy_masses = self._calc_ions(seq, mod, charge, intensities)
+            
+            RT = _prediction.GetRetentionTime(pepinfo)
+            
+            if seq in peptide_to_protein_dict:
+                protein = peptide_to_protein_dict[seq]
+                protein = ";".join(protein.split("/"))
+            else:
+                protein = "pDeep"
+                
+            count, transition_count = self._write_one_peptide(f, seq, mod, charge, pepmass, masses, intens, charges, types, sites, RT, protein, count, transition_count)
+            if count%10000 == 0:
+                print("[CSV UPDATE] {:.1f}%".format(100.0*count/len(_prediction.peptide_intensity_dict)), end="\r")
+        print("[CSV UPDATE] 100%: {}".format(self.tsv_file))
+        f.close()
+        print("[pDeep Info] updating csv time = %.3fs"%(time.perf_counter()-start))
+        if not self.decoy: print("[pDeep Info] only target transitions were generated!")
 

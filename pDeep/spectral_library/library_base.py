@@ -169,8 +169,8 @@ class SequenceLibrary(object):
         self.digest_config = DigestConfig()
         self.min_charge = min_charge
         self.max_charge = max_charge
-        self.min_peptide_len = min_peptide_len
-        self.max_peptide_len = max_peptide_len
+        self.digest_config.min_len = min_peptide_len
+        self.digest_config.max_len = max_peptide_len
         self.min_precursor_mz = min_precursor_mz
         self.max_precursor_mz = max_precursor_mz
         self.varmod = varmod
@@ -183,10 +183,8 @@ class SequenceLibrary(object):
         self.protein_dict = {}
         
     def _add_charge(self, modseq_list):
-        fmt = "Generated %d precursors (length: {} to {}, charge: {} to {}, m/z: {} to {})".format(
-            self.min_peptide_len, self.max_peptide_len, self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
+        fmt = "Generated %d precursors (charge: {} to {}, m/z: {} to {})".format(self.min_charge, self.max_charge, self.min_precursor_mz, self.max_precursor_mz)
         for seq, modinfo in modseq_list:
-            if len(seq) > self.max_peptide_len or len(seq) < self.min_peptide_len: continue
             pepmass = self.ion_calc.calc_pepmass(seq, modinfo)
             for charge in range(self.min_charge, self.max_charge+1):
                 mz = pepmass/charge + self.ion_calc.base_mass.mass_proton
