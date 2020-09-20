@@ -131,7 +131,7 @@ if __name__ == "__main__":
         peptide_list, pep_pro_dict = ReadModSeq(args.input)
         _add_mod_from_library(peptide_list)
     elif args.input.endswith('.fasta'):
-        peptide_list, pep_pro_dict = _from_fasta(seqlib, args.input, args.proteins)
+        peptide_list, pep_pro_dict = _from_fasta(seqlib, args.input, args.target_proteins)
     elif args.input.endswith('.tsv') or args.input.endswith('.csv'):
         peptide_list, pep_pro_dict = _from_tsv(args.input)
         _add_mod_from_library(peptide_list)
