@@ -68,6 +68,16 @@ class pDeepParameter:
         self.config.SetIonTypes(self.ion_types)
         self.config.min_var_mod_num = self.min_varmod
         self.config.max_var_mod_num = self.max_varmod
+
+    def GenerateConfig(self):
+        if self.config is None:
+            self.config = HCD_CommonMod_Config()
+        self.config.SetFixMod(self.fixmod)
+        self.config.SetVarMod(self.varmod)
+        self.config.SetIonTypes(self.ion_types)
+        self.config.min_var_mod_num = self.min_varmod
+        self.config.max_var_mod_num = self.max_varmod
+        return self.config
         
     @property
     def tune_save_as(self):

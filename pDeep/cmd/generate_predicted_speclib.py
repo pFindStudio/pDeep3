@@ -203,7 +203,6 @@ if __name__ == "__main__":
         Sort_psmLabel(psmLabel)
         
     param = Set_pDeepParam(param, model=args.model, instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod, psmLabel_test=psmLabel, n_tune=args.n_tune_psm)
-        
     
     prediction = tune_and_predict.run(param, peptide_list)
     
