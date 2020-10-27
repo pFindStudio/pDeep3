@@ -10,8 +10,8 @@
 **/cython/**/*.c
 **/cython/test/*
 **/__pycache__/*
-**/build/*
-**/.DS_Store/*
-**/pDeep.egg-info/*
-**/.vscode/*
+**/build/
+**/.DS_Store
+
+*.egg-info
 

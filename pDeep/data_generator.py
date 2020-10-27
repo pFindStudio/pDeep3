@@ -176,11 +176,14 @@ def Run_psmLabel(PSMfile, raw_path):
     
     psmLabel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'psmLabel/psmLabel.exe')
 
-    os.chdir("psmLabel")
+    from sys import platform
+    if platform != 'win32':
+        psmLabel_path = "mono " + psmLabel_path
+
     os.system('{} "{}"'.format(psmLabel_path, cfg_file))
-    os.chdir("..")
-    if raw_path.lower().endswith("_hcdft.mgf"):
-        return os.path.splitext(raw_path)[0][:-len('_hcdft')]+".psmlabel"
+
+    if raw_path.lower().endswith(".mgf"):
+        return os.path.splitext(raw_path)[0]+".psmlabel"
     else: 
         return os.path.splitext(raw_path)[0]+".psmlabel"
     
