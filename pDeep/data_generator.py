@@ -174,8 +174,10 @@ def Run_psmLabel(PSMfile, raw_path):
     
     Generate_psmLabelCFG(cfg_file, PSMfile, raw_path)
     
+    psmLabel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'psmLabel/psmLabel.exe')
+
     os.chdir("psmLabel")
-    os.system('psmLabel.exe "%s"'%cfg_file)
+    os.system('{} "{}"'.format(psmLabel_path, cfg_file))
     os.chdir("..")
     if raw_path.lower().endswith("_hcdft.mgf"):
         return os.path.splitext(raw_path)[0][:-len('_hcdft')]+".psmlabel"

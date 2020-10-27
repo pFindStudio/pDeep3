@@ -4,17 +4,23 @@ import numpy as np
 
 # require pythonnet, pip install pythonnet
 import clr
-from System import String
+clr.AddReference('System')
+import System
+from System.Threading import Thread
+from System.Globalization import CultureInfo
 
-if "--dllpath" in sys.argv:
-    idx = sys.index("-dllpath")
-    sys.path.append(sys.argv[idx+1])
-else:
-    sys.path.append("psmLabel")
-clr.AddReference("ThermoFisher.CommonCore.Data")
-clr.AddReference("ThermoFisher.CommonCore.RawFileReader")
+de_fr = CultureInfo('fr-FR')
+other = CultureInfo('en-US')
+
+Thread.CurrentThread.CurrentCulture = other
+Thread.CurrentThread.CurrentUICulture = other
+
+path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+clr.AddReference(os.path.join(path, "psmLabel/ThermoFisher.CommonCore.Data.dll"))
+clr.AddReference(os.path.join(path, "psmLabel/ThermoFisher.CommonCore.RawFileReader.dll"))
 import ThermoFisher
 from ThermoFisher.CommonCore.Data.Interfaces import IScanEventBase, IScanEvent
+
 '''
 rawFile = ThermoFisher.CommonCore.RawFileReader.RawFileReaderAdapter.FileFactory(raw_filename)
 var scanStatistics = rawFile.GetScanStatsForScanNumber(1);

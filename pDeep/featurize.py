@@ -173,8 +173,9 @@ class Seq2Tensor:
         if instrument in self.instrument_feature:
             inst_feature = self.instrument_feature[instrument]
         else:
-            warnings.warn("[W] Unknown instrument: %s, pDeep uses 'unknown' instrument" % instrument, UserWarning)
+            warnings.warn("[W] Unknown instrument: '{}', pDeep uses 'unknown' instrument".format(instrument), UserWarning)
             inst_feature = self.instrument_feature['unknown']
+            nce = 30
 
         buckets = {}
         peptide_list = set(peptide_list)

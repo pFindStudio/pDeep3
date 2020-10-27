@@ -1,0 +1,20 @@
+Metadata-Version: 1.2
+Name: pDeep
+Version: 3.0.0a0
+Summary: Spectrum prediction using deep learning.
+Home-page: https://github.com/pFindStudio/pDeep3
+Author: Wen-Feng Zeng, Ching Tarn
+Author-email: zengwenfeng@ict.ac.cn
+License: Apache Software License 2.0
+Description: UNKNOWN
+Keywords: MS,mass spectrometry,python,deep learning
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Requires-Python: >=3.5,<4

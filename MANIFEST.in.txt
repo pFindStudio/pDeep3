@@ -1,0 +1,6 @@
+include settings.ini
+include LICENSE.txt
+include THERMO_LICENSE.txt
+include README.md
+recursive-include * pDeep
+recursive-exclude * __pycache__

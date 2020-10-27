@@ -1,5 +1,6 @@
 from .model_tf import use_tf2
 from .config.pDeep_config import HCD_CommonMod_Config
+import os
 
 class pDeepParameter:
     def __init__(self, cfg = None):
@@ -13,12 +14,14 @@ class pDeepParameter:
         ######################################################################
         
         self.config = None
+        self._model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tmp/model')
         
         self.model = "HCD"
         
         self.library_ion_types = self.ion_types
-    
-        self.RT_model = "tmp/model/RT-model.ckpt"
+        
+
+        self.RT_model = os.path.join(self._model_path, "RT-model.ckpt")
         
         self._pDeepModel = None
         self._pDeepRT = None
@@ -106,17 +109,18 @@ class pDeepParameter:
         return self._model
     @model.setter
     def model(self, _model):
+        model_path = self._model_path
         if _model.upper() == "ETHCD":
-            if use_tf2: self._model = "tmp/model/EThcD-tf2-bycz-Lumos-CE28.ckpt"
-            else: self._model = "tmp/model/EThcD-bycz-Lumos-CE28.ckpt"
+            if use_tf2: self._model = os.path.join(model_path, "EThcD-tf2-bycz-Lumos-CE28.ckpt")
+            else: self._model = os.path.join(model_path, "EThcD-bycz-Lumos-CE28.ckpt")
             self.ion_types = ['b{}', 'y{}', 'c{}', 'z{}']
         elif _model.upper() == "HCD":
-            if use_tf2: self._model = "tmp/model/pretrain-tf2-200412.ckpt"
-            else: self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
+            if use_tf2: self._model = os.path.join(model_path, "pretrain-tf2-200412.ckpt")
+            else: self._model = os.path.join(model_path, "tf1-mod8D-unknown-ce=30.ckpt")
             self.ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
         elif _model.upper() == "PHOSPHO" or _model.upper() == "PHOS":
-            if use_tf2: self._model = "tmp/model/pretrain-tf2-200412.ckpt"
-            else: self._model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
+            if use_tf2: self._model = os.path.join(model_path, "pretrain-tf2-200412.ckpt")
+            else: self._model = os.path.join(model_path, "tf1-mod8D-unknown-ce=30.ckpt")
             self.ion_types = ['b{}', 'y{}', 'b{}-ModLoss', 'y{}-ModLoss']
         else:
             self._model = _model

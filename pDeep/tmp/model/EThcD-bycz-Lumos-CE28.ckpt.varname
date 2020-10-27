@@ -1,0 +1,11 @@
+ins_nce/ins_nce_w:0
+BiLSTM_0/fw/lstm_cell/kernel:0
+BiLSTM_0/fw/lstm_cell/bias:0
+BiLSTM_0/bw/lstm_cell/kernel:0
+BiLSTM_0/bw/lstm_cell/bias:0
+BiLSTM_1/fw/lstm_cell/kernel:0
+BiLSTM_1/fw/lstm_cell/bias:0
+BiLSTM_1/bw/lstm_cell/kernel:0
+BiLSTM_1/bw/lstm_cell/bias:0
+output_nn/lstm_cell/kernel:0
+output_nn/lstm_cell/bias:0

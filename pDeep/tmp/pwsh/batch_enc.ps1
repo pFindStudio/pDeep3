@@ -1,0 +1,1 @@
+powershell c:\workspace\pFindStudio_src\pDeep3\tmp\pwsh\run_enc.ps1 -raw_dir E:\DIAData\Thesaurus\ -fasta E:\fasta\Human-H.sapiens-SP-1808.fasta -lib e:\DIATools\encyclopedia\library\pDeep_phoslib_tune.dlib -output_dir E:\DIAData\Thesaurus\ -overlap -phosite

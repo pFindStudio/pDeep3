@@ -1,0 +1,3 @@
+peptide	modinfo	charge
+ACDEFMK		2
+AAAGLLPGGK		2
