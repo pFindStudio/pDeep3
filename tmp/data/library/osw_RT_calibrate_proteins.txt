@@ -1,2 +1,0 @@
-human cells = P63267,P18206,Q02750,P36507,P04406,P08238 # actin, vinculin, MEK1, MEK2, GAPDH, HSP90
-human blood = P02787,P02768,P02786,Q03135,P01834,P0DOY2,P0DOY3,P01857,P01859,P01860,P01861 # transferrin, albumin, CD71 (transferrin recepter),caveolin-1,P01834~end: IgG proteins
