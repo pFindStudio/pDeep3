@@ -1,0 +1,16 @@
+ins_nce/ins_nce_w:0
+BiLSTM_0/bidirectional/forward_lstm/kernel:0
+BiLSTM_0/bidirectional/forward_lstm/recurrent_kernel:0
+BiLSTM_0/bidirectional/forward_lstm/bias:0
+BiLSTM_0/bidirectional/backward_lstm/kernel:0
+BiLSTM_0/bidirectional/backward_lstm/recurrent_kernel:0
+BiLSTM_0/bidirectional/backward_lstm/bias:0
+BiLSTM_1/bidirectional_1/forward_lstm_1/kernel:0
+BiLSTM_1/bidirectional_1/forward_lstm_1/recurrent_kernel:0
+BiLSTM_1/bidirectional_1/forward_lstm_1/bias:0
+BiLSTM_1/bidirectional_1/backward_lstm_1/kernel:0
+BiLSTM_1/bidirectional_1/backward_lstm_1/recurrent_kernel:0
+BiLSTM_1/bidirectional_1/backward_lstm_1/bias:0
+output_nn/lstm_2/kernel:0
+output_nn/lstm_2/recurrent_kernel:0
+output_nn/lstm_2/bias:0

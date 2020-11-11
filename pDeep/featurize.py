@@ -173,8 +173,9 @@ class Seq2Tensor:
         if instrument in self.instrument_feature:
             inst_feature = self.instrument_feature[instrument]
         else:
-            warnings.warn("[W] Unknown instrument: %s, pDeep uses 'unknown' instrument" % instrument, UserWarning)
+            warnings.warn("[W] Unknown instrument: '{}', pDeep uses 'unknown' instrument".format(instrument), UserWarning)
             inst_feature = self.instrument_feature['unknown']
+            nce = 30
 
         buckets = {}
         peptide_list = set(peptide_list)
@@ -389,8 +390,21 @@ def CheckPeptide(peptide):
             return 0
     return 1
 
+one_hot = np.zeros((128,20),dtype=base_dtype)
+for i,aa in enumerate('ACDEFGHIKLMNPQRSTVWY'):
+    one_hot[ord(aa)][i] = 1
 
-def _seq2vector(peptide, prev, next):
+def _seq2vector(peptide, prev = 1, next = 1):
+    flag = np.zeros((len(peptide)-1,2),dtype=base_dtype)
+    flag[0,0] = 1
+    flag[-1,1] = 1
+    one_hot_peptide = one_hot[[ord(aa) for aa in peptide]]
+    left_sum = np.cumsum(one_hot_peptide,axis=0)
+    right_sum = left_sum[-1] - left_sum
+    result = np.concatenate([one_hot_peptide[:-1,:],one_hot_peptide[1:,:],(left_sum-one_hot_peptide)[0:-1],right_sum[1:],flag],axis=1)
+    return result
+
+def _seq2vector_old(peptide, prev, next):
     x = []
     base_NtermAA_Count = [0] * nAAs
     base_CtermAA_Count = [0] * nAAs

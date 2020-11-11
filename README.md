@@ -1,5 +1,10 @@
 # pDeep3
 
+## installation
+```pip install .```
+or
+```pip install -e .```
+
 ## System requirements
 python >= 3.5
 

@@ -113,12 +113,13 @@ def Set_pDeepParam(param, model, instrument = "QE", ce = 27, psmLabel = "", psmR
         param.tune_RT_save_as = os.path.join(os.path.split(psmRT)[0], "pDeep_RT_tune.ckpt")
     param.tune_RT_psmlabel = psmRT
     param.test_RT_psmlabel = psmRT
-    if fixmod: param.fixmod.extend(fixmod.strip(",").split(","))
-    if varmod: param.varmod.extend(varmod.strip(",").split(","))
+    if fixmod: param.fixmod = list(set(param.fixmod + fixmod.strip(",").split(",")))
+    if varmod: param.varmod = list(set(param.varmod + varmod.strip(",").split(",")))
     if psmLabel_test: param.test_psmlabels.append(psmLabel_test)
     param.n_tune_per_psmlabel = n_tune
     param.threads = threads
     param.epochs = 2
+    param.GenerateConfig()
     return param
         
 def GeneratePSMFile(result_file, raw_path):
@@ -173,11 +174,16 @@ def Run_psmLabel(PSMfile, raw_path):
     
     Generate_psmLabelCFG(cfg_file, PSMfile, raw_path)
     
-    os.chdir("psmLabel")
-    os.system('psmLabel.exe "%s"'%cfg_file)
-    os.chdir("..")
-    if raw_path.lower().endswith("_hcdft.mgf"):
-        return os.path.splitext(raw_path)[0][:-len('_hcdft')]+".psmlabel"
+    psmLabel_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'psmLabel/psmLabel.exe')
+
+    from sys import platform
+    if platform != 'win32':
+        psmLabel_path = "mono " + psmLabel_path
+
+    os.system('{} "{}"'.format(psmLabel_path, cfg_file))
+
+    if raw_path.lower().endswith(".mgf"):
+        return os.path.splitext(raw_path)[0]+".psmlabel"
     else: 
         return os.path.splitext(raw_path)[0]+".psmlabel"
     

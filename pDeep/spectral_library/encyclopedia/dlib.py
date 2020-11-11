@@ -14,6 +14,7 @@ __mod_dict = {
     "Phospho[T]": "[+79.966331]",
     "Phospho[Y]": "[+79.966331]",
     "Acetyl[ProteinN-term]": "[+42.010565]",
+    "Acetyl[AnyN-term]": "[+42.010565]",
     "Label_13C(6)15N(2)[K]": "[+8.014199]",
     "Label_13C(6)15N(4)[R]": "[+10.008269]",
 }

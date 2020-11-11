@@ -161,15 +161,19 @@ def tune(param):
     return pdeep, pdeep_RT
      
 def predict(pdeep, param, peptide_list = None):
-    print("[pDeep Info] loading peptides ...")
+    start_time = time.perf_counter()
+    print("[pDeep Info] encoding peptides ...")
     if peptide_list is not None:
         pep_buckets = load_data.load_peptides_as_buckets(peptide_list, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
     else:
         pep_buckets = load_data.load_peptide_file_as_buckets(param.predict_input, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
+    time_now = time.perf_counter()
+    print(f"[pDeep Info] encoding time = {time_now - start_time} seconds")
+
     start_time = time.perf_counter()
     print("[pDeep Info] predicting ...")
     predict_buckets = pdeep.Predict(pep_buckets)
-    print('[pDeep Info] predicting time = {:.3f}s'.format(time.perf_counter() - start_time))
+    print('[pDeep Info] predicting time = {:.3f} seconds'.format(time.perf_counter() - start_time))
     return pep_buckets,predict_buckets
     
 def predict_RT(pdeep_RT, param, pep_buckets):

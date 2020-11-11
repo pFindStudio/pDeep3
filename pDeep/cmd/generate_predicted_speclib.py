@@ -51,7 +51,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='Generating spectral library for OpenSWATH and EncyclopDIA by pDeep.')
     
-    parser.add_argument('--input', type=str, required=True, help='.peplib (text) file for peptide library; or .fasta for generating peptides from fasta; or .tsv file for transitions/assays file (for example pan-human library).')
+    parser.add_argument('--input', type=str, required=True, help='.peplib (text) file for peptide library; or .fasta/.fas for generating peptides from fasta; or .tsv file for transitions/assays file (for example pan-human library).')
     parser.add_argument('--output', type=str, required=True, help='The genereted library file. File type is determined by the file extention: .dlib for EncyclopeDIA (SQLite file), .pqp for OpenSWATH (SQLite file), .tsv for OpenSWATH (text file), .msp for generic text spectrum file.')
     
     parser.add_argument('--varmod', type=str, default="Oxidation[M]", required=False, help='Variable modifications, seperated by ",".')
@@ -130,7 +130,7 @@ if __name__ == "__main__":
     elif args.input.endswith('.modseq') or args.input.endswith('.modseq.txt'):
         peptide_list, pep_pro_dict = ReadModSeq(args.input)
         _add_mod_from_library(peptide_list)
-    elif args.input.endswith('.fasta'):
+    elif args.input.endswith('.fasta') or args.input.endswith('.fas'):
         peptide_list, pep_pro_dict = _from_fasta(seqlib, args.input, args.target_proteins)
     elif args.input.endswith('.tsv') or args.input.endswith('.csv'):
         peptide_list, pep_pro_dict = _from_tsv(args.input)
@@ -203,7 +203,6 @@ if __name__ == "__main__":
         Sort_psmLabel(psmLabel)
         
     param = Set_pDeepParam(param, model=args.model, instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod, psmLabel_test=psmLabel, n_tune=args.n_tune_psm)
-        
     
     prediction = tune_and_predict.run(param, peptide_list)
     

@@ -1,0 +1,7 @@
+BiLSTM_0/fw/lstm_cell/kernel:0
+BiLSTM_0/fw/lstm_cell/bias:0
+BiLSTM_0/bw/lstm_cell/kernel:0
+BiLSTM_0/bw/lstm_cell/bias:0
+output_nn/dense/kernel:0
+output_nn/FC3/kernel:0
+output_nn/FC3/bias:0
