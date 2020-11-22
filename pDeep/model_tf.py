@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from .bucket import *
 from . import tf_ops
+from .featurize import to_model_feature
 
 np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
@@ -263,6 +264,7 @@ class pDeepModel:
                 peplen = bbatch.get_data_from_batch(batch, "peplen")
                 ch = np.float32(bbatch.get_data_from_batch(batch, "charge"))
                 x = np.float32(bbatch.get_data_from_batch(batch, "x"))
+                x = to_model_feature(x)
                 mod_x = np.float32(bbatch.get_data_from_batch(batch, "mod_x"))
                 instrument = np.float32(bbatch.get_data_from_batch(batch, "instrument"))
                 nce = np.float32(bbatch.get_data_from_batch(batch, "nce"))
@@ -311,6 +313,7 @@ class pDeepModel:
             peplen = bbatch.get_data_from_batch(batch, "peplen")
             ch = np.float32(bbatch.get_data_from_batch(batch, "charge"))
             x = np.float32(bbatch.get_data_from_batch(batch, "x"))
+            x = to_model_feature(x)
             mod_x = np.float32(bbatch.get_data_from_batch(batch, "mod_x"))
             instrument = np.float32(bbatch.get_data_from_batch(batch, "instrument"))
             nce = np.float32(bbatch.get_data_from_batch(batch, "nce"))

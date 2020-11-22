@@ -5,6 +5,7 @@ import tensorflow as tf
 
 from .bucket import *
 from . import tf_ops
+from .featurize import to_model_feature
 
 np.random.seed(1337)  # for reproducibility
 tf.compat.v1.set_random_seed(1337)
@@ -250,6 +251,7 @@ class pDeepRTModel:
                     ith_batch += 1
                     peplen = bbatch.get_data_from_batch(batch, "peplen")
                     x = np.float32(bbatch.get_data_from_batch(batch, "x"))
+                    x = to_model_feature(x)
                     mod_x = np.float32(bbatch.get_data_from_batch(batch, "mod_x"))
                     y = bbatch.get_data_from_batch(batch, "y")/self.RT_norm
 
@@ -291,6 +293,7 @@ class pDeepRTModel:
             for batch in bbatch.generate_batch():
                 peplen = bbatch.get_data_from_batch(batch, "peplen")
                 x = np.float32(bbatch.get_data_from_batch(batch, "x"))
+                x = to_model_feature(x)
                 mod_x = np.float32(bbatch.get_data_from_batch(batch, "mod_x"))
                 count += peplen.shape[0]
                 batch_count += 1
