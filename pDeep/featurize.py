@@ -395,14 +395,22 @@ for i,aa in enumerate('ACDEFGHIKLMNPQRSTVWY'):
     one_hot[ord(aa)][i] = 1
 
 def _seq2vector(peptide, prev = 1, next = 1):
-    flag = np.zeros((len(peptide)-1,2),dtype=base_dtype)
-    flag[0,0] = 1
-    flag[-1,1] = 1
+    # flag = np.zeros((len(peptide)-1,2),dtype=base_dtype)
+    # flag[0,0] = 1
+    # flag[-1,1] = 1
     one_hot_peptide = one_hot[[ord(aa) for aa in peptide]]
-    left_sum = np.cumsum(one_hot_peptide,axis=0)
-    right_sum = left_sum[-1] - left_sum
-    result = np.concatenate([one_hot_peptide[:-1,:],one_hot_peptide[1:,:],(left_sum-one_hot_peptide)[0:-1],right_sum[1:],flag],axis=1)
-    return result
+    # left_sum = np.cumsum(one_hot_peptide,axis=0)
+    # right_sum = left_sum[-1] - left_sum
+    # result = np.concatenate([one_hot_peptide[:-1,:],one_hot_peptide[1:,:],(left_sum-one_hot_peptide)[0:-1],right_sum[1:],flag],axis=1)
+    return one_hot_peptide
+
+def to_model_feature(onehot):
+    flag = np.zeros((onehot.shape[0],onehot.shape[1]-1,2),dtype=np.float32)
+    flag[:,0,0] = 1
+    flag[:,-1,1] = 1
+    left_sum = np.cumsum(onehot,axis=1)
+    right_sum = left_sum[:,-1:,:] - left_sum
+    return np.concatenate([onehot[:,:-1,:],onehot[:,1:,:],(left_sum-onehot)[:,:-1,:],right_sum[:,1:,:],flag],axis=2)
 
 def _seq2vector_old(peptide, prev, next):
     x = []
