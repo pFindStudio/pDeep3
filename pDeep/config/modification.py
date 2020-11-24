@@ -698,6 +698,7 @@ def get_modification():
     mod_dict['GlyGly[S]'] = 'S NORMAL 114.042927 114.042927 1 114.042927 114.042927 H(6)C(4)N(2)O(2)'
     mod_dict['GlyGly[T]'] = 'T NORMAL 114.042927 114.042927 1 114.042927 114.042927 H(6)C(4)N(2)O(2)'
     mod_dict['GG[K]'] = 'K NORMAL 114.042927 114.042927 1 114.042927 114.042927 H(6)C(4)N(2)O(2)'
+    mod_dict['GlyGly[K]'] = 'K NORMAL 114.042927 114.042927 1 114.042927 114.042927 H(6)C(4)N(2)O(2)'
     mod_dict['Glycerophospho[S]'] = 'S NORMAL 154.003110 154.003110 0 H(7)C(3)O(5)P(1)'
     mod_dict['GlycerylPE[E]'] = 'E NORMAL 197.045310 197.045310 0 H(12)C(5)N(1)O(5)P(1)'
     mod_dict['Glycosyl[P]'] = 'P NORMAL 148.037173 148.037173 0 H(8)C(5)O(5)'

@@ -1,5 +1,20 @@
 from .reader_base import *
 
+MQ_mod_dict = {}
+MQ_mod_dict['(Acetyl (Protein N-term))'] = 'Acetyl[ProteinN-term]'
+MQ_mod_dict['C(Carbamidomethyl (C))'] = 'Carbamidomethyl[C]'
+MQ_mod_dict['M(Oxidation (M))'] = 'Oxidation[M]'
+MQ_mod_dict['S(Phospho (S))'] = 'Phospho[S]'
+MQ_mod_dict['T(Phospho (T))'] = 'Phospho[T]'
+MQ_mod_dict['Y(Phospho (Y))'] = 'Phospho[Y]'
+MQ_mod_dict['K(GlyGly (K))'] = 'GlyGly[K]'
+MQ_mod_dict['(ac)'] = 'Acetyl[ProteinN-term]'
+MQ_mod_dict['M(ox)'] = 'Oxidation[M]'
+MQ_mod_dict['S(ph)'] = 'Phospho[S]'
+MQ_mod_dict['T(ph)'] = 'Phospho[T]'
+MQ_mod_dict['Y(ph)'] = 'Phospho[Y]'
+MQ_mod_dict['K(gl)'] = 'GlyGly[K]'
+
 def PeptideModSeq2pDeepFormat(PeptideModSeq, fixed_C = True):
     PeptideModSeq = PeptideModSeq.strip("_")
     modlist = []
@@ -8,14 +23,14 @@ def PeptideModSeq2pDeepFormat(PeptideModSeq, fixed_C = True):
         PeptideModSeq = PeptideModSeq[len('(Acetyl (Protein N-term))'):]
     site = PeptideModSeq.find('(')
     while site != -1:
-        if not fixed_C and PeptideModSeq[site-1:].startswith('C(Carbamidomethyl (C))'): modlist.append((site, 'Carbamidomethyl[C]'))
-        elif PeptideModSeq[site-1:].startswith('M(Oxidation (M))'): modlist.append((site, 'Oxidation[M]'))
-        elif PeptideModSeq[site-1:].startswith('S(Phospho (S))'): modlist.append((site, 'Phospho[S]'))
-        elif PeptideModSeq[site-1:].startswith('T(Phospho (T))'): modlist.append((site, 'Phospho[T]'))
-        elif PeptideModSeq[site-1:].startswith('Y(Phospho (Y))'): modlist.append((site, 'Phospho[Y]'))
+        site_end = PeptideModSeq.find(')')+1
+        if PeptideModSeq[site_end] == ')': site_end += 1
+        if PeptideModSeq[site-1:site_end] in MQ_mod_dict: modlist.append((site, MQ_mod_dict[PeptideModSeq[site-1:site_end]]))
         else: return None, None
-        PeptideModSeq = PeptideModSeq[:site] + PeptideModSeq[PeptideModSeq.find('))')+2:]
+        PeptideModSeq = PeptideModSeq[:site] + PeptideModSeq[site_end:]
         site = PeptideModSeq.find('(', site)
+        site_end = PeptideModSeq.find(')')+1
+        if PeptideModSeq[site_end] == ')': site_end += 1
     if fixed_C:
         site = PeptideModSeq.find('C')
         while site != -1:
@@ -49,5 +64,5 @@ class MaxQuantEvidenceReader(ReaderBase):
         return peptide_list
             
 if __name__ == "__main__":
-    modseq = "_(Acetyl (Protein N-term))SGGVYGCM(Oxidation (M))EVGALVFDIGSYTVR_"
+    modseq = "_(ac)SGGVYGCM(ox)EVGALK(gl)VFDIGSYTVR_"
     print(PeptideModSeq2pDeepFormat(modseq))
