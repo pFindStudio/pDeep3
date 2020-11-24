@@ -24,13 +24,13 @@ def PeptideModSeq2pDeepFormat(PeptideModSeq, fixed_C = True):
     site = PeptideModSeq.find('(')
     while site != -1:
         site_end = PeptideModSeq.find(')')+1
-        if PeptideModSeq[site_end] == ')': site_end += 1
+        if site_end < len(PeptideModSeq) and PeptideModSeq[site_end] == ')': site_end += 1
         if PeptideModSeq[site-1:site_end] in MQ_mod_dict: modlist.append((site, MQ_mod_dict[PeptideModSeq[site-1:site_end]]))
         else: return None, None
         PeptideModSeq = PeptideModSeq[:site] + PeptideModSeq[site_end:]
         site = PeptideModSeq.find('(', site)
         site_end = PeptideModSeq.find(')')+1
-        if PeptideModSeq[site_end] == ')': site_end += 1
+        if site_end < len(PeptideModSeq) and PeptideModSeq[site_end] == ')': site_end += 1
     if fixed_C:
         site = PeptideModSeq.find('C')
         while site != -1:
