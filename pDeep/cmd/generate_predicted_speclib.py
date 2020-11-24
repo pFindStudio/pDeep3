@@ -56,6 +56,9 @@ if __name__ == "__main__":
     
     parser.add_argument('--varmod', type=str, default="Oxidation[M]", required=False, help='Variable modifications, seperated by ",".')
     parser.add_argument('--fixmod', type=str, default="Carbamidomethyl[C]", required=False, help='Fixed modifications, seperated by ",".')
+    parser.add_argument('--min_varmod', type=int, default=0, required=False, help="Peptides with >= n modifications are kept, default: n=0.")
+    parser.add_argument('--max_varmod', type=int, default=1, required=False, help="Peptides with <= n modifications are kept, default: n=1.")
+    parser.add_argument('--keep_mod', type=str, default="", required=False, help='Only peptides with PTM specified here are kept, default: all, seperated by ",".')
     
     parser.add_argument('--target_proteins', type=str, required=False, help='Only considering these proteins (ACs or uniprot IDs) when input is fasta, seperated by "," (default: use all proteins).')
     
@@ -111,7 +114,15 @@ if __name__ == "__main__":
     _lib.CreateTables()
     _lib.decoy = decoy
     
-    seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, max_charge = args.max_precursor_charge, min_peptide_len=args.min_peptide_length, max_peptide_len=args.max_peptide_length, min_precursor_mz = args.min_precursor_mz, max_precursor_mz = args.max_precursor_mz, varmod=args.varmod, fixmod=args.fixmod)
+    seqlib = SequenceLibrary(min_charge = args.min_precursor_charge, 
+                             max_charge = args.max_precursor_charge, 
+                             min_peptide_len=args.min_peptide_length, 
+                             max_peptide_len=args.max_peptide_length, 
+                             min_precursor_mz = args.min_precursor_mz, 
+                             max_precursor_mz = args.max_precursor_mz, 
+                             varmod=args.varmod, fixmod=args.fixmod,
+                             min_varmod=args.min_varmod, max_varmod=args.max_varmod,
+                             keep_mod=args.keep_mod)
     
     varmod_set = set(args.varmod.strip(',').split(",")) if args.varmod else set()
     fixmod_set = set(args.fixmod.strip(',').split(",")) if args.fixmod else set()

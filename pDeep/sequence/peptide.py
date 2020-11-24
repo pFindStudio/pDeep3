@@ -141,10 +141,18 @@ def add_modifications(peptide, varmod_dict, fixmod_dict, min_var_mod=0, max_var_
     return modseq_list
 
 
-def get_peptidoforms(pep_set, varmod_dict, fixmod_dict, min_var_mod=0, max_var_mod=1):
+def get_peptidoforms(pep_set, varmod_dict, fixmod_dict, keep_mod, min_var_mod=0, max_var_mod=1):
     modseq_list = []
     for pep in pep_set:
-        modseq_list.extend(add_modifications(pep, varmod_dict, fixmod_dict, min_var_mod, max_var_mod))
+        new_list = add_modifications(pep, varmod_dict, fixmod_dict, min_var_mod, max_var_mod)
+        for seq, modstr in new_list:
+            kept = False
+            for mod in modstr.split(';'):
+                if mod[mod.find(',')+1:] in keep_mod:
+                    kept = True
+                    break
+            if kept: 
+                modseq_list.append((seq, modstr))
     return modseq_list
     
 def get_peptidoforms_from_pep2pro_dict(pep2pro_dict, varmod, fixmod, min_var_mod=0, max_var_mod=1):
@@ -153,7 +161,7 @@ def get_peptidoforms_from_pep2pro_dict(pep2pro_dict, varmod, fixmod, min_var_mod
     peptide_set = set(pep2pro_dict.keys())
     return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, min_var_mod, max_var_mod)
     
-def get_peptidoforms_from_fasta(fasta, digest_config, varmod, fixmod, min_var_mod=0, max_var_mod=1, protein_list = None):
+def get_peptidoforms_from_fasta(fasta, digest_config, varmod, fixmod, keep_mod, min_var_mod=0, max_var_mod=1, protein_list = None):
     varmod_dict = generate_mod_dict(varmod)
     fixmod_dict = generate_mod_dict(fixmod)
     if not protein_list: protein_dict = read_all_proteins(fasta)
@@ -161,10 +169,10 @@ def get_peptidoforms_from_fasta(fasta, digest_config, varmod, fixmod, min_var_mo
     peptide_set = set()
     for ac, protein in protein_dict.items():
         peptide_set = digest(protein, peptide_set, digest_config)
-    return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, min_var_mod, max_var_mod), protein_dict
+    return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, keep_mod, min_var_mod, max_var_mod), protein_dict
 
 if __name__ == "__main__":
     fixmod_dict = gen_mod_dict(["fix[C]"])
     varmod_dict = gen_mod_dict(["a[A]", "nt[ProteinN-term]", "pS[S]", "nt[AnyN-term]"])
-    l = get_peptidoforms(set(["ABCDEFSSABK", "ABCDEFSSABCK"]), varmod_dict, fixmod_dict)
+    l = get_peptidoforms(set(["ABCDEFSSABK", "ABCDEFSSABCK"]), varmod_dict, fixmod_dict, "")
     print(l)
