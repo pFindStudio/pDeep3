@@ -14,6 +14,7 @@ _mod_dict = {
     "Phospho[S]": "S(UniMod:21)",
     "Phospho[T]": "T(UniMod:21)",
     "Phospho[Y]": "Y(UniMod:21)",
+    "GlyGly[K]": "K(UniMod:121)",
     "Label_13C(6)15N(2)[K]": "K(UniMod:259)", #SILAC
     "Label_13C(6)15N(4)[R]": "R(UniMod:267)", #SILAC
 }
@@ -67,7 +68,7 @@ class OSW_TSV(LibraryBase):
     def __init__(self, pDeepParam = None):
         super(self.__class__, self).__init__(pDeepParam)
         self.peptide_dict = {}
-        self.head = "PrecursorMz	ProductMz	RetentionTime	transition_name	CE	LibraryIntensity	transition_group_id	decoy	PeptideSequence	ProteinName	Annotation	FullUniModPeptideName	PrecursorCharge	PeptideGroupLabel	UniprotID	FragmentType	FragmentCharge	FragmentSeriesNumber	LabelType".split("\t")
+        self.head = "PrecursorMz	FragmentMz	RetentionTime	LibraryIntensity	FullUniModPeptideName	PrecursorCharge	FragmentType	FragmentCharge	FragmentSeriesNumber	FragmentLossType	UniprotID	ProteinName	Genes	transition_name	transition_group_id	decoy	Annotation".split("\t")
         self.headidx = dict(zip(self.head, range(len(self.head))))
         
         self.set_precision(10, 1)
@@ -90,8 +91,6 @@ class OSW_TSV(LibraryBase):
         
     def _init_row(self):
         items = ["0"] * len(self.head)
-        self._set(items, 'CE', '-1')
-        self._set(items, 'LabelType', 'light')
         return items
         
     def _set(self, items, key, val):
@@ -136,7 +135,7 @@ class OSW_TSV(LibraryBase):
                 proteins = []
                 for pro in pro_list:
                     if not pro.startswith("DECOY_"): proteins.append(pro)
-                protein = "/".join(proteins)
+                protein = ";".join(proteins)
                 peptide_list.append((seq, mod, charge))
                 self.peptide_dict["%s|%s|%d"%(seq,mod,charge)] = (mod_seq, charge, RT, '', -1, protein) # scan=-1, unknown
         print("reading tsv time = %.3fs"%(time.perf_counter() - start))
@@ -152,22 +151,43 @@ class OSW_TSV(LibraryBase):
         self._set(items, "PrecursorMz", self._str_mass(pepmass))
         self._set(items, "PrecursorCharge", pre_charge)
         self._set(items, "FullUniModPeptideName", labeled_seq)
-        self._set(items, "ProteinName", protein)
-        self._set(items, "UniprotID", protein)
-        self._set(items, "PeptideSequence", seq)
-        pep_id = "%d_%s_%d"%(pep_count, labeled_seq, pre_charge)
-        self._set(items, "transition_group_id", pep_id)
-        self._set(items, "PeptideGroupLabel", pep_id)
+        proteins = protein.split(';')
+        proname = ""
+        uniprot = ""
+        genes = ""
+        for protein in proteins:
+            pro_items = protein.split('|')
+            if len(pro_items) < 3 or len(pro_items) > 4:
+                proname += protein + ';'
+                uniprot += protein + ';'
+                genes += protein + ';'
+            else:
+                if len(pro_items) == 4: 
+                    uniprot += pro_items[1] + ';'
+                    proname += pro_items[2] + ';'
+                    genes += pro_items[3] + ';'
+                else:
+                    uniprot += pro_items[1] + ';'
+                    proname += pro_items[2] + ';'
+                    genes += ""
+        self._set(items, "ProteinName", proname.strip(';'))
+        self._set(items, "UniprotID", uniprot.strip(";"))
+        self._set(items, "Genes", genes.strip(";"))
+        self._set(items, "transition_group_id", pep_count)
         self._set(items, "RetentionTime", RT/60)
         for mz, inten, charge, ion_type, site in zip(masses, intens, charges, types, sites):
             transition_count += 1
             self._set(items, "FragmentType", ion_type)
             self._set(items, "FragmentCharge", charge)
-            self._set(items, "ProductMz", self._str_mass(mz))
+            if len(ion_type) > 2:
+                self._set(items, "FragmentLossType", ion_type[2:])
+            else:
+                self._set(items, "FragmentLossType", "noloss")
+            self._set(items, "FragmentMz", self._str_mass(mz))
             self._set(items, "LibraryIntensity", self._str_inten(inten))
             self._set(items, 'FragmentSeriesNumber', site)
-            self._set(items, 'Annotation', '%s%d^%d/0'%(ion_type, site, charge) if charge > 1 else '%s%d/0'%(ion_type, site))
-            self._set(items, "transition_name", "%d_%s_%d"%(transition_count, labeled_seq, pre_charge))
+            self._set(items, 'Annotation', '%s%d%s^%d/0'%(ion_type[:1], site, ion_type[1:], charge) if charge > 1 else '%s%d%s/0'%(ion_type[:1], site, ion_type[1:]))
+            self._set(items, "transition_name", transition_count)
             
             _file.write(self.col_sep.join(items)+"\n")
         return pep_count, transition_count
@@ -190,11 +210,10 @@ class OSW_TSV(LibraryBase):
             
             if seq in peptide_to_protein_dict:
                 protein = peptide_to_protein_dict[seq]
-                protein = str(protein.count("/")+1)+"/"+protein
             elif pepinfo in self.peptide_dict:
                 protein = self.peptide_dict[pepinfo][-1]
             else:
-                protein = "1/pDeep"
+                protein = "pDeep"
                 
             count, transition_count = self._write_one_peptide(f, seq, mod, charge, pepmass, masses, intens, charges, types, sites, RT, protein, count, transition_count)
             if count%10000 == 0:

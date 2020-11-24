@@ -16,7 +16,7 @@ def _from_fasta(_seqlib, fasta, proteins = None):
         protein_list = None
     peptide_list, protein_dict = _seqlib.PeptideListFromFasta(fasta, protein_list)
     infer_pep_pro_dict = infer_protein([seq for seq, mod, charge in peptide_list], protein_dict)
-    pep_pro_dict = dict([(peptide,"/".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in infer_pep_pro_dict.items()])
+    pep_pro_dict = dict([(peptide,";".join([pro_ac for pro_ac, site in prosites])) for peptide, prosites in infer_pep_pro_dict.items()])
     return peptide_list, pep_pro_dict
     
 def _read_lib(lib_reader, infile):
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument('--fixmod', type=str, default="Carbamidomethyl[C]", required=False, help='Fixed modifications, seperated by ",".')
     parser.add_argument('--min_varmod', type=int, default=0, required=False, help="Peptides with >= n modifications are kept, default: n=0.")
     parser.add_argument('--max_varmod', type=int, default=1, required=False, help="Peptides with <= n modifications are kept, default: n=1.")
-    parser.add_argument('--keep_mod', type=str, default="", required=False, help='Only peptides with PTM specified here are kept, default: all, seperated by ",".')
+    parser.add_argument('--keep_mod', type=str, default="", required=False, help='Only peptides with PTM specified here are kept (fasta only), default: all, seperated by ",".')
     
     parser.add_argument('--target_proteins', type=str, required=False, help='Only considering these proteins (ACs or uniprot IDs) when input is fasta, seperated by "," (default: use all proteins).')
     

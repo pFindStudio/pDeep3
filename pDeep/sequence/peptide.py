@@ -25,10 +25,20 @@ def read_protein_list(fasta, protein_list):
             line = f.readline()
             if line == "":
                 if seq is not None:
+                    if ' GN=' in de: 
+                        gn_idx = de.find(' GN=')+4
+                        end = de.find(' ', gn_idx)
+                        if end == -1: ac += '|'+de[gn_idx:]
+                        else: ac += '|'+de[gn_idx:end]
                     ret[ac] = Protein(ac, de, seq)
                 break
             elif line.startswith(">"):
                 if seq is not None:
+                    if ' GN=' in de: 
+                        gn_idx = de.find(' GN=')+4
+                        end = de.find(' ', gn_idx)
+                        if end == -1: ac += '|'+de[gn_idx:]
+                        else: ac += '|'+de[gn_idx:end]
                     ret[ac] = Protein(ac, de, seq)
                 line = line.strip()[1:].replace("\t", " ")
                 items = line.split(" ", 1)
@@ -56,10 +66,20 @@ def read_all_proteins(fasta):
             line = f.readline()
             if line == "":
                 if len(seq) > 0:
+                    if ' GN=' in de: 
+                        gn_idx = de.find(' GN=')+4
+                        end = de.find(' ', gn_idx)
+                        if end == -1: ac += '|'+de[gn_idx:]
+                        else: ac += '|'+de[gn_idx:end]
                     ret[ac] = Protein(ac, de, seq)
                 break
             elif line.startswith(">"):
                 if len(seq) > 0:
+                    if ' GN=' in de: 
+                        gn_idx = de.find(' GN=')+4
+                        end = de.find(' ', gn_idx)
+                        if end == -1: ac += '|'+de[gn_idx:]
+                        else: ac += '|'+de[gn_idx:end]
                     ret[ac] = Protein(ac, de, seq)
                 line = line.strip()[1:].replace("\t", " ")
                 items = line.split(" ", 1)
