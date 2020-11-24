@@ -92,7 +92,12 @@ def tune(param):
             pcc = pearsonr(pred_list ,real_list)[0]
             print("[pDeep Info] PCC of test RT = %.3f"%pcc)
             return pcc
-        test_RT_buckets = load_data.load_RT_file_as_buckets(param.tune_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
+        if type(param.test_RT_psmlabel) is list:
+            test_RT_buckets = {}
+            for psmlabel in param.test_RT_psmlabel:
+                test_RT_buckets = merge_buckets(test_RT_buckets, load_data.load_RT_file_as_buckets(psmlabel, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel))
+        else:
+            test_RT_buckets = load_data.load_RT_file_as_buckets(param.test_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
         eval_model(pdeep_RT, test_RT_buckets)
         print("[pDeep Info] testing RT time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
@@ -116,7 +121,12 @@ def tune(param):
     if param.tune_RT_psmlabel and pdeep_RT:
         try:
             start_time = time.perf_counter()
-            train_buckets = load_data.load_RT_file_as_buckets(param.tune_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
+            if type(param.tune_RT_psmlabel) is list:
+                train_buckets = {}
+                for psmlabel in param.tune_RT_psmlabel:
+                    train_buckets = merge_buckets(train_buckets,load_data.load_RT_file_as_buckets(psmlabel, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel))
+            else:
+                train_buckets = load_data.load_RT_file_as_buckets(param.tune_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_tune_per_psmlabel)
             pdeep_RT.TrainModel(train_buckets, save_as=param.tune_RT_save_as)
             print("[pDeep Info] RT tuning time = %.3fs"%(time.perf_counter() - start_time))
         except:

@@ -213,10 +213,11 @@ class Seq2Tensor:
         items = f.readline().strip().split('\t')
         headeridx = dict(zip(items, range(len(items))))
         
-        if 'RT' in headeridx: RTidx = headeridx['RT']
-        elif 'RTInSeconds' in headeridx: RTidx = headeridx['RTInSeconds']
+        if 'RTInSeconds' in headeridx: RTidx = headeridx['RTInSeconds']
+        elif 'RT' in headeridx: RTidx = headeridx['RT']
+        elif 'RetentionTime' in headeridx: RTidx = headeridx['RetentionTime']
         else: 
-            raise Exception("[Error] no column 'RT' or 'RTInSeconds' in '{}'".format(ion_file))
+            raise Exception("[Error] no column 'RT' or 'RTInSeconds' or 'RetentionTime' in '{}'".format(ion_file))
             # print("[Error] all 'RT's will be assigned as zero")
 
         sample_count = 0

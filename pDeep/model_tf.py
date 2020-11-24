@@ -289,10 +289,9 @@ class pDeepModel:
                 batch_time_cost.append(end_time - start_time)
                 batch_cost.append(cost)
 
-                print(
-                    "Epoch = {:3d}, peplen = {:3d}, Batch={:5d}, size = {:4d}, cost = {:.5f}, time = {:.2f}s\r".format(
-                        epoch + 1, peplen[0], ith_batch, len(x), cost, end_time - start_time), end="")
-            mean_costs.append("Epoch = {:3d}, mean_cost = {:.5f}, time = {:.2f}s".format(epoch + 1, np.mean(batch_cost),
+                print("Epoch={:3d}, peplen={:3d}, Batch={:4d}, size={:4d}, cost={:.4f}, time={:.2f}s".format(
+                        epoch + 1, peplen[0], ith_batch, len(x), cost, end_time - start_time), end="\r")
+            mean_costs.append("Epoch={:3d}, mean_cost={:.4f}, time={:.2f}s".format(epoch + 1, np.mean(batch_cost),
                                np.sum(batch_time_cost)))
             print("\n" + mean_costs[-1])
 

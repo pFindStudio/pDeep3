@@ -21,7 +21,7 @@ test_WB = "/home/pfind/pDeepDev/pDeepData/phospho/WenBoPhos/test", 30, "QE"
 param = pDeepParameter()
 param.model = "tmp/model/pretrain-180921-modloss-mod8D.ckpt"
 # param.model = "tmp/model/pretrain-phos.ckpt"
-param.RT_model = ""
+param.RT_model = "RT-model.ckpt"
 
 param.fixmod = "Carbamidomethyl[C],Oxidation[M]".split(",")
 param.varmod = "Phospho[Y],Phospho[S],Phospho[T]".split(",")
