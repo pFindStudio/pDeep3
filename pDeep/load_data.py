@@ -78,4 +78,5 @@ def load_peptide_file_as_buckets(filename, config, nce, instrument='QE'):
 def load_peptides_as_buckets(peptide_list, config, nce, instrument='QE'):
     seq2vec = Seq2Tensor_noCheck(conf=config, prev=1, next=1)
     buckets = seq2vec.Featurize_buckets_predict(peptide_list, nce, instrument)
+    print("[pDeep Warn] {} precursors are ignored due to invalid AAs (i.e. BJOUXZ)".format(seq2vec.not_considered_seq_count))
     return buckets

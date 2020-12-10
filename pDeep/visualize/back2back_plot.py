@@ -50,7 +50,13 @@ class b2bplot(object):
         
         self.show_plot = True
         self.raw_reader = None
-        
+    
+    def set_tol(self, tol, tol_type):
+        self.tol = tol
+        self.tol_type = tol_type
+        self.mz_bin_size = 0.02
+        if self.tol_type.upper() == "DA":
+            self.mz_bin_size = self.tol
     
     def CalcTol(self, mz):
         if self.tol_type.upper() == "DA":

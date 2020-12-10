@@ -12,6 +12,7 @@ from .pyRawFileReader.MGFFileReader import pFindMGFReader
 from .spectral_library.encyclopedia.dlib import DLIB
 from .spectral_library.openswath.tsv import OSW_TSV
 from .spectral_library.spectronaut.csv import SPN_CSV
+from .spectral_library.diann.diann_csv import DIANN_CSV
 from .spectral_library.openswath.pqp import PQP,OSW
 from .spectral_library.msp import MSP
 from .search_engine.maxquant_reader import MaxQuantEvidenceReader as MQE
@@ -32,6 +33,7 @@ _register_library_writer('.dlib', DLIB)
 _register_library_writer('.pqp', PQP)
 _register_library_writer('.tsv', OSW_TSV)
 _register_library_writer('.csv', SPN_CSV)
+_register_library_writer('.diann.csv', DIANN_CSV)
 _register_library_writer('.msp', MSP)
 
 def __get_raw_reader(raw_path):
@@ -94,7 +96,7 @@ def ReadModSeq(spikein_file):
         for line in lines:
             items = line.strip().split("\t")
             seq = items[headidx['peptide']]
-            mod = items[headidx['modinfo']]
+            mod = items[headidx['modinfo']].strip(';')
             charge = items[headidx['charge']]
             if 'protein' in headidx: protein = items[headidx['protein']]
             else: protein = 'pDeep'
@@ -102,8 +104,9 @@ def ReadModSeq(spikein_file):
             pep_pro_dict[seq] = protein
     return peptide_list, pep_pro_dict
     
-def Set_pDeepParam(param, model, instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4):
+def Set_pDeepParam(param, model, RT_model="", instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4, epochs=2):
     param.model = model
+    if RT_model: param.RT_model = RT_model
     param.predict_instrument = instrument
     param.predict_nce = ce
     if psmLabel: 
@@ -118,7 +121,7 @@ def Set_pDeepParam(param, model, instrument = "QE", ce = 27, psmLabel = "", psmR
     if psmLabel_test: param.test_psmlabels.append(psmLabel_test)
     param.n_tune_per_psmlabel = n_tune
     param.threads = threads
-    param.epochs = 2
+    param.epochs = epochs
     param.GenerateConfig()
     return param
         

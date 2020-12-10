@@ -8,7 +8,7 @@ or
 ## System requirements
 python >= 3.5
 
-tensorflow == 1.13.1 (tensorflow >= 1.13.0)
+tensorflow == 1.13.1 (tensorflow >= 1.13.0, tensorfow 1.x.x is only supported by python <= 3.7)
 
 .NET Framework == 4.5.2 (or higher? to execute psmLabel)
 

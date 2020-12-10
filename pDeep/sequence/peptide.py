@@ -135,64 +135,74 @@ def get_fix_mod(seq, fixmod_dict):
     return mod, s
 
 
-def add_modifications(peptide, varmod_dict, fixmod_dict, min_var_mod=0, max_var_mod=1):
+def add_modifications(peptide, varmod_dict, fixmod_dict, targetmod_dict, min_var_mod=0, max_var_mod=1, target_min=0, target_max=0):
     modseq_list = []
     mod, s = get_fix_mod(peptide, fixmod_dict)
 
-    def add_mod_recur(modseq_list, peptide, i, mod, varmod_dict, min_var_mod, max_var_mod, n_var_mod):
+    def add_mod_recur(modseq_list, peptide, i, mod, mod_dict, min_mod, max_mod, n_mod):
         if len(modseq_list) >= max_peptidoforms_per_seq:
             return
         elif i > len(peptide):
-            if n_var_mod >= min_var_mod: modseq_list.append((peptide, mod.strip(";"))) #last protein
+            if n_mod >= min_mod: modseq_list.append((peptide, mod)) #last protein
         else:
-            add_mod_recur(modseq_list, peptide, i + 1, mod, varmod_dict, min_var_mod, max_var_mod, n_var_mod)
-            if peptide[i - 1] in varmod_dict and n_var_mod < max_var_mod:
-                for modname in varmod_dict[peptide[i - 1]]:
-                    add_mod_recur(modseq_list, peptide, i + 1, mod + modstr(modname, i), varmod_dict, min_var_mod,
-                                  max_var_mod, n_var_mod + 1)
-
+            add_mod_recur(modseq_list, peptide, i + 1, mod, mod_dict, min_mod, max_mod, n_mod)
+            if peptide[i - 1] in mod_dict and n_mod < max_mod:
+                for modname in mod_dict[peptide[i - 1]]:
+                    add_mod_recur(modseq_list, peptide, i + 1, mod + modstr(modname, i), mod_dict, min_mod,
+                                  max_mod, n_mod + 1)
+    
+    # add target mod
+    target_modseq_list = []
     if s == 0:
-        add_mod_recur(modseq_list, peptide, 1, mod, varmod_dict, min_var_mod, max_var_mod, 0)
-        if anyNterm in varmod_dict and max_var_mod > 0:
-            for modname in varmod_dict[anyNterm]:
-                add_mod_recur(modseq_list, peptide, 2, mod + modstr(modname, 0), varmod_dict, min_var_mod, max_var_mod, 1)
+        add_mod_recur(target_modseq_list, peptide, 1, mod, targetmod_dict, target_min, target_max, 0)
+        if anyNterm in targetmod_dict and target_max > 0:
+            for modname in targetmod_dict[anyNterm]:
+                add_mod_recur(target_modseq_list, peptide, 2, mod + modstr(modname, 0), targetmod_dict, target_min, target_max, 1)
     else:
-        add_mod_recur(modseq_list, peptide, 2, mod, varmod_dict, min_var_mod, max_var_mod, 0)
+        add_mod_recur(target_modseq_list, peptide, 2, mod, targetmod_dict, target_min, target_max, 0)
+    
+    if not targetmod_dict and target_min == 0 and not target_modseq_list:
+        target_modseq_list.append((peptide, mod))
+
+    # add var mod
+    for peptide, mod in target_modseq_list:
+        if s == 0:
+            add_mod_recur(modseq_list, peptide, 1, mod, varmod_dict, min_var_mod, max_var_mod, 0)
+            if anyNterm in varmod_dict and max_var_mod > 0:
+                for modname in varmod_dict[anyNterm]:
+                    add_mod_recur(modseq_list, peptide, 2, mod + modstr(modname, 0), varmod_dict, min_var_mod, max_var_mod, 1)
+        else:
+            add_mod_recur(modseq_list, peptide, 2, mod, varmod_dict, min_var_mod, max_var_mod, 0)
     return modseq_list
 
 
-def get_peptidoforms(pep_set, varmod_dict, fixmod_dict, keep_mod, min_var_mod=0, max_var_mod=1):
+def get_peptidoforms(pep_set, varmod_dict, fixmod_dict, targetmod_dict, min_var_mod=0, max_var_mod=1, target_min=0, target_max=0):
     modseq_list = []
     for pep in pep_set:
-        new_list = add_modifications(pep, varmod_dict, fixmod_dict, min_var_mod, max_var_mod)
-        for seq, modstr in new_list:
-            kept = False
-            for mod in modstr.split(';'):
-                if mod[mod.find(',')+1:] in keep_mod:
-                    kept = True
-                    break
-            if kept: 
-                modseq_list.append((seq, modstr))
+        modseq_list.extend(add_modifications(pep, varmod_dict, fixmod_dict, targetmod_dict, min_var_mod, max_var_mod, target_min, target_max))
     return modseq_list
     
-def get_peptidoforms_from_pep2pro_dict(pep2pro_dict, varmod, fixmod, min_var_mod=0, max_var_mod=1):
+def get_peptidoforms_from_pep2pro_dict(pep2pro_dict, varmod, fixmod, target_mod = "", min_var_mod=0, max_var_mod=1, target_min=0, target_max=0):
     varmod_dict = generate_mod_dict(varmod)
     fixmod_dict = generate_mod_dict(fixmod)
+    targetmod_dict = generate_mod_dict(target_mod)
     peptide_set = set(pep2pro_dict.keys())
-    return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, min_var_mod, max_var_mod)
+    return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, targetmod_dict, min_var_mod, max_var_mod, target_min, target_max)
     
-def get_peptidoforms_from_fasta(fasta, digest_config, varmod, fixmod, keep_mod, min_var_mod=0, max_var_mod=1, protein_list = None):
+def get_peptidoforms_from_fasta(fasta, digest_config, varmod, fixmod, target_mod = "", min_var_mod=0, max_var_mod=1, target_min=0, target_max=0, protein_list = None):
     varmod_dict = generate_mod_dict(varmod)
     fixmod_dict = generate_mod_dict(fixmod)
+    targetmod_dict = generate_mod_dict(target_mod)
     if not protein_list: protein_dict = read_all_proteins(fasta)
     else: protein_dict = read_protein_list(fasta, protein_list)
     peptide_set = set()
     for ac, protein in protein_dict.items():
         peptide_set = digest(protein, peptide_set, digest_config)
-    return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, keep_mod, min_var_mod, max_var_mod), protein_dict
+    return get_peptidoforms(peptide_set, varmod_dict, fixmod_dict, targetmod_dict, min_var_mod, max_var_mod, target_min, target_max), protein_dict
 
 if __name__ == "__main__":
     fixmod_dict = gen_mod_dict(["fix[C]"])
-    varmod_dict = gen_mod_dict(["a[A]", "nt[ProteinN-term]", "pS[S]", "nt[AnyN-term]"])
-    l = get_peptidoforms(set(["ABCDEFSSABK", "ABCDEFSSABCK"]), varmod_dict, fixmod_dict, "")
-    print(l)
+    varmod_dict = gen_mod_dict(["a[A]"])
+    target_dict = gen_mod_dict(["pS[S]"])
+    l = get_peptidoforms(set(["ABCDEFSSABK", "ABCDEFSSABCK"]), varmod_dict, fixmod_dict, target_dict, 0, 1, 1, 1)
+    for i in l: print(i)

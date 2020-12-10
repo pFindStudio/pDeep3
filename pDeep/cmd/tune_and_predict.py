@@ -178,7 +178,7 @@ def predict(pdeep, param, peptide_list = None):
     else:
         pep_buckets = load_data.load_peptide_file_as_buckets(param.predict_input, param.config, nce=param.predict_nce, instrument=param.predict_instrument)
     time_now = time.perf_counter()
-    print(f"[pDeep Info] encoding time = {time_now - start_time} seconds")
+    print(f"[pDeep Info] encoding time = {time_now - start_time:.3f} seconds")
 
     start_time = time.perf_counter()
     print("[pDeep Info] predicting ...")
@@ -219,7 +219,7 @@ def run(pDeep_cfg, peptide_list = None):
         RT_buckets = None
     return pDeepPrediction(param.config, pep_buckets, predict_buckets, RT_buckets)
     
-def get_prediction(input_peptides, tune_psm = None, raw = None, n_psm_to_tune = 1000, instrument = 'QE', ce = 27, model = "HCD"):
+def get_prediction(input_peptides, tune_psm=None, raw=None, n_psm_to_tune=1000, instrument='QE', ce=27, model="HCD", test_psmlabel="", epochs=2):
     '''
     @param input_peptides, could be a peptide list [(sequence1, mod1, charge1), (seq2, mod2, charge2), ...] to be predicted, or a file containing tab seperated head "peptide, modinfo, charge, protein".
     @param tune_psm evidence.txt (MaxQuant), .spectra (pFind) or *.psm.txt/*.txt (with tab seperated head "raw_name, scan, peptide, modinfo, charge, RTInSeconds") file for tuning pDeep and pDeepRT. If it is None, the model will not be tuned (default None).
@@ -258,6 +258,10 @@ def get_prediction(input_peptides, tune_psm = None, raw = None, n_psm_to_tune = 
         else:
             psmRT = tune_psm
             psmLabel = Run_psmLabel(psmRT, raw)
+    
+    elif tune_psm and tune_psm.endswith('.psmlabel'):
+        psmRT = None
+        psmLabel = tune_psm
     else:
         psmLabel = None
         psmRT = None
@@ -266,7 +270,7 @@ def get_prediction(input_peptides, tune_psm = None, raw = None, n_psm_to_tune = 
     
     param = pDeepParameter()
         
-    param = Set_pDeepParam(param, model, instrument=instrument, ce=ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=",".join(mod_set), varmod=None, n_tune=n_psm_to_tune)
+    param = Set_pDeepParam(param, model, instrument=instrument, ce=ce, psmLabel=psmLabel, psmRT=psmRT, psmLabel_test=test_psmlabel, fixmod=",".join(mod_set), varmod=None, n_tune=n_psm_to_tune, epochs=epochs)
     
     return run(param, peptide_list) #return a pDeep.prediction.pDeepPrediction object
     

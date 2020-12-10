@@ -164,13 +164,15 @@ class SequenceLibrary(object):
                        min_peptide_len = 6, max_peptide_len = 60,
                        min_precursor_mz = 400, max_precursor_mz = 1200, 
                        varmod = "Oxidation[M]", fixmod = "Carbamidomethyl[C]", 
-                       min_varmod = 0, max_varmod = 1, keep_mod = ""):
+                       min_varmod = 0, max_varmod = 1, target_mod = "",
+                       target_mod_min = 0, target_mod_max = 0, max_miss_cleave=2):
         self.ion_calc = PeptideIonCalculator()
         self.digest_config = DigestConfig()
         self.min_charge = min_charge
         self.max_charge = max_charge
         self.digest_config.min_len = min_peptide_len
         self.digest_config.max_len = max_peptide_len
+        self.digest_config.max_miss_cleave = max_miss_cleave
         self.min_precursor_mz = min_precursor_mz
         self.max_precursor_mz = max_precursor_mz
         self.varmod = varmod
@@ -178,12 +180,9 @@ class SequenceLibrary(object):
         self.min_varmod = min_varmod
         self.max_varmod = max_varmod
 
-        if keep_mod: 
-            self.keep_mod = set([mod for mod in keep_mod.split(',')])
-        else:
-            self.keep_mod = set([mod for mod in varmod.split(',')])
-            self.keep_mod.update([mod for mod in fixmod.split(',')])
-            self.keep_mod.add("")
+        self.target_mod = target_mod
+        self.target_mod_min = target_mod_min
+        self.target_mod_max = target_mod_max
         
         self.peptide_list = []
         self.protein_dict = {}
@@ -214,7 +213,7 @@ class SequenceLibrary(object):
                 items = line.strip().split("\t")
                 if protein_idx is not None: self.pep2pro_dict[items[headidx['peptide']]] = items[protein_idx]
                 else: self.pep2pro_dict[items[headidx['peptide']]] = "pDeep"
-        modseq_list = get_peptidoforms_from_pep2pro_dict(self.pep2pro_dict, self.varmod, self.fixmod, self.keep_mod, self.min_varmod, self.max_varmod)
+        modseq_list = get_peptidoforms_from_pep2pro_dict(self.pep2pro_dict, self.varmod, self.fixmod, self.min_varmod, self.max_varmod, self.target_mod)
         print(fmt%(len(modseq_list)))
         
         self._add_charge(modseq_list)
@@ -225,7 +224,7 @@ class SequenceLibrary(object):
         self.peptide_list = []
         self.protein_dict = {}
         fmt = "Generated %d peptides (length: {} to {})".format(self.digest_config.min_len, self.digest_config.max_len)
-        modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmod, self.fixmod, self.keep_mod, self.min_varmod, self.max_varmod, protein_list)
+        modseq_list, self.protein_dict = get_peptidoforms_from_fasta(fasta, self.digest_config, self.varmod, self.fixmod, self.target_mod, self.min_varmod, self.max_varmod, self.target_mod_min, self.target_mod_max, protein_list)
         print(fmt%(len(modseq_list)))
         
         self._add_charge(modseq_list)

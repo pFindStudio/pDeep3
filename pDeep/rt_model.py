@@ -323,6 +323,7 @@ class pDeepRTModel:
 
     # model
     def LoadModel(self, model_file):
+        print('[pDeep Info] RT model = {}'.format(model_file))
         if use_tf2: tf.compat.v1.disable_eager_execution()
         # run multiple instances:
         # g = tf.Graph()

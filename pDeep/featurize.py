@@ -58,6 +58,8 @@ class Seq2Tensor:
         self.max_samples = 100000000
         self.__parse_instrument__()
 
+        self.not_considered_seq_count = 0
+
     def __parse_instrument__(self):
         self.instrument_feature = {}
         for i in range(self.config.max_instrument_num):
@@ -143,7 +145,9 @@ class Seq2Tensor:
                     return None
             if var_mod_count < self.config.min_var_mod_num or var_mod_count > self.config.max_var_mod_num: return None
             if not self.config.CheckFixMod(peptide, modlist): return None
-        if not CheckPeptide(peptide): return None
+        if not CheckPeptide(peptide):
+            self.not_considered_seq_count += 1
+            return None
 
         x = _seq2vector(peptide, self.prev, self.next)
         mod_x = []
@@ -320,7 +324,8 @@ class Seq2Tensor_noCheck(Seq2Tensor):
 
     def FeaturizeOnePeptide(self, peptide, modinfo):
         if not CheckPeptide(peptide):
-            print("[W] invalid aa in sequence '%s', ignore this peptide!" % peptide)
+            self.not_considered_seq_count += 1
+            # print("[W] invalid aa in sequence '%s', ignore this peptide!" % peptide)
             return None
 
         x = _seq2vector(peptide, self.prev, self.next)

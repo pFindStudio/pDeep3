@@ -68,26 +68,30 @@ class OSW_TSV(LibraryBase):
     def __init__(self, pDeepParam = None):
         super(self.__class__, self).__init__(pDeepParam)
         self.peptide_dict = {}
-        self.head = "PrecursorMz	FragmentMz	RetentionTime	LibraryIntensity	FullUniModPeptideName	PrecursorCharge	FragmentType	FragmentCharge	FragmentSeriesNumber	FragmentLossType	UniprotID	ProteinName	Genes	transition_name	transition_group_id	decoy	Annotation".split("\t")
+        self.head = "PrecursorMz	FragmentMz	Tr_recalibrated	LibraryIntensity	FullUniModPeptideName	PrecursorCharge	FragmentType	FragmentCharge	FragmentSeriesNumber	FragmentLossType	UniprotID	ProteinName	Genes	decoy".split("\t")
         self.headidx = dict(zip(self.head, range(len(self.head))))
         
-        self.set_precision(10, 1)
+        self.set_precision(10, 1, 3)
         self.decoy = "pseudo_reverse" #or reverse
         self.col_sep = "\t"
         
-    def set_precision(self, mass_precision, inten_precision):
+    def set_precision(self, mass_precision, inten_precision, RT_precision):
         self._mass_precision = mass_precision
         self._inten_precision = inten_precision
         self._min_rel_inten = float("1e-%d"%inten_precision)
         self._mass_template = "{:.%df}"%mass_precision
         self._inten_template = "{:.%df}"%inten_precision
         self._peak_template = "{:.%df} {:.%df}"%(mass_precision, inten_precision)
+        self._RT_template = '{:.%df}'%(RT_precision)
         
     def _str_mass(self, mass):
         return self._mass_template.format(mass)
         
     def _str_inten(self, inten):
         return self._inten_template.format(inten)
+
+    def _str_RT(self, RT):
+        return self._RT_template.format(RT)
         
     def _init_row(self):
         items = ["0"] * len(self.head)
@@ -173,11 +177,11 @@ class OSW_TSV(LibraryBase):
         self._set(items, "ProteinName", proname.strip(';'))
         self._set(items, "UniprotID", uniprot.strip(";"))
         self._set(items, "Genes", genes.strip(";"))
-        self._set(items, "transition_group_id", pep_count)
+        # self._set(items, "transition_group_id", pep_count)
         self._set(items, "RetentionTime", RT/60)
         for mz, inten, charge, ion_type, site in zip(masses, intens, charges, types, sites):
             transition_count += 1
-            self._set(items, "FragmentType", ion_type)
+            self._set(items, "FragmentType", ion_type[0])
             self._set(items, "FragmentCharge", charge)
             if len(ion_type) > 2:
                 self._set(items, "FragmentLossType", ion_type[2:])
@@ -186,8 +190,8 @@ class OSW_TSV(LibraryBase):
             self._set(items, "FragmentMz", self._str_mass(mz))
             self._set(items, "LibraryIntensity", self._str_inten(inten))
             self._set(items, 'FragmentSeriesNumber', site)
-            self._set(items, 'Annotation', '%s%d%s^%d/0'%(ion_type[:1], site, ion_type[1:], charge) if charge > 1 else '%s%d%s/0'%(ion_type[:1], site, ion_type[1:]))
-            self._set(items, "transition_name", transition_count)
+            # self._set(items, 'Annotation', '%s%d%s^%d/0'%(ion_type[:1], site, ion_type[1:], charge) if charge > 1 else '%s%d%s/0'%(ion_type[:1], site, ion_type[1:]))
+            # self._set(items, "transition_name", transition_count)
             
             _file.write(self.col_sep.join(items)+"\n")
         return pep_count, transition_count

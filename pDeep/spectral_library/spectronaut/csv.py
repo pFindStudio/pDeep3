@@ -14,6 +14,7 @@ _mod_dict = {
     "Phospho[S]": "[Phospho (STY)]",
     "Phospho[T]": "[Phospho (STY)]",
     "Phospho[Y]": "[Phospho (STY)]",
+    "GlyGly[K]": "[GlyGly (K)]",
 }
 
 def NCtermLoss(peptide, modinfo):
@@ -35,10 +36,19 @@ def NCtermLoss(peptide, modinfo):
             else:
                 XtermLoss[site-1] = mod
         if not Nterm: XtermLoss = XtermLoss[::-1]
+        if XtermLoss[0] == 'Phospho[S]': XtermLoss[0] = 'Phospho'
+        elif XtermLoss[0] == 'Phospho[T]': XtermLoss[0] = 'Phospho'
+        elif XtermLoss[0] == 'GlyGly[K]': XtermLoss[0] = 'GlyGly'
+        elif XtermLoss[0] == 'Oxidation[M]': XtermLoss[0] = 'Oxidation'
+
         for i in range(1, len(XtermLoss)):
-            if XtermLoss[i].startswith("Phospho") or XtermLoss[i-1].startswith("Phospho"):
+            if XtermLoss[i] == "Phospho[S]" or XtermLoss[i-1] == "Phospho":
                 XtermLoss[i] = "Phospho"
-            elif XtermLoss[i].startswith("Oxidation") or XtermLoss[i-1].startswith("Oxidation"):
+            elif XtermLoss[i] == "Phospho[T]" or XtermLoss[i-1] == "Phospho":
+                XtermLoss[i] = "Phospho"
+            elif XtermLoss[i] == 'GlyGly[K]' or XtermLoss[i-1] == 'GlyGly':
+                XtermLoss[i] = 'GlyGly'
+            elif XtermLoss[i] == "Oxidation[M]" or XtermLoss[i-1] == "Oxidation":
                 XtermLoss[i] = "Oxidation"
         for i in range(len(XtermLoss)):
             if XtermLoss[i] == "Phospho": XtermLoss[i] = "H3PO4"
@@ -81,10 +91,25 @@ class SPN_CSV(OSW_TSV):
         super(OSW_TSV, self).__init__(pDeepParam)
         
         self.peptide_dict = {}
-        self.head = "PrecursorMz	FragmentMz	iRT	RelativeFragmentIntensity	StrippedPeptide	ModifiedPeptide	LabeledPeptide	PrecursorCharge	ProteinName	ProteinId	FragmentType	FragmentCharge	FragmentNumber	FragmentLossType".split("\t")
+        self.head = []
+        self.head.append("PrecursorMz")
+        self.head.append("iRT")
+        self.head.append("PrecursorCharge")
+        self.head.append("StrippedPeptide")
+        self.head.append("ModifiedPeptide")
+        self.head.append("FragmentMz")
+        self.head.append("RelativeIntensity")
+        self.head.append("FragmentType")
+        self.head.append("FragmentCharge")
+        self.head.append("FragmentNumber")
+        self.head.append("FragmentLossType")
+        self.head.append("ProteinName")
+        self.head.append("ProteinGroups")
+        self.head.append("UniprotID")
+        self.head.append("Genes")
         self.headidx = dict(zip(self.head, range(len(self.head))))
         
-        self.set_precision(10, 4)
+        self.set_precision(10, 4, 3)
         self.decoy = None
         self.col_sep = ","
         
@@ -144,11 +169,31 @@ class SPN_CSV(OSW_TSV):
         self._set(items, "PrecursorMz", self._str_mass(pepmass))
         self._set(items, "PrecursorCharge", pre_charge)
         self._set(items, "ModifiedPeptide", labeled_seq)
-        self._set(items, "LabeledPeptide", labeled_seq)
-        self._set(items, "ProteinName", protein)
-        self._set(items, "ProteinId", protein)
         self._set(items, "StrippedPeptide", seq)
-        self._set(items, "iRT", RT/60)
+        self._set(items, "iRT", self._str_RT(RT/60))
+        proteins = protein.split(';')
+        proname = ""
+        uniprot = ""
+        genes = ""
+        for protein in proteins:
+            pro_items = protein.split('|')
+            if len(pro_items) < 3 or len(pro_items) > 4:
+                proname += protein + ';'
+                uniprot += protein + ';'
+                genes += protein + ';'
+            else:
+                if len(pro_items) == 4: 
+                    uniprot += pro_items[1] + ';'
+                    proname += pro_items[2] + ';'
+                    genes += pro_items[3] + ';'
+                else:
+                    uniprot += pro_items[1] + ';'
+                    proname += pro_items[2] + ';'
+                    genes += ""
+        self._set(items, "ProteinName", proname.strip(';'))
+        self._set(items, "UniprotID", uniprot.strip(";"))
+        self._set(items, "Genes", genes.strip(";"))
+        self._set(items, "ProteinGroups", uniprot.strip(';'))
         for mz, inten, charge, ion_type, site in zip(masses, intens, charges, types, sites):
             transition_count += 1
             if '-' in ion_type:
@@ -156,14 +201,14 @@ class SPN_CSV(OSW_TSV):
                 # loss_type = "H3PO4"
                 if ion_type[0] == 'b': loss_type = NtermLoss[site-1]
                 elif ion_type[0] == 'y': loss_type = CtermLoss[site-1]
-                if not loss_type: loss_type = ion_type[ion_type.find('-')+1:].lower()
+                else: loss_type = ion_type[ion_type.find('-')+1:].lower()
             else:
                 loss_type = "noloss"
                 
             self._set(items, "FragmentType", ion_type[0])
             self._set(items, "FragmentCharge", charge)
             self._set(items, "FragmentMz", self._str_mass(mz))
-            self._set(items, "RelativeFragmentIntensity", self._str_inten(inten))
+            self._set(items, "RelativeIntensity", self._str_inten(inten))
             self._set(items, 'FragmentNumber', site)
             self._set(items, 'FragmentLossType', loss_type)
             
@@ -173,7 +218,7 @@ class SPN_CSV(OSW_TSV):
         
     def UpdateByPrediction(self, _prediction, peptide_to_protein_dict = {}):
         self.decoy = False
-        f = open(self.tsv_file, "w")
+        f = open(self.tsv_file, "w", 128*1024*1024)
         f.write(self.col_sep.join(self.head)+"\n")
         print("[pDeep Info] updating csv ...")
         transition_count = 0
