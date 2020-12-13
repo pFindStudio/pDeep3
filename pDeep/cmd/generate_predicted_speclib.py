@@ -89,6 +89,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--instrument', type=str, default="QE", required=False, help='Instrument type for prediction.')
     parser.add_argument('--ce', type=float, default=27, required=False, help='Collision energy for prediction.')
+    parser.add_argument('--grid_ins_ce_search',type=int, default=0, require=False, help="Grid search for optimal instrument and ce values.")
     
     parser.add_argument('--decoy', type=str, choices=['reverse','pseudo_reverse','no_decoy'], default='reverse', help='Decoy method when generating OpenSWATH PQP file.')
     
@@ -221,7 +222,7 @@ if __name__ == "__main__":
     if psmLabel:
         Sort_psmLabel(psmLabel)
         
-    param = Set_pDeepParam(param, model=args.model, RT_model=args.RT_model, instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod, psmLabel_test=psmLabel, n_tune=args.n_tune_psm)
+    param = Set_pDeepParam(param, model=args.model, RT_model=args.RT_model, instrument=args.instrument, ce=args.ce, psmLabel=psmLabel, psmRT=psmRT, fixmod=args.fixmod, varmod=args.varmod, psmLabel_test=psmLabel, n_tune=args.n_tune_psm, grid_ins_ce_search=args.grid_ins_ce_search)
     
     prediction = tune_and_predict.run(param, peptide_list)
     

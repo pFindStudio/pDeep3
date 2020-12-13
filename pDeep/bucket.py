@@ -1,15 +1,28 @@
 import sys
 
 import numpy as np
+from .config.pDeep_config import Common_Config
+
+instrument_list = Common_Config().instrument_list
+instrument_num = Common_Config().max_instrument_num
+instrument_dict = dict(zip(instrument_list, range(len(instrument_list))))
 
 _feature_name_list = ['x', 'mod_x', 'charge', 'nce', 'instrument', 'y', 'pepinfo']
 _feature_name_dict = dict(zip(_feature_name_list, range(len(_feature_name_list))))
 bucket_item_dict = _feature_name_dict
 
+def change_instrument_nce(buckets, instrument, nce):
+    nce_idx = _feature_name_dict['nce']
+    ins_idx = _feature_name_dict['instrument']
+    ins_feature = np.zeros((1, instrument_num), dtype=np.int8)
+    ins_feature[0, instrument_dict[instrument]] = 1
+    for key, val in buckets.items():
+        buckets[key][nce_idx] = np.ones(val[nce_idx].shape[0])*nce/100.0
+        buckets[key][ins_idx] = np.repeat(ins_feature, val[ins_idx].shape[0], axis=0)
+    return buckets
 
 def get_data(one_bucket, name):
     return one_bucket[_feature_name_dict[name]]
-
 
 def set_mod_zero_buckets(buckets):
     mod_idx = _feature_name_dict['mod_x']

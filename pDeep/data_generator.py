@@ -104,11 +104,12 @@ def ReadModSeq(spikein_file):
             pep_pro_dict[seq] = protein
     return peptide_list, pep_pro_dict
     
-def Set_pDeepParam(param, model, RT_model="", instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4, epochs=2):
+def Set_pDeepParam(param, model, RT_model="", instrument = "QE", ce = 27, psmLabel = "", psmRT = "", fixmod = "", varmod = "", n_tune=1000, psmLabel_test = "", threads = 4, epochs=2, grid_ins_ce_search=0):
     param.model = model
     if RT_model: param.RT_model = RT_model
     param.predict_instrument = instrument
     param.predict_nce = ce
+    param.grid_ins_ce_search = grid_ins_ce_search
     if psmLabel: 
         param.tune_psmlabels.append(psmLabel)
         param.tune_save_as = os.path.join(os.path.split(psmLabel)[0], "pDeep_tune.ckpt")

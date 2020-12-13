@@ -38,6 +38,7 @@ class pDeepParameter:
         self.predict_instrument = "QE"
         self.predict_nce = 27
         self.predict_output = "none"
+        self.grid_ins_ce_search = 0
 
         # tune parameters:
         self.tune_psmlabels = []

@@ -7,7 +7,7 @@ import tensorflow as tf
 from scipy.stats import pearsonr
 
 from ..parameter import pDeepParameter
-from ..bucket import peptide_as_key, merge_buckets
+from ..bucket import peptide_as_key, merge_buckets, change_instrument_nce, instrument_list
 from ..config import pDeep_config as pDconfig
 from .. import load_data as load_data
 from .. import evaluate as evaluate
@@ -44,13 +44,62 @@ def init_pdeep(param):
         
     return pdeep, pdeep_RT
 
+def eval_model(pdeep, buckets):
+    output_buckets = pdeep.Predict(buckets)
+    pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, buckets)
+    sim_names = ['PCC', 'SPC']
+    return evaluate.cum_plot([pcc, spc], sim_names, evaluate.thres_list)
+
+
+def eval_RT_model(pdeep_RT, buckets):
+    output_buckets = pdeep_RT.Predict(buckets)
+    pred_list = np.array([])
+    real_list = np.array([])
+    for key, val in output_buckets.items():
+        pred_list = np.append(pred_list, val)
+        real_list = np.append(real_list, buckets[key][-2])
+    pcc = pearsonr(pred_list ,real_list)[0]
+    print("[pDeep Info] PCC of test RT = %.3f"%pcc)
+    return pcc
+
+def grid_search_instrument_nce(pdeep, train_buckets):
+    start = time.perf_counter()
+    best_pcc = -100000
+    best_ins = ""
+    best_nce = 0
+    target = 'PCC90'
+    for ins in ['QE','Lumos']:
+        for nce in range(15, 40, 3):
+            train_buckets = change_instrument_nce(train_buckets, ins, nce)
+            sim_dict = eval_model(pdeep, train_buckets)
+            print('[pDeep Info] Grid search: instrument={}, nce={}, {}={}'.format(ins, nce, target, sim_dict[target]))
+            if sim_dict[target] > best_pcc:
+                best_ins = ins
+                best_nce = nce
+                best_pcc = sim_dict[target]
+    end = time.perf_counter()
+    print('[pDeep Info] Grid instrument and nce search time: {:.3f} seconds'.format(end-start))
+    print('[pDeep Info] Best instrumnet="{}", nce={}'.format(best_ins, best_nce))
+    return best_ins, best_nce
+
+
 def tune(param):
     nce = param.predict_nce
     instrument = param.predict_instrument
     pdeep, pdeep_RT = init_pdeep(param)
+
+    n_sample_for_grid = 1000
     
     if param.tune_psmlabels:
         pdeep.BuildTransferModel(param.model) # load the trainable pre-trained model
+        if param.grid_ins_ce_search:
+            train_buckets = load_data.load_plabel_as_buckets(param.tune_psmlabels, param.config, nce, instrument, max_n_samples=n_sample_for_grid)
+            instrument, nce = grid_search_instrument_nce(pdeep, train_buckets)
+            param.predict_instrument = instrument
+            param.predict_nce = nce
+            print("********************")
+            print('[pDeep Info] Switch instrumnet to "{}", nce to {}'.format(instrument, nce))
+            print("********************")
     else:
         pdeep.LoadModel(param.model) # no transfer learning
         
@@ -63,11 +112,6 @@ def tune(param):
     if param.test_psmlabels:
         print("\n############################\ntest of pre-trained model")
         start_time = time.perf_counter()
-        def eval_model(pdeep, buckets):
-            output_buckets = pdeep.Predict(buckets)
-            pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, buckets)
-            sim_names = ['PCC', 'SPC']
-            return evaluate.cum_plot([pcc, spc], sim_names, evaluate.thres_list)
         if not param.test_instruments or not param.test_nces:
             test_buckets = load_data.load_plabel_as_buckets(param.test_psmlabels, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
         else:
@@ -82,23 +126,13 @@ def tune(param):
     if param.test_RT_psmlabel:
         print("\n############################\ntest of pre-trained RT model")
         start_time = time.perf_counter()
-        def eval_model(pdeep_RT, buckets):
-            output_buckets = pdeep_RT.Predict(buckets)
-            pred_list = np.array([])
-            real_list = np.array([])
-            for key, val in output_buckets.items():
-                pred_list = np.append(pred_list, val)
-                real_list = np.append(real_list, buckets[key][-2])
-            pcc = pearsonr(pred_list ,real_list)[0]
-            print("[pDeep Info] PCC of test RT = %.3f"%pcc)
-            return pcc
         if type(param.test_RT_psmlabel) is list:
             test_RT_buckets = {}
             for psmlabel in param.test_RT_psmlabel:
                 test_RT_buckets = merge_buckets(test_RT_buckets, load_data.load_RT_file_as_buckets(psmlabel, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel))
         else:
             test_RT_buckets = load_data.load_RT_file_as_buckets(param.test_RT_psmlabel, param.config, nce, instrument, max_n_samples=param.n_test_per_psmlabel)
-        eval_model(pdeep_RT, test_RT_buckets)
+        eval_RT_model(pdeep_RT, test_RT_buckets)
         print("[pDeep Info] testing RT time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
         
@@ -139,11 +173,6 @@ def tune(param):
     if param.tune_psmlabels and param.test_psmlabels:
         print("\n############################\ntest of fine-tuned model")
         start_time = time.perf_counter()
-        def eval_model(pdeep, buckets):
-            output_buckets = pdeep.Predict(buckets)
-            pcc, cos, spc, kdt, SA = sim_calc.CompareRNNPredict_buckets(output_buckets, buckets)
-            sim_names = ['PCC', 'SPC']
-            return evaluate.cum_plot([pcc, spc], sim_names, evaluate.thres_list)
         eval_model(pdeep, test_buckets)
         print("[pDeep Info] testing time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
@@ -152,17 +181,7 @@ def tune(param):
     if param.tune_RT_psmlabel and pdeep_RT and param.test_RT_psmlabel:
         print("\n############################\ntest of fine-tuned RT model")
         start_time = time.perf_counter()
-        def eval_model(pdeep_RT, buckets):
-            output_buckets = pdeep_RT.Predict(buckets)
-            pred_list = np.array([])
-            real_list = np.array([])
-            for key, val in output_buckets.items():
-                pred_list = np.append(pred_list, val)
-                real_list = np.append(real_list, buckets[key][-2])
-            pcc = pearsonr(pred_list ,real_list)[0]
-            print("[pDeep Info] PCC of test RT = %.3f"%pcc)
-            return pcc
-        eval_model(pdeep_RT, test_RT_buckets)
+        eval_RT_model(pdeep_RT, test_RT_buckets)
         print("[pDeep Info] testing RT time = %.3fs"%(time.perf_counter() - start_time))
         print("\n")
     
@@ -219,7 +238,7 @@ def run(pDeep_cfg, peptide_list = None):
         RT_buckets = None
     return pDeepPrediction(param.config, pep_buckets, predict_buckets, RT_buckets)
     
-def get_prediction(input_peptides, tune_psm=None, raw=None, n_psm_to_tune=1000, instrument='QE', ce=27, model="HCD", test_psmlabel="", epochs=2):
+def get_prediction(input_peptides, tune_psm=None, raw=None, n_psm_to_tune=1000, instrument='QE', ce=27, model="HCD", test_psmlabel="", epochs=2, grid_ins_ce_search=0):
     '''
     @param input_peptides, could be a peptide list [(sequence1, mod1, charge1), (seq2, mod2, charge2), ...] to be predicted, or a file containing tab seperated head "peptide, modinfo, charge, protein".
     @param tune_psm evidence.txt (MaxQuant), .spectra (pFind) or *.psm.txt/*.txt (with tab seperated head "raw_name, scan, peptide, modinfo, charge, RTInSeconds") file for tuning pDeep and pDeepRT. If it is None, the model will not be tuned (default None).
@@ -270,7 +289,7 @@ def get_prediction(input_peptides, tune_psm=None, raw=None, n_psm_to_tune=1000, 
     
     param = pDeepParameter()
         
-    param = Set_pDeepParam(param, model, instrument=instrument, ce=ce, psmLabel=psmLabel, psmRT=psmRT, psmLabel_test=test_psmlabel, fixmod=",".join(mod_set), varmod=None, n_tune=n_psm_to_tune, epochs=epochs)
+    param = Set_pDeepParam(param, model, instrument=instrument, ce=ce, psmLabel=psmLabel, psmRT=psmRT, psmLabel_test=test_psmlabel, fixmod=",".join(mod_set), varmod=None, n_tune=n_psm_to_tune, epochs=epochs, grid_ins_ce_search=grid_ins_ce_search)
     
     return run(param, peptide_list) #return a pDeep.prediction.pDeepPrediction object
     
