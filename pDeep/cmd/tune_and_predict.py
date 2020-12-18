@@ -69,7 +69,7 @@ def grid_search_instrument_nce(pdeep, train_buckets):
     best_nce = 0
     target = 'PCC90'
     for ins in ['QE','Lumos']:
-        for nce in range(15, 40, 3):
+        for nce in range(15, 55, 3):
             train_buckets = change_instrument_nce(train_buckets, ins, nce)
             sim_dict = eval_model(pdeep, train_buckets)
             print('[pDeep Info] Grid search: instrument={}, nce={}, {}={}'.format(ins, nce, target, sim_dict[target]))
